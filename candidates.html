@@ -149,14 +149,15 @@
                     let stageColor = c.stage === '面试中' ? 'tag-blue' : 'tag-green';
                     let dateStr = c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '--';
                     tbody.innerHTML += `
-                        <tr>
+                        <tr onclick="viewDetail('${c.id}')" style="cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f4f8ff'" onmouseout="this.style.backgroundColor=''">
                             <td style="font-weight:500;">${c.name}</td>
                             <td>${c.job}</td>
                             <td><span class="tag ${stageColor}">${c.stage}</span></td>
                             <td style="color:var(--text-secondary);">${c.exp}</td>
                             <td style="color:var(--text-secondary);">${dateStr}</td>
-                            <td>
-                                <button class="btn" onclick="viewDetail('${c.id}')" style="padding:4px 12px; font-size:12px;">查看</button>
+                            <td style="white-space: nowrap;">
+                                <button class="btn" onclick="event.stopPropagation(); alert('已通知用人部门主管进行评估。');" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff;">推荐</button>
+                                <button class="btn btn-primary" onclick="event.stopPropagation(); alert('已向候选人发送面试邀约邮件。');" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none;">面试</button>
                             </td>
                         </tr>
                     `;
@@ -175,14 +176,15 @@
                     let stageColor = c.stage === '面试中' ? 'tag-blue' : 'tag-green';
                     let dateStr = c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '--';
                     tbody.innerHTML += `
-                        <tr>
+                        <tr onclick="viewDetail('${c.id}')" style="cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f4f8ff'" onmouseout="this.style.backgroundColor=''">
                             <td style="font-weight:500;">${c.name}</td>
                             <td>${c.job}</td>
                             <td><span class="tag ${stageColor}">${c.stage}</span></td>
                             <td style="color:var(--text-secondary);">${c.exp}</td>
                             <td style="color:var(--text-secondary);">${dateStr}</td>
-                            <td>
-                                <button class="btn" onclick="viewDetail('${c.id}')" style="padding:4px 12px; font-size:12px;">查看</button>
+                            <td style="white-space: nowrap;">
+                                <button class="btn" onclick="event.stopPropagation(); alert('已通知用人部门主管进行评估。');" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff;">推荐</button>
+                                <button class="btn btn-primary" onclick="event.stopPropagation(); alert('已向候选人发送面试邀约邮件。');" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none;">面试</button>
                             </td>
                         </tr>
                     `;
