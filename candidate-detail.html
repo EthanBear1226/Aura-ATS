@@ -148,7 +148,7 @@
             if (!id) return;
 
             try {
-                const response = await fetch(`http://localhost:8000/api/candidates/${id}`);
+                const response = await fetch(`http://localhost:8001/api/candidates/${id}`);
                 if (!response.ok) throw new Error("Candidate not found");
                 
                 const candidate = await response.json();
@@ -177,15 +177,45 @@
                 // PDF Viewer
                 if (candidate.pdf_path) {
                     // Prepend backend URL so it works when frontend is opened directly
-                    document.getElementById('pdf-viewer').src = `http://localhost:8000${candidate.pdf_path}`;
+                    document.getElementById('pdf-viewer').src = `http://localhost:8001${candidate.pdf_path}`;
                 } else {
                     document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif'>暂无附件</div>";
                 }
 
             } catch (e) {
-                console.error(e);
-                alert("获取详情失败，请检查后端 API。");
-                document.getElementById('cand-name').innerText = "加载失败";
+                console.warn("Backend API unavailable. Using mock data for Netlify demo.", e);
+                const mockCandidates = {
+                    "1": { name: "林慕风", job: "资深 AI 算法专家", stage: "面试中", exp: "8年 / 硕士", skills: ["PyTorch", "大模型微调", "Python", "分布式训练", "NLP"], raw_text: "【个人总结】\n拥有8年AI算法实战经验，曾主导亿级用户的核心推荐系统重构，精通多模态大模型的微调和部署。\n擅长使用PyTorch和C++，极强的工程落地能力，曾在顶会发表过两篇学术论文。", created_at: new Date().toISOString() },
+                    "2": { name: "苏婉清", job: "全栈开发工程师", stage: "初筛通过", exp: "3年 / 本科", skills: ["Vue3", "React", "Node.js", "FastAPI", "MySQL", "AWS"], raw_text: "【专业技能】\n熟悉前后端开发流程，熟练使用 Vue3 和 React 构建响应式前端，后端熟悉 Python(FastAPI) 和 Node.js。\n曾独立负责中型跨境电商平台的全栈开发与云端部署，代码规范严谨。", created_at: new Date().toISOString() },
+                    "3": { name: "陈浩宇", job: "B端高级产品经理", stage: "新投递", exp: "5年 / 硕士", skills: ["Axure", "SaaS架构", "数据分析", "敏捷开发", "跨部门协作"], raw_text: "【工作经历】\n5年B端SaaS产品设计经验，负责过年入千万级SaaS系统从0到1的商业孵化。\n具有敏锐的市场洞察力和极强的数据追踪分析能力，能高效串联业务与研发线并驱动敏捷落地。", created_at: new Date().toISOString() },
+                    "4": { name: "李晓彤", job: "HR 数据分析师", stage: "新投递", exp: "1年 / 本科", skills: ["Python", "SQL", "Tableau", "Excel高级", "数据可视化"], raw_text: "【项目经验】\n拥有1年大厂人力资源部门数据分析实习经验，熟练使用SQL和Python进行底层数据清理及分析。\n独立运用 Tableau 制作员工绩效及流失率可视化看板，多次为管理层提供数据支撑的汇报。", created_at: new Date().toISOString() }
+                };
+                
+                const candidate = mockCandidates[id] || mockCandidates["1"];
+                
+                document.getElementById('cand-name').innerText = candidate.name;
+                document.getElementById('cand-avatar').innerText = candidate.name.charAt(0) || 'U';
+                document.getElementById('cand-job').innerText = candidate.job;
+                document.getElementById('cand-stage').innerText = candidate.stage;
+                document.getElementById('cand-exp').innerText = `经验: ${candidate.exp}`;
+
+                let dateStr = candidate.created_at ? new Date(candidate.created_at).toLocaleString() : '刚刚';
+                document.getElementById('timeline-date').innerText = `${dateStr} · 系统自动处理`;
+
+                // Skills
+                if(candidate.skills && candidate.skills.length > 0) {
+                    const skillsDiv = document.getElementById('cand-skills');
+                    skillsDiv.innerHTML = '';
+                    candidate.skills.forEach(s => {
+                        skillsDiv.innerHTML += `<span class="tag tag-blue">${s}</span>`;
+                    });
+                }
+
+                // Raw Text
+                document.getElementById('cand-raw').innerText = candidate.raw_text || '暂无内容';
+                
+                // PDF Viewer Fallback
+                document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>演示模式 (脱机状态)</h4><p>当前运行在静态演示模式，无法加载本地 PDF 附件。</p></div>";
             }
         }
     </script>

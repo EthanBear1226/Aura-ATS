@@ -135,7 +135,7 @@
 
         async function loadCandidates() {
             try {
-                const response = await fetch('http://localhost:8000/api/candidates');
+                const response = await fetch('http://localhost:8001/api/candidates');
                 const candidates = await response.json();
                 const tbody = document.querySelector('#candidate-table tbody');
                 tbody.innerHTML = '';
@@ -162,9 +162,31 @@
                     `;
                 });
             } catch (error) {
-                console.error("Failed to load candidates", error);
+                console.warn("Backend API unavailable. Using mock data for Netlify demo.", error);
+                const candidates = [
+                    { id: 1, name: "林慕风", job: "资深 AI 算法专家", stage: "面试中", exp: "8年 / 硕士", created_at: new Date().toISOString() },
+                    { id: 2, name: "苏婉清", job: "全栈开发工程师", stage: "初筛通过", exp: "3年 / 本科", created_at: new Date().toISOString() },
+                    { id: 3, name: "陈浩宇", job: "B端高级产品经理", stage: "新投递", exp: "5年 / 硕士", created_at: new Date().toISOString() },
+                    { id: 4, name: "李晓彤", job: "HR 数据分析师", stage: "新投递", exp: "1年 / 本科", created_at: new Date().toISOString() }
+                ];
                 const tbody = document.querySelector('#candidate-table tbody');
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">获取数据失败，请检查后端 API 是否运行。</td></tr>';
+                tbody.innerHTML = '';
+                candidates.forEach(c => {
+                    let stageColor = c.stage === '面试中' ? 'tag-blue' : 'tag-green';
+                    let dateStr = c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '--';
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="font-weight:500;">${c.name}</td>
+                            <td>${c.job}</td>
+                            <td><span class="tag ${stageColor}">${c.stage}</span></td>
+                            <td style="color:var(--text-secondary);">${c.exp}</td>
+                            <td style="color:var(--text-secondary);">${dateStr}</td>
+                            <td>
+                                <button class="btn" onclick="viewDetail('${c.id}')" style="padding:4px 12px; font-size:12px;">查看</button>
+                            </td>
+                        </tr>
+                    `;
+                });
             }
         }
 
@@ -198,7 +220,7 @@
                 progressBar.style.width = '60%';
                 progressText.innerText = 'AI 模型深度解析中... (需等待几秒)';
                 
-                const response = await fetch('http://localhost:8000/api/parse-resume', {
+                const response = await fetch('http://localhost:8001/api/parse-resume', {
                     method: 'POST',
                     body: formData
                 });
