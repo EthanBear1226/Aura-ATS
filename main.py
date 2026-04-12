@@ -143,5 +143,7 @@ async def parse_resume(file: UploadFile = File(...), db: Session = Depends(get_d
         # cleanup file if failed and we might want to log it
         raise HTTPException(status_code=500, detail=str(e))
 
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
