@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura - 灵犀招聘 | 注册</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="auth-wrapper">
+        <div class="card auth-card">
+            <div class="auth-logo">Aura</div>
+            <div class="auth-subtitle">注册您的企业空间</div>
+            
+            <form class="auth-form" id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="company" placeholder="企业名称" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="工作邮箱" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="设置密码" required>
+                </div>
+                <button type="submit" class="btn btn-primary">注册并进入工作台</button>
+            </form>
+            
+            <div class="auth-links">
+                已有账号？ <a href="login.html">返回登录</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            localStorage.setItem('aura_user', JSON.stringify({ name: 'Admin', email: document.getElementById('email').value }));
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>

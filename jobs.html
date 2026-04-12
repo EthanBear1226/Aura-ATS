@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>职位管理 | Aura</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <style>
+        .jobs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        .job-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: var(--transition);
+        }
+        .job-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .job-card.inactive {
+            opacity: 0.6;
+        }
+        .funnel {
+            display: flex;
+            justify-content: space-between;
+            background: var(--bg-color);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+        }
+        .funnel-item {
+            text-align: center;
+        }
+        .funnel-num {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .funnel-label { color: var(--text-secondary); margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar-container"></aside>
+        <main class="main-content">
+            <header class="header" id="header-container"></header>
+            <div class="page-content">
+                <div style="display:flex; justify-content:space-between; margin-bottom:24px;">
+                    <h1 class="page-title" style="margin:0;">职位大厅</h1>
+                    <button class="btn btn-primary">+ 发布新职位</button>
+                </div>
+                
+                <div class="jobs-grid">
+                    <!-- Active Job -->
+                    <div class="card job-card">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <div style="font-size:18px; font-weight:600; margin-bottom:4px;">高级前端工程师</div>
+                                <div style="font-size:13px; color:var(--text-secondary);">研发部 · 深圳 · 3天前发布</div>
+                            </div>
+                            <span class="tag" style="background:#E8F8F5; color:#00B06B;">热招中</span>
+                        </div>
+                        
+                        <div class="funnel">
+                            <div class="funnel-item">
+                                <div class="funnel-num">12</div>
+                                <div class="funnel-label">新简历</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num">8</div>
+                                <div class="funnel-label">初筛过</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num">4</div>
+                                <div class="funnel-label">面试中</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num">1</div>
+                                <div class="funnel-label">发Offer</div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:8px; margin-top:auto;">
+                            <div style="width:24px; height:24px; border-radius:12px; background:#ccc; color:white; text-align:center; line-height:24px; font-size:12px;">HR</div>
+                            <span style="font-size:13px; color:var(--text-secondary);">负责人: HR 李</span>
+                        </div>
+                    </div>
+
+                    <!-- Active Job -->
+                    <div class="card job-card">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <div style="font-size:18px; font-weight:600; margin-bottom:4px;">数据分析师</div>
+                                <div style="font-size:13px; color:var(--text-secondary);">增长团队 · 北京 · 1周前发布</div>
+                            </div>
+                            <span class="tag" style="background:#E8F8F5; color:#00B06B;">热招中</span>
+                        </div>
+                        
+                        <div class="funnel">
+                            <div class="funnel-item">
+                                <div class="funnel-num">35</div>
+                                <div class="funnel-label">新简历</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num">12</div>
+                                <div class="funnel-label">初筛过</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num">8</div>
+                                <div class="funnel-label">面试中</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num">0</div>
+                                <div class="funnel-label">发Offer</div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:8px; margin-top:auto;">
+                            <div style="width:24px; height:24px; border-radius:12px; background:#ccc; color:white; text-align:center; line-height:24px; font-size:12px;">JM</div>
+                            <span style="font-size:13px; color:var(--text-secondary);">负责人: 经理 王</span>
+                        </div>
+                    </div>
+
+                    <!-- Inactive Job -->
+                    <div class="card job-card inactive">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <div style="font-size:18px; font-weight:600; margin-bottom:4px;">UI 设计师</div>
+                                <div style="font-size:13px; color:var(--text-secondary);">设计部 · 深圳 · 1个月前发布</div>
+                            </div>
+                            <span class="tag" style="background:#f0f0f0; color:#666;">已停招</span>
+                        </div>
+                        
+                        <div class="funnel">
+                            <div class="funnel-item">
+                                <div class="funnel-num" style="color:#666">120</div>
+                                <div class="funnel-label">新简历</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num" style="color:#666">30</div>
+                                <div class="funnel-label">初筛过</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num" style="color:#666">5</div>
+                                <div class="funnel-label">面试中</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num" style="color:#666">2</div>
+                                <div class="funnel-label">发Offer</div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:8px; margin-top:auto;">
+                            <div style="width:24px; height:24px; border-radius:12px; background:#ccc; color:white; text-align:center; line-height:24px; font-size:12px;">HR</div>
+                            <span style="font-size:13px; color:var(--text-secondary);">负责人: HR 李</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="assets/js/app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            renderSidebar('jobs');
+            renderHeader();
+        });
+    </script>
+</body>
+</html>

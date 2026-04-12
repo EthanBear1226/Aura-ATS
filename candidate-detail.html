@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>候选人详情 | Aura</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <style>
+        .detail-layout {
+            display: flex;
+            gap: 24px;
+            height: calc(100vh - 130px);
+        }
+        .profile-pane {
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+        }
+        .content-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        .avatar-lg {
+            width: 80px; height: 80px; border-radius: 40px;
+            background: var(--primary-color);
+            color: white; font-size: 32px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 16px;
+        }
+        .tabs {
+            display: flex; border-bottom: 1px solid var(--border-color);
+            padding: 0 16px; background: #fafafa;
+        }
+        .tab {
+            padding: 16px 24px; cursor: pointer; color: var(--text-secondary);
+            font-weight: 500; border-bottom: 2px solid transparent;
+        }
+        .tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .tab-content { padding: 24px; overflow-y: auto; flex: 1; display: none; }
+        .tab-content.active { display: block; }
+        
+        .skill-tag {
+            display: inline-block; padding: 4px 10px; background: #f0f0f0;
+            border-radius: 16px; font-size: 13px; margin: 0 8px 8px 0; color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar-container"></aside>
+        <main class="main-content">
+            <header class="header" id="header-container"></header>
+            <div class="page-content" style="padding-top: 16px;">
+                <div style="margin-bottom:16px;">
+                    <a href="candidates.html" style="color:var(--text-secondary); text-decoration:none; font-size:14px;">← 返回列表</a>
+                </div>
+                
+                <div class="detail-layout">
+                    <!-- Left Pane -->
+                    <div class="profile-pane">
+                        <div class="card" style="text-align:center; display:flex; flex-direction:column; align-items:center;">
+                            <div class="avatar-lg" id="cand-avatar">U</div>
+                            <h2 style="margin:0 0 8px 0;" id="cand-name">加载中</h2>
+                            <div style="color:var(--text-secondary); font-size:14px; margin-bottom:16px;" id="cand-job">--</div>
+                            <span class="tag tag-blue" style="margin-bottom:24px;" id="cand-stage">--</span>
+                            
+                            <div style="width:100%; display:flex; gap:8px;">
+                                <button class="btn btn-primary" style="flex:1;">安排面试</button>
+                                <button class="btn" style="flex:1; color:#FF3B30;">淘汰</button>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 style="font-size:16px; margin-top:0;">基本信息</h3>
+                            <div style="font-size:14px; color:var(--text-secondary); line-height:2;">
+                                <div id="cand-exp">经验: --</div>
+                                <div>电话: 138-xxxx-xxxx</div>
+                                <div>邮箱: candidate@example.com</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Pane -->
+                    <div class="content-pane">
+                        <div class="tabs">
+                            <div class="tab active" onclick="switchTab(0)">在线简历 (AI解析)</div>
+                            <div class="tab" onclick="switchTab(1)">招聘动态</div>
+                            <div class="tab" onclick="switchTab(2)">附件预览</div>
+                        </div>
+                        
+                        <div class="tab-content active" id="tab-0">
+                            <h3>核心技能</h3>
+                            <div id="ai-skills">
+                                <span class="skill-tag">加载中...</span>
+                            </div>
+                            <h3>简历原文参考</h3>
+                            <div id="ai-experience" style="font-size:14px; color:var(--text-secondary); white-space: pre-wrap;">
+                                --
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" id="tab-1">
+                            <div style="padding-left:16px; border-left:2px solid var(--border-color);">
+                                <div style="margin-bottom:24px; position:relative;">
+                                    <div style="position:absolute; left:-23px; top:2px; width:10px; height:10px; border-radius:5px; background:var(--primary-color);"></div>
+                                    <div style="font-weight:500;">入库成功</div>
+                                    <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;" id="timeline-date">刚刚 · 系统自动处理</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="tab-2" style="padding:0;">
+                            <iframe id="pdf-viewer" style="width:100%; height:100%; border:none;" src=""></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="assets/js/app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            renderSidebar('candidates');
+            renderHeader();
+            loadDetail();
+        });
+
+        function switchTab(index) {
+            document.querySelectorAll('.tab').forEach((t, i) => {
+                t.classList.toggle('active', i === index);
+            });
+            document.querySelectorAll('.tab-content').forEach((tc, i) => {
+                tc.classList.toggle('active', i === index);
+            });
+        }
+
+        async function loadDetail() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('id');
+            if (!id) return;
+
+            try {
+                const response = await fetch(`http://localhost:8000/api/candidates/${id}`);
+                if (!response.ok) throw new Error("Candidate not found");
+                
+                const candidate = await response.json();
+                
+                document.getElementById('cand-name').innerText = candidate.name;
+                document.getElementById('cand-avatar').innerText = candidate.name.charAt(0) || 'U';
+                document.getElementById('cand-job').innerText = candidate.job;
+                document.getElementById('cand-stage').innerText = candidate.stage;
+                document.getElementById('cand-exp').innerText = `经验: ${candidate.exp}`;
+                
+                let dateStr = candidate.created_at ? new Date(candidate.created_at).toLocaleString() : '刚刚';
+                document.getElementById('timeline-date').innerText = `${dateStr} · 系统自动处理`;
+
+                // Skills
+                if(candidate.skills && candidate.skills.length > 0) {
+                    document.getElementById('ai-skills').innerHTML = candidate.skills.map(s => `<span class="skill-tag">${s}</span>`).join('');
+                } else {
+                    document.getElementById('ai-skills').innerHTML = '<span class="skill-tag">暂无提取到的技能</span>';
+                }
+
+                // Raw Text
+                if(candidate.raw_text) {
+                    document.getElementById('ai-experience').innerText = candidate.raw_text.substring(0, 1500) + '... (节选)';
+                }
+
+                // PDF Viewer
+                if (candidate.pdf_path) {
+                    // Prepend backend URL so it works when frontend is opened directly
+                    document.getElementById('pdf-viewer').src = `http://localhost:8000${candidate.pdf_path}`;
+                } else {
+                    document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif'>暂无附件</div>";
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert("获取详情失败，请检查后端 API。");
+                document.getElementById('cand-name').innerText = "加载失败";
+            }
+        }
+    </script>
+</body>
+</html>
