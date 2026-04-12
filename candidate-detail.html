@@ -96,12 +96,30 @@
                         </div>
                         
                         <div class="tab-content active" id="tab-0">
-                            <h3>核心技能</h3>
-                            <div id="ai-skills">
+                            <div style="background: #f4f8ff; border: 1px solid #d0e1ff; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+                                <h3 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center; gap: 8px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                                    AI 简历概括
+                                </h3>
+                                <div id="ai-summary" style="font-size: 14px; color: #333; line-height: 1.6;">
+                                    加载中...
+                                </div>
+                            </div>
+
+                            <h3>💡 核心技能提取</h3>
+                            <div id="ai-skills" style="margin-bottom: 24px;">
                                 <span class="skill-tag">加载中...</span>
                             </div>
-                            <h3>简历原文参考</h3>
-                            <div id="ai-experience" style="font-size:14px; color:var(--text-secondary); white-space: pre-wrap;">
+
+                            <h3>📊 AI 深度解析与建议</h3>
+                            <div style="background: #fdfaf6; border: 1px solid #f2e6d9; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+                                <div id="ai-analysis" style="font-size: 14px; color: #555; line-height: 1.6;">
+                                    加载中...
+                                </div>
+                            </div>
+
+                            <h3>📄 简历原文参考</h3>
+                            <div id="ai-experience" style="font-size:14px; color:var(--text-secondary); white-space: pre-wrap; background: #fafafa; padding: 16px; border-radius: 8px; border: 1px solid #eee;">
                                 --
                             </div>
                         </div>
@@ -164,10 +182,14 @@
 
                 // Skills
                 if(candidate.skills && candidate.skills.length > 0) {
-                    document.getElementById('ai-skills').innerHTML = candidate.skills.map(s => `<span class="skill-tag">${s}</span>`).join('');
+                    document.getElementById('ai-skills').innerHTML = candidate.skills.map(s => `<span class="skill-tag tag-blue">${s}</span>`).join('');
                 } else {
                     document.getElementById('ai-skills').innerHTML = '<span class="skill-tag">暂无提取到的技能</span>';
                 }
+
+                // AI Summary & Analysis
+                document.getElementById('ai-summary').innerText = candidate.ai_summary || "暂无 AI 概括数据。";
+                document.getElementById('ai-analysis').innerHTML = candidate.ai_analysis || "暂无 AI 深度分析数据。";
 
                 // Raw Text
                 if(candidate.raw_text) {
@@ -185,10 +207,38 @@
             } catch (e) {
                 console.warn("Backend API unavailable. Using mock data for Netlify demo.", e);
                 const mockCandidates = {
-                    "1": { name: "林慕风", job: "资深 AI 算法专家", stage: "面试中", exp: "8年 / 硕士", skills: ["PyTorch", "大模型微调", "Python", "分布式训练", "NLP"], raw_text: "【个人总结】\n拥有8年AI算法实战经验，曾主导亿级用户的核心推荐系统重构，精通多模态大模型的微调和部署。\n擅长使用PyTorch和C++，极强的工程落地能力，曾在顶会发表过两篇学术论文。", created_at: new Date().toISOString() },
-                    "2": { name: "苏婉清", job: "全栈开发工程师", stage: "初筛通过", exp: "3年 / 本科", skills: ["Vue3", "React", "Node.js", "FastAPI", "MySQL", "AWS"], raw_text: "【专业技能】\n熟悉前后端开发流程，熟练使用 Vue3 和 React 构建响应式前端，后端熟悉 Python(FastAPI) 和 Node.js。\n曾独立负责中型跨境电商平台的全栈开发与云端部署，代码规范严谨。", created_at: new Date().toISOString() },
-                    "3": { name: "陈浩宇", job: "B端高级产品经理", stage: "新投递", exp: "5年 / 硕士", skills: ["Axure", "SaaS架构", "数据分析", "敏捷开发", "跨部门协作"], raw_text: "【工作经历】\n5年B端SaaS产品设计经验，负责过年入千万级SaaS系统从0到1的商业孵化。\n具有敏锐的市场洞察力和极强的数据追踪分析能力，能高效串联业务与研发线并驱动敏捷落地。", created_at: new Date().toISOString() },
-                    "4": { name: "李晓彤", job: "HR 数据分析师", stage: "新投递", exp: "1年 / 本科", skills: ["Python", "SQL", "Tableau", "Excel高级", "数据可视化"], raw_text: "【项目经验】\n拥有1年大厂人力资源部门数据分析实习经验，熟练使用SQL和Python进行底层数据清理及分析。\n独立运用 Tableau 制作员工绩效及流失率可视化看板，多次为管理层提供数据支撑的汇报。", created_at: new Date().toISOString() }
+                    "1": { 
+                        name: "林慕风", job: "资深 AI 算法专家", stage: "面试中", exp: "8年 / 硕士", 
+                        skills: ["PyTorch", "大模型微调", "Python", "分布式训练", "NLP"], 
+                        ai_summary: "候选人拥有8年以上的AI算法开发与落地经验，学术与工程能力双优。曾主导过亿级用户系统的推荐架构重构，具备多模态大模型的微调实战经验，是团队技术攻坚的绝佳人选。",
+                        ai_analysis: "✅ 亮点：<br>1. 具备亿级高并发系统的工程落地经验，这在AI算法工程师中非常稀缺。<br>2. 有顶会论文发表，证明其对前沿算法有持续跟进和研究能力。<br>⚠️ 风险：<br>暂未体现带队管理经验，可能更偏向技术专家（IC）路线，如果该岗位需要大量团队管理工作，需在面试中着重考察。<br>🎯 面试建议：重点考察大模型微调的实际业务收益，以及其负责模块在整体架构中的比重。",
+                        raw_text: "【个人总结】\n拥有8年AI算法实战经验，曾主导亿级用户的核心推荐系统重构，精通多模态大模型的微调和部署。\n擅长使用PyTorch和C++，极强的工程落地能力，曾在顶会发表过两篇学术论文。", 
+                        created_at: new Date().toISOString() 
+                    },
+                    "2": { 
+                        name: "苏婉清", job: "全栈开发工程师", stage: "初筛通过", exp: "3年 / 本科", 
+                        skills: ["Vue3", "React", "Node.js", "FastAPI", "MySQL", "AWS"], 
+                        ai_summary: "候选人具备3年开发经验，技能栈全面，涵盖现代主流前后端框架（Vue3/React + Node.js/FastAPI）。有独立负责中型商业项目（跨境电商）全生命周期的实战经验，业务落地能力强。",
+                        ai_analysis: "✅ 亮点：<br>1. 能够独立完成全栈项目开发与 AWS 云端部署，具备独立作战能力。<br>2. 代码规范意识较强，适合快速迭代的敏捷团队。<br>⚠️ 风险：<br>工作年限仅3年，且多为独立负责项目，可能在大规模团队协作、复杂系统架构设计方面的经验略显不足。<br>🎯 面试建议：考察其面对高并发、复杂状态管理时的解决方案，以及对系统性能优化的思考。",
+                        raw_text: "【专业技能】\n熟悉前后端开发流程，熟练使用 Vue3 和 React 构建响应式前端，后端熟悉 Python(FastAPI) 和 Node.js。\n曾独立负责中型跨境电商平台的全栈开发与云端部署，代码规范严谨。", 
+                        created_at: new Date().toISOString() 
+                    },
+                    "3": { 
+                        name: "陈浩宇", job: "B端高级产品经理", stage: "新投递", exp: "5年 / 硕士", 
+                        skills: ["Axure", "SaaS架构", "数据分析", "敏捷开发", "跨部门协作"], 
+                        ai_summary: "候选人深耕B端SaaS产品领域5年，拥有千万级营收产品的从0到1孵化经验。具备极强的数据驱动意识和跨团队协调能力，是一位懂商业、懂业务的成熟产品经理。",
+                        ai_analysis: "✅ 亮点：<br>1. 有从0到1孵化千万级营收产品的成功案例，商业变现逻辑清晰。<br>2. 具备优秀的数据分析能力，不盲目依赖直觉，注重敏捷迭代。<br>⚠️ 风险：<br>业务跨度较大，需确认其过往经验是否能快速复用到我司当前的行业赛道中。<br>🎯 面试建议：深挖其在千万级产品孵化过程中的关键决策点（为什么这么做？如果重来会怎么优化？），以验证其产品方法论的深度。",
+                        raw_text: "【工作经历】\n5年B端SaaS产品设计经验，负责过年入千万级SaaS系统从0到1的商业孵化。\n具有敏锐的市场洞察力和极强的数据追踪分析能力，能高效串联业务与研发线并驱动敏捷落地。", 
+                        created_at: new Date().toISOString() 
+                    },
+                    "4": { 
+                        name: "李晓彤", job: "HR 数据分析师", stage: "新投递", exp: "1年 / 本科", 
+                        skills: ["Python", "SQL", "Tableau", "Excel高级", "数据可视化"], 
+                        ai_summary: "候选人为拥有1年大厂实习经验的新人，掌握SQL、Python等核心数据处理工具，并能熟练使用Tableau进行业务可视化展示。对于人力资源数据有较好的理解。",
+                        ai_analysis: "✅ 亮点：<br>1. 技术栈（Python/SQL/Tableau）在初级岗位中属于顶配，数据处理基础扎实。<br>2. 有大厂实习背书，且实际产出了可视化看板并向管理层汇报，沟通与表达能力过关。<br>⚠️ 风险：<br>经验尚浅，对复杂业务场景的深度洞察能力需要时间培养。<br>🎯 面试建议：出具一道公司现有的实际数据分析场景题，考察其将“业务诉求”转化为“数据指标”的逻辑思维能力。",
+                        raw_text: "【项目经验】\n拥有1年大厂人力资源部门数据分析实习经验，熟练使用SQL和Python进行底层数据清理及分析。\n独立运用 Tableau 制作员工绩效及流失率可视化看板，多次为管理层提供数据支撑的汇报。", 
+                        created_at: new Date().toISOString() 
+                    }
                 };
                 
                 const candidate = mockCandidates[id] || mockCandidates["1"];
@@ -204,15 +254,21 @@
 
                 // Skills
                 if(candidate.skills && candidate.skills.length > 0) {
-                    const skillsDiv = document.getElementById('cand-skills');
-                    skillsDiv.innerHTML = '';
-                    candidate.skills.forEach(s => {
-                        skillsDiv.innerHTML += `<span class="tag tag-blue">${s}</span>`;
-                    });
+                    const skillsDiv = document.getElementById('ai-skills');
+                    if(skillsDiv) {
+                        skillsDiv.innerHTML = '';
+                        candidate.skills.forEach(s => {
+                            skillsDiv.innerHTML += `<span class="skill-tag tag-blue">${s}</span>`;
+                        });
+                    }
                 }
 
+                // AI Summary & Analysis
+                document.getElementById('ai-summary').innerText = candidate.ai_summary || "暂无 AI 概括数据。";
+                document.getElementById('ai-analysis').innerHTML = candidate.ai_analysis || "暂无 AI 深度分析数据。";
+
                 // Raw Text
-                document.getElementById('cand-raw').innerText = candidate.raw_text || '暂无内容';
+                document.getElementById('ai-experience').innerText = candidate.raw_text || '暂无内容';
                 
                 // PDF Viewer Fallback
                 document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>演示模式 (脱机状态)</h4><p>当前运行在静态演示模式，无法加载本地 PDF 附件。</p></div>";
