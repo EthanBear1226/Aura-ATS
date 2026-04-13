@@ -74,7 +74,7 @@
             <div class="page-content">
                 <div class="candidates-header">
                     <h1 class="page-title" style="margin:0;">候选人管理</h1>
-                    <button class="btn btn-primary" onclick="openModal()">+ 智能解析简历</button>
+                    <button class="btn btn-primary" onclick="openModal()">+ 添加候选人</button>
                 </div>
                 
                 <div class="card" style="padding: 0; overflow: hidden;">
@@ -157,7 +157,8 @@
                             <td style="color:var(--text-secondary);">${dateStr}</td>
                             <td style="white-space: nowrap;">
                                 <button class="btn" onclick="event.stopPropagation(); alert('已通知用人部门主管进行评估。');" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff;">推荐</button>
-                                <button class="btn btn-primary" onclick="event.stopPropagation(); alert('已向候选人发送面试邀约邮件。');" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none;">面试</button>
+                                <button class="btn btn-primary" onclick="event.stopPropagation(); alert('已向候选人发送面试邀约邮件。');" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none; margin-right: 4px;">面试</button>
+                                <button class="btn" onclick="event.stopPropagation(); deleteCandidate('${c.id}')" style="padding:4px 12px; font-size:12px; color: #FF3B30; border-color: #FF3B30; background: #fff;">删除</button>
                             </td>
                         </tr>
                     `;
@@ -184,7 +185,8 @@
                             <td style="color:var(--text-secondary);">${dateStr}</td>
                             <td style="white-space: nowrap;">
                                 <button class="btn" onclick="event.stopPropagation(); alert('已通知用人部门主管进行评估。');" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff;">推荐</button>
-                                <button class="btn btn-primary" onclick="event.stopPropagation(); alert('已向候选人发送面试邀约邮件。');" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none;">面试</button>
+                                <button class="btn btn-primary" onclick="event.stopPropagation(); alert('已向候选人发送面试邀约邮件。');" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none; margin-right: 4px;">面试</button>
+                                <button class="btn" onclick="event.stopPropagation(); deleteCandidate('${c.id}')" style="padding:4px 12px; font-size:12px; color: #FF3B30; border-color: #FF3B30; background: #fff;">删除</button>
                             </td>
                         </tr>
                     `;
@@ -194,6 +196,27 @@
 
         function viewDetail(id) {
             window.location.href = `candidate-detail.html?id=${id}`;
+        }
+
+        async function deleteCandidate(id) {
+            if(!confirm('确定要删除该候选人以及关联的简历附件吗？删除后无法恢复。')) return;
+            
+            try {
+                const response = await fetch(`http://localhost:8000/api/candidates/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if(response.ok) {
+                    alert('删除成功');
+                    loadCandidates(); // Refresh the list
+                } else {
+                    const data = await response.json();
+                    alert(`删除失败: ${data.detail || '未知错误'}`);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('删除失败，请检查网络或后端服务');
+            }
         }
 
         function openModal() { document.getElementById('uploadModal').classList.add('active'); }

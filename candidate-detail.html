@@ -73,7 +73,7 @@
                             
                             <div style="width:100%; display:flex; gap:8px;">
                                 <button class="btn btn-primary" style="flex:1;">安排面试</button>
-                                <button class="btn" style="flex:1; color:#FF3B30;">淘汰</button>
+                                <button class="btn" style="flex:1; color:#FF3B30;" onclick="deleteCurrentCandidate()">删除</button>
                             </div>
                         </div>
                         
@@ -263,6 +263,30 @@
                 
                 // PDF Viewer Fallback
                 document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>演示模式 (脱机状态)</h4><p>当前运行在静态演示模式，无法加载本地 PDF 附件。</p></div>";
+            }
+        }
+        async function deleteCurrentCandidate() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('id');
+            if(!id) return;
+            
+            if(!confirm('确定要删除该候选人以及关联的简历附件吗？删除后无法恢复。')) return;
+            
+            try {
+                const response = await fetch(`http://localhost:8000/api/candidates/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if(response.ok) {
+                    alert('删除成功');
+                    window.location.href = 'candidates.html';
+                } else {
+                    const data = await response.json();
+                    alert(`删除失败: ${data.detail || '未知错误'}`);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('删除失败，请检查网络或后端服务');
             }
         }
     </script>

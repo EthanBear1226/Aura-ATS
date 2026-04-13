@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>王浩然-算法工程师简历</title>
+    <style>
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #333; line-height: 1.6; font-size: 14px; }
+        .header { text-align: center; margin-bottom: 25px; }
+        .name { font-size: 26px; font-weight: bold; margin-bottom: 5px; letter-spacing: 2px; }
+        .contact { font-size: 13px; color: #666; }
+        .section-title { font-size: 16px; font-weight: bold; border-bottom: 2px solid #2c3e50; color: #2c3e50; margin-top: 25px; padding-bottom: 4px; margin-bottom: 12px; text-transform: uppercase; }
+        .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; margin-top: 12px; }
+        .item-sub { display: flex; justify-content: space-between; margin-top: 4px; font-size: 13.5px; color: #444; }
+        ul { padding-left: 22px; margin-top: 8px; margin-bottom: 15px; }
+        li { margin-bottom: 6px; text-align: justify; }
+        b { color: #222; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="name">王浩然 Haoran Wang</div>
+        <div class="contact">haoranwang_ai@email.com | (+86) 186 5555 6666 | 求职意向：算法工程师 (NLP/大语言模型方向)</div>
+    </div>
+
+    <div class="section-title">教育经历 EDUCATION</div>
+    
+    <div class="item-header">
+        <span>哈尔滨工业大学 Harbin Institute of Technology | 计算机学院</span>
+        <span>2024.9 - 2026.6 | 哈尔滨</span>
+    </div>
+    <div class="item-sub">
+        <span>计算机科学与技术 硕士研究生 (在读) | 自然语言处理 (NLP) 方向</span>
+        <span>GPA: 3.8/4.0</span>
+    </div>
+    <div class="item-header">
+        <span>西安电子科技大学 Xidian University</span>
+        <span>2020.9 - 2024.6 | 西安</span>
+    </div>
+    <div class="item-sub">
+        <span>数据科学与大数据技术 学士</span>
+        <span>GPA: 3.85/4.0 (保送研究生)</span>
+    </div>
+
+    <div class="section-title">实习经历 INTERNSHIP EXPERIENCE</div>
+
+    <div class="item-header">
+        <span>百度 | 深度学习技术及应用国家工程研究中心 算法实习生</span>
+        <span>2025.6 - 2025.11 | 北京</span>
+    </div>
+    <ul>
+        <li>参与垂直领域（医疗/法律）开源大语言模型的微调 (Fine-tuning) 工作，负责构建并清洗约 50GB 的高质量指令微调数据集 (Instruction Tuning Data)。</li>
+        <li>基于 PyTorch 及 Hugging Face 框架，探索 LoRA、P-Tuning v2 等参数高效微调方法，在保证模型泛化能力的前提下，降低了 30% 的训练显存占用。</li>
+        <li>编写并优化评估脚本，利用 ROUGE, BLEU 及 LLM-as-a-Judge 机制对微调后模型的输出进行效果评测，模型在领域基准测试中提升了 4 个绝对百分点。</li>
+    </ul>
+
+    <div class="section-title">项目经历 RESEARCH & PROJECTS</div>
+
+    <div class="item-header">
+        <span>基于 RAG 的企业私有知识库问答系统 | 核心开发者</span>
+        <span>2024.10 - 2025.4</span>
+    </div>
+    <ul>
+        <li>从零搭建检索增强生成 (RAG) 链路，处理包括 PDF、Word 及其它非结构化文本在内的企业内部文档，实现文本分块 (Chunking) 与向量化。</li>
+        <li>采用 LangChain 框架结合 Milvus 向量数据库进行高维检索，并融合传统的 BM25 稀疏检索实现混合检索 (Hybrid Search)，将 Top-3 召回率提升至 88%。</li>
+        <li>设计并迭代系统提示词 (System Prompt)，有效抑制了生成模型在长文本问答场景中的“幻觉 (Hallucination)”现象。</li>
+    </ul>
+
+    <div class="section-title">论文与专利 PUBLICATIONS</div>
+    <ul>
+        <li><i>"Enhancing Long-Context Retrieval in LLMs via Dynamic Chunking"</i> (第一作者，在投 ACL 2026).</li>
+    </ul>
+
+    <div class="section-title">技能与专业知识 SKILLS & EXPERTISE</div>
+    <ul>
+        <li><b>编程语言：</b> 精通 Python；熟悉 C++ 及 Linux 服务器日常操作指令。</li>
+        <li><b>算法与框架：</b> 扎实的机器学习与深度学习基础（Transformer 架构等）；熟练使用 PyTorch, Hugging Face (Transformers, PEFT), LangChain, LlamaIndex 等开源框架。</li>
+    </ul>
+
+</body>
+</html>

@@ -160,5 +160,24 @@ async def parse_resume(file: UploadFile = File(...), db: Session = Depends(get_d
         # cleanup file if failed and we might want to log it
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete("/api/candidates/{candidate_id}")
+def delete_candidate(candidate_id: int, db: Session = Depends(get_db)):
+    candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    # Optionally delete the file if it exists
+    if candidate.pdf_path:
+        file_path = candidate.pdf_path.lstrip('/')
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                print(f"Warning: could not delete file {file_path}: {e}")
+
+    db.delete(candidate)
+    db.commit()
+    return {"status": "success", "message": "Candidate deleted successfully"}
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
