@@ -9,6 +9,8 @@ class CandidateBase(BaseModel):
     exp: str
     skills: Optional[List[str]] = []
     raw_text: Optional[str] = None
+    ai_summary: Optional[str] = None
+    ai_analysis: Optional[str] = None
     pdf_path: Optional[str] = None
 
 class CandidateCreate(CandidateBase):

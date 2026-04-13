@@ -90,9 +90,8 @@
                     <!-- Right Pane -->
                     <div class="content-pane">
                         <div class="tabs">
-                            <div class="tab active" onclick="switchTab(0)">在线简历 (AI解析)</div>
+                            <div class="tab active" onclick="switchTab(0)">综合档案</div>
                             <div class="tab" onclick="switchTab(1)">招聘动态</div>
-                            <div class="tab" onclick="switchTab(2)">附件预览</div>
                         </div>
                         
                         <div class="tab-content active" id="tab-0">
@@ -118,9 +117,9 @@
                                 </div>
                             </div>
 
-                            <h3>📄 简历原文参考</h3>
-                            <div id="ai-experience" style="font-size:14px; color:var(--text-secondary); white-space: pre-wrap; background: #fafafa; padding: 16px; border-radius: 8px; border: 1px solid #eee;">
-                                --
+                            <h3>📄 原始简历预览</h3>
+                            <div style="height: 600px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-bottom: 24px;">
+                                <iframe id="pdf-viewer" style="width:100%; height:100%; border:none;" src=""></iframe>
                             </div>
                         </div>
                         
@@ -132,10 +131,6 @@
                                     <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;" id="timeline-date">刚刚 · 系统自动处理</div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="tab-content" id="tab-2" style="padding:0;">
-                            <iframe id="pdf-viewer" style="width:100%; height:100%; border:none;" src=""></iframe>
                         </div>
                     </div>
                 </div>
@@ -166,7 +161,7 @@
             if (!id) return;
 
             try {
-                const response = await fetch(`http://localhost:8001/api/candidates/${id}`);
+                const response = await fetch(`http://localhost:8000/api/candidates/${id}`);
                 if (!response.ok) throw new Error("Candidate not found");
                 
                 const candidate = await response.json();
@@ -191,15 +186,12 @@
                 document.getElementById('ai-summary').innerText = candidate.ai_summary || "暂无 AI 概括数据。";
                 document.getElementById('ai-analysis').innerHTML = candidate.ai_analysis || "暂无 AI 深度分析数据。";
 
-                // Raw Text
-                if(candidate.raw_text) {
-                    document.getElementById('ai-experience').innerText = candidate.raw_text.substring(0, 1500) + '... (节选)';
-                }
+
 
                 // PDF Viewer
                 if (candidate.pdf_path) {
                     // Prepend backend URL so it works when frontend is opened directly
-                    document.getElementById('pdf-viewer').src = `http://localhost:8001${candidate.pdf_path}`;
+                    document.getElementById('pdf-viewer').src = `http://localhost:8000${candidate.pdf_path}`;
                 } else {
                     document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif'>暂无附件</div>";
                 }
@@ -267,8 +259,7 @@
                 document.getElementById('ai-summary').innerText = candidate.ai_summary || "暂无 AI 概括数据。";
                 document.getElementById('ai-analysis').innerHTML = candidate.ai_analysis || "暂无 AI 深度分析数据。";
 
-                // Raw Text
-                document.getElementById('ai-experience').innerText = candidate.raw_text || '暂无内容';
+
                 
                 // PDF Viewer Fallback
                 document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>演示模式 (脱机状态)</h4><p>当前运行在静态演示模式，无法加载本地 PDF 附件。</p></div>";

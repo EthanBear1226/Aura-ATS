@@ -135,7 +135,7 @@
 
         async function loadCandidates() {
             try {
-                const response = await fetch('http://localhost:8001/api/candidates');
+                const response = await fetch('http://localhost:8000/api/candidates');
                 const candidates = await response.json();
                 const tbody = document.querySelector('#candidate-table tbody');
                 tbody.innerHTML = '';
@@ -222,7 +222,7 @@
                 progressBar.style.width = '60%';
                 progressText.innerText = 'AI 模型深度解析中... (需等待几秒)';
                 
-                const response = await fetch('http://localhost:8001/api/parse-resume', {
+                const response = await fetch('http://localhost:8000/api/parse-resume', {
                     method: 'POST',
                     body: formData
                 });

@@ -83,12 +83,18 @@ async def parse_resume(file: UploadFile = File(...), db: Session = Depends(get_d
                     
         if not extracted_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract text from PDF")
+            
+        import re
+        # Clean up common messy watermarks extracted by pdfplumber
+        extracted_text = re.sub(r'[用专聘招球雪]', '', extracted_text)
+        # remove multiple consecutive empty lines
+        extracted_text = re.sub(r'\n\s*\n', '\n', extracted_text)
 
         parsed_data = {}
         
         # 3. Call Gemini if API Key is available
         if api_key:
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             prompt = f"""
             请作为一名资深HR数据提取专家，从以下简历文本中提取结构化信息。
             要求：
@@ -98,28 +104,37 @@ async def parse_resume(file: UploadFile = File(...), db: Session = Depends(get_d
                - job: 期望职位或最近一份工作职位 (若找不到填"未知")
                - exp: 类似 "5年 / 本科" 格式 (若找不到填"未知")
                - skills: 提取最多 8 个核心技能标签 (字符串数组)
-            3. 不要返回任何 Markdown 格式符号 (如 ```json)
+               - ai_summary: 对候选人背景的一段简短概括 (约50字)
+               - ai_analysis: 对候选人优势与劣势的深度点评 (约100字)
 
             简历文本：
             {extracted_text[:4000]}
             """
             
-            response = model.generate_content(prompt)
-            response_text = response.text.strip()
-            
-            if response_text.startswith("```json"):
-                response_text = response_text[7:-3].strip()
-            elif response_text.startswith("```"):
-                response_text = response_text[3:-3].strip()
+            try:
+                response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+                response_text = response.text.strip()
                 
-            parsed_data = json.loads(response_text)
+                parsed_data = json.loads(response_text)
+            except Exception as ai_e:
+                print(f"AI Parse Error: {ai_e}")
+                parsed_data = {
+                    "name": "AI 解析异常",
+                    "job": "未能提取",
+                    "exp": "未能提取",
+                    "skills": ["解析失败"],
+                    "ai_summary": "大模型返回内容异常或受到拦截，无法生成概括。",
+                    "ai_analysis": f"异常详情：{str(ai_e)}"
+                }
         else:
             # Mock parsing logic if no API Key
             parsed_data = {
                 "name": file.filename.replace('.pdf', ''),
                 "job": "需配置 API Key 才能解析",
                 "exp": "未知",
-                "skills": ["API未配置", "本地模拟"]
+                "skills": ["API未配置", "本地模拟"],
+                "ai_summary": "请配置 API Key 获取概括。",
+                "ai_analysis": "请配置 API Key 获取分析。"
             }
 
         # 4. Save to Database
@@ -129,6 +144,8 @@ async def parse_resume(file: UploadFile = File(...), db: Session = Depends(get_d
             stage="新投递",
             exp=parsed_data.get("exp", "未知"),
             skills=parsed_data.get("skills", []),
+            ai_summary=parsed_data.get("ai_summary", ""),
+            ai_analysis=parsed_data.get("ai_analysis", ""),
             raw_text=extracted_text,
             pdf_path=f"/uploads/{safe_filename}"
         )

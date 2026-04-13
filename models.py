@@ -12,6 +12,8 @@ class Candidate(Base):
     exp = Column(String(100))
     skills = Column(JSON)
     raw_text = Column(Text)
+    ai_summary = Column(Text)
+    ai_analysis = Column(Text)
     pdf_path = Column(String(255))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
