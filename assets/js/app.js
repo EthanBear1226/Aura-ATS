@@ -38,13 +38,23 @@ function renderHeader() {
     const container = document.getElementById('header-container');
     if (!container) return;
 
-    const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+    let user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+    if (!user.role) {
+        user.role = 'HR'; // Default role
+        user.name = 'HR Manager';
+        localStorage.setItem('aura_user', JSON.stringify(user));
+    }
     
     container.innerHTML = `
         <div class="header-search">
             <input type="text" placeholder="搜索候选人、职位...">
         </div>
         <div class="header-actions">
+            <select id="roleSwitcher" onchange="switchRole(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: #f9f9f9; outline: none; cursor: pointer; font-size: 13px;">
+                <option value="HR" ${user.role === 'HR' ? 'selected' : ''}>👁️ 视角: 全局 HR</option>
+                <option value="Manager_Tech" ${user.role === 'Manager_Tech' ? 'selected' : ''}>👁️ 视角: 技术经理</option>
+                <option value="Manager_Product" ${user.role === 'Manager_Product' ? 'selected' : ''}>👁️ 视角: 产品经理</option>
+            </select>
             <button class="btn btn-primary" onclick="alert('快捷添加功能演示')">+ 快捷添加</button>
             <div style="cursor:pointer; display:flex; align-items:center; gap:8px;" onclick="logout()">
                 <div style="width:32px; height:32px; border-radius:16px; background:var(--primary-color); color:white; display:flex; align-items:center; justify-content:center; font-weight:bold;">
@@ -54,6 +64,15 @@ function renderHeader() {
             </div>
         </div>
     `;
+}
+
+function switchRole(role) {
+    let name = 'HR Manager';
+    if (role === 'Manager_Tech') name = '研发总监';
+    if (role === 'Manager_Product') name = '产品总监';
+    
+    localStorage.setItem('aura_user', JSON.stringify({ name: name, email: 'user@example.com', role: role }));
+    window.location.reload();
 }
 
 function logout() {
