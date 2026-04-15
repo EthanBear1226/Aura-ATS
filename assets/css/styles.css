@@ -29,22 +29,31 @@ body {
 }
 
 .sidebar {
-  width: 240px;
+  width: 64px;
   background-color: var(--card-bg);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   padding: 24px 0;
+  transition: width 0.3s ease;
+  z-index: 100;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar:hover {
+  width: 240px;
 }
 
 .sidebar-logo {
-  padding: 0 24px 24px;
+  padding: 0 20px 24px;
   font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  white-space: nowrap;
 }
 
 .nav-menu {
@@ -55,16 +64,17 @@ body {
 }
 
 .nav-item {
-  padding: 10px 12px;
+  padding: 10px 8px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   color: var(--text-secondary);
   text-decoration: none;
   font-weight: 500;
   font-size: 14px;
   border-radius: var(--radius-sm);
   transition: var(--transition);
+  white-space: nowrap;
 }
 
 .nav-item:hover {
@@ -78,9 +88,69 @@ body {
 }
 
 .nav-item svg {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
   fill: currentColor;
+}
+
+.nav-text {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.sidebar:hover .nav-text {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Secondary Sidebar */
+.secondary-sidebar {
+  width: 280px;
+  background-color: var(--bg-color);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.secondary-sidebar-header {
+  padding: 20px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.job-list-menu {
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px 16px;
+  gap: 4px;
+}
+
+.job-list-item {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+
+.job-list-item:hover {
+  background-color: #E5E5EA;
+}
+
+.job-list-item.active {
+  background-color: #FFFFFF;
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-sm);
+  color: var(--primary-color);
 }
 
 .main-content {

@@ -20,14 +20,17 @@ function renderSidebar(activeId) {
     let html = `
         <div class="sidebar-logo">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--primary-color)"><path d="M12 2L2 22h20L12 2zm0 6l5.5 11h-11L12 8z"/></svg>
-            Aura
+            <span class="nav-text">Aura</span>
         </div>
         <nav class="nav-menu">
     `;
 
     navItems.forEach(item => {
         const activeClass = item.id === activeId ? 'active' : '';
-        html += `<a href="${item.link}" class="nav-item ${activeClass}">${item.icon} ${item.name}</a>`;
+        html += `<a href="${item.link}" class="nav-item ${activeClass}">
+                    ${item.icon}
+                    <span class="nav-text">${item.name}</span>
+                 </a>`;
     });
 
     html += `</nav>`;
@@ -40,8 +43,8 @@ function renderHeader() {
 
     let user = JSON.parse(localStorage.getItem('aura_user') || '{}');
     if (!user.role) {
-        user.role = 'HR'; // Default role
-        user.name = 'HR Manager';
+        user.role = 'SuperAdmin'; // Default role
+        user.name = '超级管理员';
         localStorage.setItem('aura_user', JSON.stringify(user));
     }
     
@@ -51,9 +54,11 @@ function renderHeader() {
         </div>
         <div class="header-actions">
             <select id="roleSwitcher" onchange="switchRole(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: #f9f9f9; outline: none; cursor: pointer; font-size: 13px;">
-                <option value="HR" ${user.role === 'HR' ? 'selected' : ''}>👁️ 视角: 全局 HR</option>
-                <option value="Manager_Tech" ${user.role === 'Manager_Tech' ? 'selected' : ''}>👁️ 视角: 技术经理</option>
-                <option value="Manager_Product" ${user.role === 'Manager_Product' ? 'selected' : ''}>👁️ 视角: 产品经理</option>
+                <option value="SuperAdmin" ${user.role === 'SuperAdmin' ? 'selected' : ''}>👁️ 超级管理员 (全量)</option>
+                <option value="Recruiter" ${user.role === 'Recruiter' ? 'selected' : ''}>👁️ 招聘官 (业务链)</option>
+                <option value="HiringManager" ${user.role === 'HiringManager' ? 'selected' : ''}>👁️ 用人经理 (部门)</option>
+                <option value="Interviewer" ${user.role === 'Interviewer' ? 'selected' : ''}>👁️ 面试官 (任务)</option>
+                <option value="Assistant" ${user.role === 'Assistant' ? 'selected' : ''}>👁️ 协同助理 (基础)</option>
             </select>
             <button class="btn btn-primary" onclick="alert('快捷添加功能演示')">+ 快捷添加</button>
             <div style="cursor:pointer; display:flex; align-items:center; gap:8px;" onclick="logout()">
@@ -67,9 +72,11 @@ function renderHeader() {
 }
 
 function switchRole(role) {
-    let name = 'HR Manager';
-    if (role === 'Manager_Tech') name = '研发总监';
-    if (role === 'Manager_Product') name = '产品总监';
+    let name = '超级管理员';
+    if (role === 'Recruiter') name = '招聘官 HRBP';
+    if (role === 'HiringManager') name = '技术总监 (用人经理)';
+    if (role === 'Interviewer') name = '前端架构师 (面试官)';
+    if (role === 'Assistant') name = '招聘实习生 (助理)';
     
     localStorage.setItem('aura_user', JSON.stringify({ name: name, email: 'user@example.com', role: role }));
     window.location.reload();

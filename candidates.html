@@ -91,17 +91,21 @@
 <body>
     <div class="app-container">
         <aside class="sidebar" id="sidebar-container"></aside>
+        
+        <!-- Secondary Job Sidebar -->
+        <aside class="secondary-sidebar" id="job-sidebar">
+            <div class="secondary-sidebar-header">职位分类</div>
+            <div class="job-list-menu" id="job-filters">
+                <!-- Filters will be generated here by JS -->
+            </div>
+        </aside>
+
         <main class="main-content">
             <header class="header" id="header-container"></header>
             <div class="page-content">
                 <div class="candidates-header">
                     <h1 class="page-title" style="margin:0;">候选人管理</h1>
                     <button class="btn btn-primary" onclick="openModal()" id="btnAddCandidate">+ 添加候选人</button>
-                </div>
-                
-                <!-- Job Filter Tabs (Role-Based) -->
-                <div style="display:flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px;" id="job-filters">
-                    <!-- Filters will be generated here by JS -->
                 </div>
                 
                 <div class="card" style="padding: 0; overflow: hidden;">
@@ -171,9 +175,11 @@
         
         // Define RBAC Rules (In a real app, this comes from backend JWT/Session)
         const rolePermissions = {
-            'HR': { allowedJobs: 'ALL', canAdd: true, canDelete: true },
-            'Manager_Tech': { allowedJobs: ['高级前端工程师', '资深 AI 算法专家', '全栈开发工程师'], canAdd: false, canDelete: false },
-            'Manager_Product': { allowedJobs: ['B端高级产品经理'], canAdd: false, canDelete: false }
+            'SuperAdmin': { allowedJobs: 'ALL', canAdd: true, canDelete: true },
+            'Recruiter': { allowedJobs: 'ALL', canAdd: true, canDelete: true },
+            'HiringManager': { allowedJobs: ['高级前端工程师', '资深 AI 算法专家', '全栈开发工程师', '数据分析师'], canAdd: false, canDelete: false },
+            'Interviewer': { allowedJobs: ['高级前端工程师'], canAdd: false, canDelete: false },
+            'Assistant': { allowedJobs: 'ALL', canAdd: true, canDelete: false }
         };
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -185,7 +191,7 @@
         
         function initRoleUI() {
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            const role = user.role || 'HR';
+            const role = user.role || 'SuperAdmin';
             const perms = rolePermissions[role];
             
             // Hide/Show Add button based on permission
@@ -196,7 +202,7 @@
 
         function renderJobFilters() {
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            const role = user.role || 'HR';
+            const role = user.role || 'SuperAdmin';
             const perms = rolePermissions[role];
             
             let jobsSet = new Set();
@@ -211,10 +217,10 @@
             }
             
             const filterContainer = document.getElementById('job-filters');
-            let html = `<div class="job-tab ${currentFilter === '全部职位' ? 'active' : ''}" onclick="setFilter('全部职位')">全部在招 (我的权限)</div>`;
+            let html = `<div class="job-list-item ${currentFilter === '全部职位' ? 'active' : ''}" onclick="setFilter('全部职位')">全部在招 (我的权限)</div>`;
             
             availableJobs.forEach(job => {
-                html += `<div class="job-tab ${currentFilter === job ? 'active' : ''}" onclick="setFilter('${job}')">${job}</div>`;
+                html += `<div class="job-list-item ${currentFilter === job ? 'active' : ''}" onclick="setFilter('${job}')">${job}</div>`;
             });
             
             filterContainer.innerHTML = html;
@@ -242,7 +248,7 @@
         
         function renderTable() {
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            const role = user.role || 'HR';
+            const role = user.role || 'SuperAdmin';
             const perms = rolePermissions[role];
             
             const tbody = document.querySelector('#candidate-table tbody');
