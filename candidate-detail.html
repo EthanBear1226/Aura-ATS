@@ -71,9 +71,12 @@
                             <div style="color:var(--text-secondary); font-size:14px; margin-bottom:16px;" id="cand-job">--</div>
                             <span class="tag tag-blue" style="margin-bottom:24px;" id="cand-stage">--</span>
                             
-                            <div style="width:100%; display:flex; gap:8px;">
-                                <button class="btn btn-primary" style="flex:1;">安排面试</button>
-                                <button class="btn" style="flex:1; color:#FF3B30;" onclick="deleteCurrentCandidate()">删除</button>
+                            <div style="width:100%; display:flex; flex-direction:column; gap:8px;">
+                                <button class="btn btn-primary" id="btn-next-stage" style="width:100%; justify-content:center;" onclick="moveToNextStage()">推进流程</button>
+                                <div style="display:flex; gap:8px; width:100%;">
+                                    <button class="btn" style="flex:1;">安排面试</button>
+                                    <button class="btn" style="flex:1; color:#FF3B30;" onclick="deleteCurrentCandidate()">删除</button>
+                                </div>
                             </div>
                         </div>
                         
@@ -140,6 +143,9 @@
 
     <script src="assets/js/app.js"></script>
     <script>
+        const STAGES = ['新投递', '初筛', '用人部门筛选', '面试', '沟通offer', '待入职', '已入职'];
+        let currentCandidate = null;
+
         document.addEventListener("DOMContentLoaded", () => {
             renderSidebar('candidates');
             renderHeader();
@@ -165,12 +171,24 @@
                 if (!response.ok) throw new Error("Candidate not found");
                 
                 const candidate = await response.json();
+                currentCandidate = candidate;
                 
                 document.getElementById('cand-name').innerText = candidate.name;
                 document.getElementById('cand-avatar').innerText = candidate.name.charAt(0) || 'U';
                 document.getElementById('cand-job').innerText = candidate.job;
                 document.getElementById('cand-stage').innerText = candidate.stage;
                 document.getElementById('cand-exp').innerText = `经验: ${candidate.exp}`;
+                
+                // Update Next Stage Button
+                const btnNext = document.getElementById('btn-next-stage');
+                const currentIndex = STAGES.indexOf(candidate.stage);
+                if (currentIndex >= 0 && currentIndex < STAGES.length - 1) {
+                    const nextStage = STAGES[currentIndex + 1];
+                    btnNext.innerText = `推进至「${nextStage}」`;
+                    btnNext.style.display = 'block';
+                } else {
+                    btnNext.style.display = 'none';
+                }
                 
                 let dateStr = candidate.created_at ? new Date(candidate.created_at).toLocaleString() : '刚刚';
                 document.getElementById('timeline-date').innerText = `${dateStr} · 系统自动处理`;
@@ -265,6 +283,33 @@
                 document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>演示模式 (脱机状态)</h4><p>当前运行在静态演示模式，无法加载本地 PDF 附件。</p></div>";
             }
         }
+        async function moveToNextStage() {
+            if (!currentCandidate) return;
+            const currentIndex = STAGES.indexOf(currentCandidate.stage);
+            if (currentIndex >= 0 && currentIndex < STAGES.length - 1) {
+                const nextStage = STAGES[currentIndex + 1];
+                if(!confirm(`确定要将该候选人推进到【${nextStage}】节点吗？`)) return;
+                
+                try {
+                    const response = await fetch(`http://localhost:8000/api/candidates/${currentCandidate.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ stage: nextStage })
+                    });
+                    
+                    if(response.ok) {
+                        alert('已成功推进！');
+                        loadDetail(); // Reload to refresh UI
+                    } else {
+                        alert('推进失败，请检查服务。');
+                    }
+                } catch(error) {
+                    console.error(error);
+                    alert('网络错误');
+                }
+            }
+        }
+
         async function deleteCurrentCandidate() {
             const urlParams = new URLSearchParams(window.location.search);
             const id = urlParams.get('id');

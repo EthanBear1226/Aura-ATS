@@ -160,6 +160,19 @@ async def parse_resume(file: UploadFile = File(...), db: Session = Depends(get_d
         # cleanup file if failed and we might want to log it
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.patch("/api/candidates/{candidate_id}", response_model=schemas.Candidate)
+def update_candidate_stage(candidate_id: int, candidate_update: schemas.CandidateUpdate, db: Session = Depends(get_db)):
+    candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    if candidate_update.stage is not None:
+        candidate.stage = candidate_update.stage
+    
+    db.commit()
+    db.refresh(candidate)
+    return candidate
+
 @app.delete("/api/candidates/{candidate_id}")
 def delete_candidate(candidate_id: int, db: Session = Depends(get_db)):
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()

@@ -16,6 +16,9 @@ class CandidateBase(BaseModel):
 class CandidateCreate(CandidateBase):
     pass
 
+class CandidateUpdate(BaseModel):
+    stage: Optional[str] = None
+
 class Candidate(CandidateBase):
     id: int
     created_at: datetime
