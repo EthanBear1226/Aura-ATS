@@ -186,7 +186,8 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
         db_log = models.CandidateLog(
             candidate_id=candidate.id,
             operator=candidate_update.operator,
-            action=f"阶段流转: {old_stage} ➔ {candidate.stage}"
+            action=f"阶段流转: {old_stage} ➔ {candidate.stage}",
+            details=candidate_update.details
         )
         db.add(db_log)
     

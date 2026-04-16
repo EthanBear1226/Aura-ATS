@@ -179,7 +179,7 @@
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const operatorName = user.name || '系统';
             
-            const operatorStr = `${operatorName} (推至: ${manager}${comment ? ', 评语: ' + comment : ''})`;
+            const detailsStr = `推至: ${manager}${comment ? ', 评语: ' + comment : ''}`;
             
             try {
                 const response = await fetch(`http://localhost:8000/api/candidates/${currentCandidate.id}`, {
@@ -187,7 +187,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         stage: '用人部门筛选', 
-                        operator: operatorStr
+                        operator: operatorName,
+                        details: detailsStr
                     })
                 });
                 
@@ -267,6 +268,7 @@
                                 <div style="position:absolute; left:-23px; top:2px; width:10px; height:10px; border-radius:5px; background: ${isLatest ? 'var(--primary-color)' : '#D1D1D6'};"></div>
                                 <div style="font-weight: ${isLatest ? '600' : '500'}; color: ${isLatest ? 'var(--text-primary)' : 'var(--text-secondary)'};">${log.action}</div>
                                 <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">${dateStr} · 操作人: ${log.operator}</div>
+                                ${log.details ? \`<div style="font-size:13px; margin-top:8px; background:var(--bg-color); padding:8px 12px; border-radius:4px; color:var(--text-primary); border: 1px solid var(--border-color);">\${log.details}</div>\` : ''}
                             </div>
                         `;
                     });
@@ -353,6 +355,7 @@
                                 <div style="position:absolute; left:-23px; top:2px; width:10px; height:10px; border-radius:5px; background: ${isLatest ? 'var(--primary-color)' : '#D1D1D6'};"></div>
                                 <div style="font-weight: ${isLatest ? '600' : '500'}; color: ${isLatest ? 'var(--text-primary)' : 'var(--text-secondary)'};">${log.action}</div>
                                 <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">${dateStr} · 操作人: ${log.operator}</div>
+                                ${log.details ? \`<div style="font-size:13px; margin-top:8px; background:var(--bg-color); padding:8px 12px; border-radius:4px; color:var(--text-primary); border: 1px solid var(--border-color);">\${log.details}</div>\` : ''}
                             </div>
                         `;
                     });
