@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey
+from sqlalchemy.orm import relationship
 from database import Base
 import datetime
 
@@ -17,3 +18,18 @@ class Candidate(Base):
     pdf_path = Column(String(255))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    # Relationships
+    logs = relationship("CandidateLog", back_populates="candidate", cascade="all, delete-orphan", order_by="desc(CandidateLog.created_at)")
+
+class CandidateLog(Base):
+    __tablename__ = "candidate_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidates.id"), index=True)
+    operator = Column(String(100)) # The user who performed the action
+    action = Column(String(200))   # Describe the action (e.g., "入库成功", "状态推进至: 初筛")
+    details = Column(Text, nullable=True) # Optional details
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    candidate = relationship("Candidate", back_populates="logs")

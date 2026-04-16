@@ -382,13 +382,16 @@
             const ids = Array.from(checkboxes).map(cb => cb.value);
             if (!confirm(`确定要将这 ${ids.length} 名候选人转移到【${stage}】节点吗？`)) return;
             
+            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+            const operatorName = user.name || '系统';
+            
             try {
                 // Update sequentially for demo (could be a bulk API in real app)
                 for(let id of ids) {
                     await fetch(`http://localhost:8000/api/candidates/${id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ stage: stage })
+                        body: JSON.stringify({ stage: stage, operator: operatorName })
                     });
                 }
                 
@@ -445,7 +448,13 @@
             progressText.innerText = '正在上传文件...';
 
             const formData = new FormData();
+            const jobTitle = document.getElementById('modal-job-select').value;
+            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+            const operatorName = user.name || '系统';
+            
             formData.append("file", file);
+            formData.append("job_title", jobTitle);
+            formData.append("operator", operatorName);
 
             try {
                 progressBar.style.width = '60%';

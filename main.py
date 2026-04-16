@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -60,7 +60,7 @@ def get_candidate(candidate_id: int, db: Session = Depends(get_db)):
     return candidate
 
 @app.post("/api/parse-resume", response_model=schemas.Candidate)
-async def parse_resume(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), operator: str = Form("系统"), db: Session = Depends(get_db)):
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
     
@@ -137,10 +137,12 @@ async def parse_resume(file: UploadFile = File(...), db: Session = Depends(get_d
                 "ai_analysis": "请配置 API Key 获取分析。"
             }
 
+        final_job = job_title if job_title != "默认（AI自动提取）" else parsed_data.get("job", "未知")
+
         # 4. Save to Database
         db_candidate = models.Candidate(
             name=parsed_data.get("name", "未知"),
-            job=parsed_data.get("job", "未知"),
+            job=final_job,
             stage="新投递",
             exp=parsed_data.get("exp", "未知"),
             skills=parsed_data.get("skills", []),
@@ -153,7 +155,17 @@ async def parse_resume(file: UploadFile = File(...), db: Session = Depends(get_d
         db.add(db_candidate)
         db.commit()
         db.refresh(db_candidate)
-        
+
+        # 5. Save initial log
+        db_log = models.CandidateLog(
+            candidate_id=db_candidate.id,
+            operator=operator,
+            action="简历解析成功并入库"
+        )
+        db.add(db_log)
+        db.commit()
+        db.refresh(db_candidate)
+
         return db_candidate
 
     except Exception as e:
@@ -166,8 +178,17 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
     if candidate is None:
         raise HTTPException(status_code=404, detail="Candidate not found")
     
-    if candidate_update.stage is not None:
+    if candidate_update.stage is not None and candidate_update.stage != candidate.stage:
+        old_stage = candidate.stage
         candidate.stage = candidate_update.stage
+        
+        # Log the stage change
+        db_log = models.CandidateLog(
+            candidate_id=candidate.id,
+            operator=candidate_update.operator,
+            action=f"阶段流转: {old_stage} ➔ {candidate.stage}"
+        )
+        db.add(db_log)
     
     db.commit()
     db.refresh(candidate)
