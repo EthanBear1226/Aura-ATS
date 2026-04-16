@@ -111,7 +111,25 @@ body {
   transition-delay: 0.1s;
 }
 
-/* Secondary Sidebar */
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.modal-overlay.active { display: flex; }
+.modal-card {
+  width: 500px;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+  position: relative;
+}
 .secondary-sidebar {
   width: 280px;
   background-color: var(--card-bg);

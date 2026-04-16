@@ -190,6 +190,29 @@
         </div>
     </div>
 
+    <!-- Recommend Modal -->
+    <div class="modal-overlay" id="recommendModal">
+        <div class="modal-card">
+            <h2 style="margin-top:0;">推荐给用人部门</h2>
+            <div style="margin-bottom: 16px;">
+                <label style="font-size:14px; font-weight:500; display:block; margin-bottom:8px;">选择用人经理</label>
+                <select id="recommend-manager-select" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none;">
+                    <option value="研发总监 (Manager_Tech)">研发总监 (Manager_Tech)</option>
+                    <option value="产品总监 (Manager_Product)">产品总监 (Manager_Product)</option>
+                    <option value="设计总监 (Manager_Design)">设计总监 (Manager_Design)</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 24px;">
+                <label style="font-size:14px; font-weight:500; display:block; margin-bottom:8px;">推荐评语 (可选)</label>
+                <textarea id="recommend-comment" rows="3" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; resize:none; box-sizing:border-box;" placeholder="例如：该候选人技术栈匹配，建议重点关注..."></textarea>
+            </div>
+            <div style="text-align:right;">
+                <button class="btn" onclick="closeRecommendModal()" style="margin-right:8px;">取消</button>
+                <button class="btn btn-primary" onclick="submitRecommend()">确认推送</button>
+            </div>
+        </div>
+    </div>
+
     <script src="assets/js/app.js"></script>
     <script>
         // Global State for Data and Filters
@@ -338,7 +361,7 @@
                         <td style="color:var(--text-secondary);">${c.exp}</td>
                         <td style="color:var(--text-secondary);">${dateStr}</td>
                         <td style="white-space: nowrap;">
-                            <button class="btn" onclick="event.stopPropagation(); alert('已操作推荐。');" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff;">推荐</button>
+                            <button class="btn" onclick="event.stopPropagation(); openRecommendModal('${c.id}')" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff;">推荐</button>
                             <button class="btn btn-primary" onclick="event.stopPropagation(); alert('已操作面试。');" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none; margin-right: 4px;">面试</button>
                             ${deleteBtnHtml}
                         </td>
@@ -429,12 +452,53 @@
         }
 
         function openModal() { document.getElementById('uploadModal').classList.add('active'); }
-        function closeModal() { 
-            document.getElementById('uploadModal').classList.remove('active'); 
+        function closeModal() {
+            document.getElementById('uploadModal').classList.remove('active');
             document.getElementById('upload-progress').style.display = 'none';
             document.getElementById('progress-bar').style.width = '0%';
         }
 
+        let recommendCandidateId = null;
+        function openRecommendModal(id) {
+            recommendCandidateId = id;
+            document.getElementById('recommendModal').classList.add('active');
+        }
+        function closeRecommendModal() {
+            document.getElementById('recommendModal').classList.remove('active');
+            document.getElementById('recommend-comment').value = '';
+        }
+        async function submitRecommend() {
+            if (!recommendCandidateId) return;
+            const manager = document.getElementById('recommend-manager-select').value;
+            const comment = document.getElementById('recommend-comment').value;
+            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+            const operatorName = user.name || '系统';
+
+            const operatorStr = `${operatorName} (推至: ${manager}${comment ? ', 评语: ' + comment : ''})`;
+
+            try {
+                const response = await fetch(`http://localhost:8000/api/candidates/${recommendCandidateId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        stage: '用人部门筛选', 
+                        operator: operatorStr
+                    })
+                });
+
+                if(response.ok) {
+                    alert('已成功推荐给用人部门！');
+                    closeRecommendModal();
+                    loadCandidates();
+                } else {
+                    const data = await response.json();
+                    alert(`操作失败: ${data.detail || '未知错误'}`);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('网络错误，请检查后端服务。');
+            }
+        }
         // Upload and API Logic
         document.getElementById('resume-file').addEventListener('change', async function(e) {
             const file = e.target.files[0];
