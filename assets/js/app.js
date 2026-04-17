@@ -60,7 +60,7 @@ function renderHeader() {
                 <option value="Interviewer" ${user.role === 'Interviewer' ? 'selected' : ''}>👁️ 面试官 (任务)</option>
                 <option value="Assistant" ${user.role === 'Assistant' ? 'selected' : ''}>👁️ 协同助理 (基础)</option>
             </select>
-            <button class="btn btn-primary" onclick="alert('快捷添加功能演示')">+ 快捷添加</button>
+            <button class="btn btn-primary" onclick="showToast('快捷添加功能演示', 'info')">+ 快捷添加</button>
             <div style="cursor:pointer; display:flex; align-items:center; gap:8px;" onclick="logout()">
                 <div style="width:32px; height:32px; border-radius:16px; background:var(--primary-color); color:white; display:flex; align-items:center; justify-content:center; font-weight:bold;">
                     ${user.name ? user.name.charAt(0) : 'U'}
@@ -83,11 +83,277 @@ function switchRole(role) {
 }
 
 function logout() {
-    if(confirm('确定要退出登录吗？')) {
+    showConfirm('确定要退出登录吗？', () => {
         localStorage.removeItem('aura_user');
         window.location.href = 'login.html';
-    }
+    });
 }
+
+// Global Notification (Toast)
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let icon = '';
+    if (type === 'success') {
+        icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
+    } else if (type === 'error') {
+        icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+    } else {
+        icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+    }
+    
+    toast.innerHTML = `<span style="display:flex;align-items:center;gap:8px;">${icon} ${message}</span>`;
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('active'));
+
+    setTimeout(() => {
+        toast.classList.remove('active');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Global Custom Confirm Modal
+function showConfirm(message, onConfirm, onCancel = null) {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-modal-overlay';
+    
+    const modal = document.createElement('div');
+    modal.className = 'confirm-modal';
+    
+    modal.innerHTML = `
+        <h3 style="margin-top:0; font-size:18px; color:var(--text-primary);">确认操作</h3>
+        <p style="margin:16px 0 32px; font-size:14px; color:var(--text-secondary); line-height:1.5;">${message}</p>
+        <div style="display:flex; justify-content:center; gap:12px;">
+            <button class="btn" id="confirmCancelBtn" style="padding:8px 24px; flex:1;">取消</button>
+            <button class="btn btn-primary" id="confirmOkBtn" style="padding:8px 24px; flex:1; background:#FF3B30; border-color:#FF3B30;">确认</button>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    requestAnimationFrame(() => {
+        overlay.classList.add('active');
+        modal.classList.add('active');
+    });
+    
+    const close = () => {
+        modal.classList.remove('active');
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.remove(), 200);
+    };
+
+    document.getElementById('confirmCancelBtn').onclick = () => {
+        close();
+        if (onCancel) onCancel();
+    };
+    
+    document.getElementById('confirmOkBtn').onclick = () => {
+        close();
+        if (onConfirm) onConfirm();
+    };
+}
+
+// Global Drawer Component
+function renderScheduleDrawer() {
+    if (document.getElementById('globalScheduleDrawerOverlay')) return;
+
+    const drawerHTML = `
+    <div class="drawer-overlay" id="globalScheduleDrawerOverlay" onclick="closeScheduleDrawer(event)"></div>
+    <div class="drawer" id="globalScheduleDrawer">
+        <div class="drawer-header">
+            <h2 class="drawer-title">安排新面试</h2>
+            <button class="drawer-close" onclick="closeScheduleDrawer()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+        </div>
+        <div class="drawer-body">
+            <!-- Left Form Area -->
+            <div class="drawer-form">
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">候选人</label>
+                    <select id="drawerCandidateSelect" class="form-control" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="updateDrawerCandidateEmail()">
+                        <option value="">请选择候选人...</option>
+                        <option value="zhangsan@example.com">张三 - 高级前端工程师</option>
+                        <option value="lisi@example.com">李四 - 产品经理</option>
+                        <option value="wangwu@example.com">王五 - 数据分析师</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">
+                        面试邀约邮件
+                    </label>
+                    <input type="email" id="drawerCandidateEmail" placeholder="候选人邮箱自动填入" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm); margin-bottom: 12px; background:var(--bg-color);">
+                    <textarea placeholder="面试邀请文案..." style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm); height: 120px; resize: none; font-family: inherit; font-size: 13px; line-height: 1.5;">您好！
+
+非常荣幸地通知您，您已通过我们的初步筛选。我们希望邀请您参加线上面试，进一步沟通您的过往经历与我们的业务匹配度。
+
+请确认以下面试时间与会议链接，期待与您的交流！</textarea>
+                </div>
+
+                <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">面试日期</label>
+                        <input type="date" id="drawerInterviewDate" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="mockLoadDrawerAvailability()">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">
+                            面试官
+                        </label>
+                        <select id="drawerInterviewerSelect" class="form-control" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="mockLoadDrawerAvailability()">
+                            <option value="">请选择面试官...</option>
+                            <option value="wang">王大锤 (技术总监)</option>
+                            <option value="zhao">赵总 (产品VP)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">
+                        预订会议室
+                    </label>
+                    <select class="form-control" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="">无 (线上会议，自动生成腾讯会议链接)</option>
+                        <option value="room1">会议室 A (6人) - 剩余可用</option>
+                        <option value="room2">会议室 B (10人) - 剩余可用</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Right Sidebar Area -->
+            <div class="drawer-sidebar">
+                <h3 style="margin-top: 0; font-size: 15px; margin-bottom: 8px; color: var(--text-primary);">面试官日程情况</h3>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 0; margin-bottom: 24px;">
+                    <span id="drawerAvailabilityStatus">请选择日期与面试官，系统将拉取真实飞书日历。</span>
+                </p>
+
+                <div id="drawerAvailabilityBlocks" style="display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto;">
+                    <div style="border: 1px dashed var(--border-color); border-radius: var(--radius-sm); height: 80px; display: flex; align-items: center; justify-content: center; color: #C7C7CC; font-size: 13px; text-align: center; padding: 20px;">
+                        暂无数据<br>等待条件选择
+                    </div>
+                </div>
+                
+                <div style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); display: flex; gap: 16px; justify-content: center;">
+                    <span style="display: flex; align-items: center; gap: 6px;"><span style="width:8px; height:8px; border-radius:4px; background:#34C759;"></span> 空闲</span>
+                    <span style="display: flex; align-items: center; gap: 6px;"><span style="width:8px; height:8px; border-radius:4px; background:#FF3B30;"></span> 忙碌</span>
+                </div>
+            </div>
+        </div>
+        <div class="drawer-footer">
+            <button class="btn" style="padding: 10px 24px;" onclick="closeScheduleDrawer()">取消</button>
+            <button class="btn btn-primary" id="drawerSubmitBtn" style="padding: 10px 24px;" onclick="submitDrawerSchedule()">确认安排并发送邀约</button>
+        </div>
+    </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', drawerHTML);
+}
+
+function openScheduleDrawer(candidateName = '', candidateEmail = '', candidateJob = '') {
+    const overlay = document.getElementById('globalScheduleDrawerOverlay');
+    const drawer = document.getElementById('globalScheduleDrawer');
+    if (!overlay || !drawer) return;
+    
+    const select = document.getElementById('drawerCandidateSelect');
+    const emailInput = document.getElementById('drawerCandidateEmail');
+    
+    if (candidateName || candidateEmail) {
+        let optionExists = false;
+        for(let i=0; i<select.options.length; i++) {
+            if(select.options[i].text.includes(candidateName || candidateEmail)) {
+                select.selectedIndex = i;
+                optionExists = true;
+                break;
+            }
+        }
+        if(!optionExists) {
+            const label = candidateName ? `${candidateName} - ${candidateJob || '候选人'}` : `${candidateEmail} (候选人)`;
+            const val = candidateEmail || candidateName;
+            const newOption = new Option(label, val);
+            select.add(newOption);
+            select.selectedIndex = select.options.length - 1;
+        }
+        select.disabled = true; // 锁定选择，防止误触
+        emailInput.value = candidateEmail || '';
+    } else {
+        select.disabled = false; // 允许选择
+        select.selectedIndex = 0;
+        emailInput.value = '';
+    }
+
+    overlay.classList.add('active');
+    drawer.classList.add('active');
+}
+
+function closeScheduleDrawer(e) {
+    if (e && e.target.id !== 'globalScheduleDrawerOverlay') return;
+    document.getElementById('globalScheduleDrawerOverlay').classList.remove('active');
+    document.getElementById('globalScheduleDrawer').classList.remove('active');
+}
+
+function updateDrawerCandidateEmail() {
+    const selectElement = document.getElementById('drawerCandidateSelect');
+    const emailInput = document.getElementById('drawerCandidateEmail');
+    emailInput.value = selectElement.value || '';
+}
+
+function mockLoadDrawerAvailability() {
+    const date = document.getElementById('drawerInterviewDate').value;
+    const interviewer = document.getElementById('drawerInterviewerSelect').value;
+    const blocksContainer = document.getElementById('drawerAvailabilityBlocks');
+    const statusText = document.getElementById('drawerAvailabilityStatus');
+
+    if (!date || !interviewer) return;
+
+    statusText.innerHTML = `已同步 <b>飞书日历</b> 实时数据`;
+    blocksContainer.innerHTML = '';
+
+    const mockData = [
+        { time: '10:00 - 11:00', status: 'busy', label: '产研周会' },
+        { time: '11:00 - 12:00', status: 'free', label: '空闲可约' },
+        { time: '13:30 - 14:30', status: 'busy', label: '面试：李四' },
+        { time: '14:30 - 16:30', status: 'free', label: '空闲可约' },
+        { time: '16:30 - 18:00', status: 'busy', label: '需求评审' }
+    ];
+
+    mockData.forEach((slot, index) => {
+        const isFree = slot.status === 'free';
+        const bg = isFree ? '#F2FCEE' : '#FFF0F0';
+        const border = isFree ? '#B7E4A1' : '#FFD2D2';
+        const color = isFree ? '#238636' : '#D92D20';
+        
+        blocksContainer.innerHTML += `
+            <label style="background: ${bg}; border: 1px solid ${border}; border-radius: var(--radius-sm); padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor: ${isFree ? 'pointer' : 'not-allowed'}; opacity: ${isFree ? '1' : '0.6'}; transition: var(--transition); box-shadow: var(--shadow-sm);">
+                <div style="font-weight: 500; color: var(--text-primary); font-size: 14px;">${slot.time}</div>
+                <div style="color: ${color}; font-size: 13px; font-weight: 600; display:flex; align-items:center;">
+                    ${isFree ? `<input type="radio" name="drawerTimeSlot" style="margin-right:8px; accent-color: var(--primary-color);" ${index===1 ? 'checked' : ''}>` : ''}
+                    ${slot.label}
+                </div>
+            </label>
+        `;
+    });
+}
+
+function submitDrawerSchedule() {
+    const btn = document.getElementById('drawerSubmitBtn');
+    const originalText = btn.innerText;
+    btn.innerText = '发送邀约中...';
+    btn.disabled = true;
+
+    setTimeout(() => {
+        showToast('面试邀约发送成功！飞书日程已同步锁定。', 'success');
+        closeScheduleDrawer();
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }, 1000);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    checkAuth();
+    renderScheduleDrawer();
+});
 
 // Run auth check automatically on script load
 checkAuth();

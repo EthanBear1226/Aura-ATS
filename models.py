@@ -11,6 +11,7 @@ class Candidate(Base):
     job = Column(String(100))
     stage = Column(String(50), default="新投递")
     exp = Column(String(100))
+    email = Column(String(255))
     skills = Column(JSON)
     raw_text = Column(Text)
     ai_summary = Column(Text)

@@ -103,6 +103,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
                - name: 候选人姓名 (若找不到填"未知")
                - job: 期望职位或最近一份工作职位 (若找不到填"未知")
                - exp: 类似 "5年 / 本科" 格式 (若找不到填"未知")
+               - email: 候选人电子邮箱 (若找不到填"未知")
                - skills: 提取最多 8 个核心技能标签 (字符串数组)
                - ai_summary: 对候选人背景的一段简短概括 (约50字)
                - ai_analysis: 对候选人优势与劣势的深度点评 (约100字)
@@ -122,6 +123,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
                     "name": "AI 解析异常",
                     "job": "未能提取",
                     "exp": "未能提取",
+                    "email": "未知",
                     "skills": ["解析失败"],
                     "ai_summary": "大模型返回内容异常或受到拦截，无法生成概括。",
                     "ai_analysis": f"异常详情：{str(ai_e)}"
@@ -132,6 +134,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
                 "name": file.filename.replace('.pdf', ''),
                 "job": "需配置 API Key 才能解析",
                 "exp": "未知",
+                "email": "未知",
                 "skills": ["API未配置", "本地模拟"],
                 "ai_summary": "请配置 API Key 获取概括。",
                 "ai_analysis": "请配置 API Key 获取分析。"
@@ -145,6 +148,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
             job=final_job,
             stage="新投递",
             exp=parsed_data.get("exp", "未知"),
+            email=parsed_data.get("email", "未知"),
             skills=parsed_data.get("skills", []),
             ai_summary=parsed_data.get("ai_summary", ""),
             ai_analysis=parsed_data.get("ai_analysis", ""),

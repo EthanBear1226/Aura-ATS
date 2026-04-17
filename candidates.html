@@ -362,7 +362,7 @@
                         <td style="color:var(--text-secondary);">${dateStr}</td>
                         <td style="white-space: nowrap;">
                             <button class="btn" onclick="event.stopPropagation(); openRecommendModal('${c.id}')" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff;">推荐</button>
-                            <button class="btn btn-primary" onclick="event.stopPropagation(); alert('已操作面试。');" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none; margin-right: 4px;">面试</button>
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); openScheduleDrawer('${c.name}', '${c.email || ''}', '${c.job}')" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none; margin-right: 4px;">面试</button>
                             ${deleteBtnHtml}
                         </td>
                     </tr>
@@ -398,57 +398,57 @@
             const stage = document.getElementById('bulk-stage-select').value;
             
             if (!stage) {
-                alert('请选择要转移的目标流程节点！');
+                showToast('请选择要转移的目标流程节点！', 'error');
                 return;
             }
             
             const ids = Array.from(checkboxes).map(cb => cb.value);
-            if (!confirm(`确定要将这 ${ids.length} 名候选人转移到【${stage}】节点吗？`)) return;
-            
-            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            const operatorName = user.name || '系统';
-            
-            try {
-                // Update sequentially for demo (could be a bulk API in real app)
-                for(let id of ids) {
-                    await fetch(`http://localhost:8000/api/candidates/${id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ stage: stage, operator: operatorName })
-                    });
+            showConfirm(`确定要将这 ${ids.length} 名候选人转移到【${stage}】节点吗？`, async () => {
+                const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+                const operatorName = user.name || '系统';
+                
+                try {
+                    // Update sequentially for demo (could be a bulk API in real app)
+                    for(let id of ids) {
+                        await fetch(`http://localhost:8000/api/candidates/${id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ stage: stage, operator: operatorName })
+                        });
+                    }
+                    
+                    document.getElementById('selectAll').checked = false;
+                    document.getElementById('bulk-stage-select').value = '';
+                    updateBulkActions();
+                    
+                    showToast('批量转移成功！', 'success');
+                    loadCandidates();
+                } catch (error) {
+                    console.error(error);
+                    showToast('批量转移过程中发生错误', 'error');
                 }
-                
-                document.getElementById('selectAll').checked = false;
-                document.getElementById('bulk-stage-select').value = '';
-                updateBulkActions();
-                
-                alert('批量转移成功！');
-                loadCandidates();
-            } catch (error) {
-                console.error(error);
-                alert('批量转移过程中发生错误');
-            }
+            });
         }
 
         async function deleteCandidate(id) {
-            if(!confirm('确定要删除该候选人以及关联的简历附件吗？删除后无法恢复。')) return;
-            
-            try {
-                const response = await fetch(`http://localhost:8000/api/candidates/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                if(response.ok) {
-                    alert('删除成功');
-                    loadCandidates(); // Refresh the list
-                } else {
-                    const data = await response.json();
-                    alert(`删除失败: ${data.detail || '未知错误'}`);
+            showConfirm('确定要删除该候选人以及关联的简历附件吗？删除后无法恢复。', async () => {
+                try {
+                    const response = await fetch(`http://localhost:8000/api/candidates/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if(response.ok) {
+                        showToast('删除成功', 'success');
+                        loadCandidates(); // Refresh the list
+                    } else {
+                        const data = await response.json();
+                        showToast(`删除失败: ${data.detail || '未知错误'}`, 'error');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast('删除失败，请检查网络或后端服务', 'error');
                 }
-            } catch (error) {
-                console.error(error);
-                alert('删除失败，请检查网络或后端服务');
-            }
+            });
         }
 
         function openModal() { document.getElementById('uploadModal').classList.add('active'); }
@@ -488,16 +488,16 @@
                 });
 
                 if(response.ok) {
-                    alert('已成功推荐给用人部门！');
+                    showToast('已成功推荐给用人部门！', 'success');
                     closeRecommendModal();
                     loadCandidates();
                 } else {
                     const data = await response.json();
-                    alert(`操作失败: ${data.detail || '未知错误'}`);
+                    showToast(`操作失败: ${data.detail || '未知错误'}`, 'error');
                 }
             } catch (error) {
                 console.error(error);
-                alert('网络错误，请检查后端服务。');
+                showToast('网络错误，请检查后端服务。', 'error');
             }
         }
         // Upload and API Logic
@@ -549,7 +549,7 @@
 
             } catch (error) {
                 console.error(error);
-                alert("解析失败，请确保后端服务 (uvicorn) 正在运行。");
+                showToast("解析失败，请确保后端服务 (uvicorn) 正在运行。", "error");
                 progressBar.style.width = '0%';
                 document.getElementById('upload-progress').style.display = 'none';
             }

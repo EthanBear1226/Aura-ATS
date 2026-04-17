@@ -74,7 +74,7 @@
                             <div style="width:100%; display:flex; flex-direction:column; gap:8px;">
                                 <button class="btn btn-primary" id="btn-next-stage" style="width:100%; justify-content:center;" onclick="moveToNextStage()">推进流程</button>
                                 <div style="display:flex; gap:8px; width:100%;">
-                                    <button class="btn" style="flex:1;">安排面试</button>
+                                    <button class="btn" style="flex:1;" onclick="openScheduleDrawer(currentCandidate?.name || '', currentCandidate?.email || '', currentCandidate?.job || '')">安排面试</button>
                                     <button class="btn" style="flex:1; color:#FF3B30;" onclick="deleteCurrentCandidate()">删除</button>
                                 </div>
                             </div>
@@ -390,28 +390,28 @@
             const currentIndex = STAGES.indexOf(currentCandidate.stage);
             if (currentIndex >= 0 && currentIndex < STAGES.length - 1) {
                 const nextStage = STAGES[currentIndex + 1];
-                if(!confirm(`确定要将该候选人推进到【${nextStage}】节点吗？`)) return;
-                
-                const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-                const operatorName = user.name || '系统';
-                
-                try {
-                    const response = await fetch(`http://localhost:8000/api/candidates/${currentCandidate.id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ stage: nextStage, operator: operatorName })
-                    });
+                showConfirm(`确定要将该候选人推进到【${nextStage}】节点吗？`, async () => {
+                    const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+                    const operatorName = user.name || '系统';
                     
-                    if(response.ok) {
-                        alert('已成功推进！');
-                        loadDetail(); // Reload to refresh UI
-                    } else {
-                        alert('推进失败，请检查服务。');
+                    try {
+                        const response = await fetch(`http://localhost:8000/api/candidates/${currentCandidate.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ stage: nextStage, operator: operatorName })
+                        });
+                        
+                        if(response.ok) {
+                            showToast('已成功推进！', 'success');
+                            loadDetail(); // Reload to refresh UI
+                        } else {
+                            showToast('推进失败，请检查服务。', 'error');
+                        }
+                    } catch(error) {
+                        console.error(error);
+                        showToast('网络错误', 'error');
                     }
-                } catch(error) {
-                    console.error(error);
-                    alert('网络错误');
-                }
+                });
             }
         }
 
