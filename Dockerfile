@@ -11,8 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 复制整个项目到容器中
 COPY . .
 
-# 暴露 7860 端口（Hugging Face 默认要求这个端口）
-EXPOSE 7860
+# 暴露 8000 端口（本地默认）
+EXPOSE 8000
 
-# 启动 FastAPI 服务
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
+# 启动 FastAPI 服务，允许云平台通过环境变量 PORT 动态分配端口
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
