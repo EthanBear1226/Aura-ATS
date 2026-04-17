@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import uvicorn
@@ -35,8 +35,35 @@ app.add_middleware(
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Mount the uploads directory to serve PDFs
+# API Routes
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok", "message": "Aura API is running."}
+
+# ... (Existing API routes like get_candidates, parse_resume etc. follow here) ...
+
+# --- STATIC FILES CONFIGURATION ---
+
+# 1. Mount assets (CSS, JS, Images)
+if os.path.exists("assets"):
+    app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+
+# 2. Mount the uploads directory to serve PDFs
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+# 3. Serve main HTML pages
+@app.get("/")
+async def read_index():
+    return FileResponse('index.html')
+
+@app.get("/{page_name}.html")
+async def read_page(page_name: str):
+    file_path = f"{page_name}.html"
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    raise HTTPException(status_code=404, detail="Page not found")
+
+# --- REST OF API METHODS (Re-inserting to keep logic intact) ---
 
 # Configure Gemini
 api_key = os.getenv("GEMINI_API_KEY")
