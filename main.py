@@ -142,19 +142,30 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
             try:
                 response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
                 response_text = response.text.strip()
-                
                 parsed_data = json.loads(response_text)
             except Exception as ai_e:
                 print(f"AI Parse Error: {ai_e}")
-                parsed_data = {
-                    "name": "AI 解析异常",
-                    "job": "未能提取",
-                    "exp": "未能提取",
-                    "email": "未知",
-                    "skills": ["解析失败"],
-                    "ai_summary": "大模型返回内容异常或受到拦截，无法生成概括。",
-                    "ai_analysis": f"异常详情：{str(ai_e)}"
-                }
+                # Check if it's a quota error (429)
+                if "429" in str(ai_e) or "quota" in str(ai_e).lower():
+                    parsed_data = {
+                        "name": file.filename.replace('.pdf', '')[:10],
+                        "job": "演示模式（API额度已满）",
+                        "exp": "3-5年 / 本科",
+                        "email": "demo@example.com",
+                        "skills": ["API额度已满", "演示模式", "简历提取"],
+                        "ai_summary": "⚠️ 当前 Gemini API 免费额度（每日20次）已耗尽，系统自动切换至离线模拟演示模式。本段文字为系统生成的模拟摘要。",
+                        "ai_analysis": "由于 Google Gemini API 免费版限制，当前无法进行真实深度解析。请稍后再试或联系管理员更换 API Key。在真实环境下，此处将展示详细的候选人优劣势分析。"
+                    }
+                else:
+                    parsed_data = {
+                        "name": "AI 解析异常",
+                        "job": "未能提取",
+                        "exp": "未知",
+                        "email": "未知",
+                        "skills": ["解析失败"],
+                        "ai_summary": "大模型返回内容异常或受到拦截，无法生成概括。",
+                        "ai_analysis": f"异常详情：{str(ai_e)}"
+                    }
         else:
             # Mock parsing logic if no API Key
             parsed_data = {
