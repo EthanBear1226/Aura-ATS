@@ -537,14 +537,12 @@
                 const result = await response.json();
                 
                 progressBar.style.width = '100%';
-                progressText.innerText = '解析并入库完成！';
+                progressText.innerText = '解析并入库完成！正在进入详情...';
 
                 setTimeout(() => {
                     closeModal();
-                    // Reload list from Database
-                    loadCandidates();
-                    // Optionally jump to detail page:
-                    // viewDetail(result.id);
+                    // 直接跳转到该候选人的详情页，确保数据一致性
+                    window.location.href = `candidate-detail.html?id=${result.id}`;
                 }, 1000);
 
             } catch (error) {
