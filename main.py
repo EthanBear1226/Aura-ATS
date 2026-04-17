@@ -92,30 +92,51 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
         parsed_data = {}
         
         if api_key:
-            # Using 2.0-flash for 2026 stability and free-tier quota balance
-            model = genai.GenerativeModel('gemini-2.0-flash')
-            prompt = f"""
-            请作为一名资深HR数据提取专家，从以下简历文本中提取结构化信息。
-            要求：返回合法 JSON，包含 name, job, exp, email, skills(array), ai_summary, ai_analysis。
-            简历文本：{extracted_text[:4000]}
-            """
-            try:
-                response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-                parsed_data = json.loads(response.text.strip())
-            except Exception as ai_e:
-                print(f"AI Parse Error: {ai_e}")
-                if "429" in str(ai_e) or "quota" in str(ai_e).lower():
+            # 尝试的模型列表，按优先级排序
+            # 1.5-flash 往往拥有最高的每日免费配额 (1500次)
+            # 8b 版本作为备选，配额通常更宽松
+            candidate_models = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash']
+            success = False
+            last_error = ""
+
+            for model_name in candidate_models:
+                try:
+                    print(f"Trying AI model: {model_name}...")
+                    model = genai.GenerativeModel(model_name)
+                    prompt = f"""
+                    请作为一名资深HR数据提取专家，从以下简历文本中提取结构化信息。
+                    要求：返回合法 JSON，包含 name, job, exp, email, skills(array), ai_summary, ai_analysis。
+                    简历文本：{extracted_text[:4000]}
+                    """
+                    response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+                    parsed_data = json.loads(response.text.strip())
+                    success = True
+                    print(f"Successfully parsed using {model_name}")
+                    break # 成功则跳出循环
+                except Exception as e:
+                    last_error = str(e)
+                    print(f"Model {model_name} failed: {e}")
+                    if "429" in last_error or "quota" in last_error.lower():
+                        continue # 额度满了，尝试下一个
+                    elif "404" in last_error or "not found" in last_error.lower():
+                        continue # 模型不存在，尝试下一个
+                    else:
+                        break # 其他严重错误，直接停止
+
+            if not success:
+                # 所有模型都失败后的逻辑
+                if "429" in last_error or "quota" in last_error.lower():
                     parsed_data = {
                         "name": file.filename.replace('.pdf', '')[:10],
                         "job": "演示模式（API额度已满）",
                         "exp": "3-5年 / 本科",
                         "email": "demo@example.com",
-                        "skills": ["API额度已满", "演示模式"],
-                        "ai_summary": "⚠️ 当前 Gemini API 免费额度已耗尽，系统自动切换至离线模拟演示模式。",
-                        "ai_analysis": "由于 API 限制，当前无法进行真实深度解析。请稍后再试。"
+                        "skills": ["所有模型额度已满", "演示模式"],
+                        "ai_summary": "⚠️ 抱歉，当前所有可用的 Gemini 免费模型额度（包含 1.5/2.0 系列）均已耗尽。系统已自动切至演示模式。",
+                        "ai_analysis": "Google 免费 API 每日限额较低。若需继续测试，请更换 API Key 或等待次日配额刷新。"
                     }
                 else:
-                    parsed_data = {"name": "AI 解析异常", "job": "未能提取", "exp": "未知", "email": "未知", "skills": ["解析失败"], "ai_summary": "异常详情", "ai_analysis": str(ai_e)}
+                    parsed_data = {"name": "AI 解析异常", "job": "错误", "exp": "未知", "email": "未知", "skills": ["解析失败"], "ai_summary": "服务响应异常", "ai_analysis": last_error}
         else:
             parsed_data = {"name": file.filename, "job": "未配置 API Key", "exp": "未知", "email": "未知", "skills": ["模拟"], "ai_summary": "未配置 Key", "ai_analysis": "未配置 Key"}
 
