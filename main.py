@@ -121,7 +121,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
         
         # 3. Call Gemini if API Key is available
         if api_key:
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             prompt = f"""
             请作为一名资深HR数据提取专家，从以下简历文本中提取结构化信息。
             要求：
