@@ -268,7 +268,7 @@
                                 <div style="position:absolute; left:-23px; top:2px; width:10px; height:10px; border-radius:5px; background: ${isLatest ? 'var(--primary-color)' : '#D1D1D6'};"></div>
                                 <div style="font-weight: ${isLatest ? '600' : '500'}; color: ${isLatest ? 'var(--text-primary)' : 'var(--text-secondary)'};">${log.action}</div>
                                 <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">${dateStr} · 操作人: ${log.operator}</div>
-                                ${log.details ? \`<div style="font-size:13px; margin-top:8px; background:var(--bg-color); padding:8px 12px; border-radius:4px; color:var(--text-primary); border: 1px solid var(--border-color);">\${log.details}</div>\` : ''}
+                                ${log.details ? `<div style="font-size:13px; margin-top:8px; background:var(--bg-color); padding:8px 12px; border-radius:4px; color:var(--text-primary); border: 1px solid var(--border-color);">${log.details}</div>` : ''}
                             </div>
                         `;
                     });
@@ -355,7 +355,7 @@
                                 <div style="position:absolute; left:-23px; top:2px; width:10px; height:10px; border-radius:5px; background: ${isLatest ? 'var(--primary-color)' : '#D1D1D6'};"></div>
                                 <div style="font-weight: ${isLatest ? '600' : '500'}; color: ${isLatest ? 'var(--text-primary)' : 'var(--text-secondary)'};">${log.action}</div>
                                 <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">${dateStr} · 操作人: ${log.operator}</div>
-                                ${log.details ? \`<div style="font-size:13px; margin-top:8px; background:var(--bg-color); padding:8px 12px; border-radius:4px; color:var(--text-primary); border: 1px solid var(--border-color);">\${log.details}</div>\` : ''}
+                                ${log.details ? `<div style="font-size:13px; margin-top:8px; background:var(--bg-color); padding:8px 12px; border-radius:4px; color:var(--text-primary); border: 1px solid var(--border-color);">${log.details}</div>` : ''}
                             </div>
                         `;
                     });
