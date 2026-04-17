@@ -182,7 +182,7 @@
             const detailsStr = `推至: ${manager}${comment ? ', 评语: ' + comment : ''}`;
             
             try {
-                const response = await fetch(`http://localhost:8000/api/candidates/${currentCandidate.id}`, {
+                const response = await fetch(`/api/candidates/${currentCandidate.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -227,7 +227,7 @@
             if (!id) return;
 
             try {
-                const response = await fetch(`http://localhost:8000/api/candidates/${id}`);
+                const response = await fetch(`/api/candidates/${id}`);
                 if (!response.ok) throw new Error("Candidate not found");
                 
                 const candidate = await response.json();
@@ -293,7 +293,7 @@
                 // PDF Viewer
                 if (candidate.pdf_path) {
                     // Prepend backend URL so it works when frontend is opened directly
-                    document.getElementById('pdf-viewer').src = `http://localhost:8000${candidate.pdf_path}`;
+                    document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
                 } else {
                     document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif'>暂无附件</div>";
                 }
@@ -395,7 +395,7 @@
                     const operatorName = user.name || '系统';
                     
                     try {
-                        const response = await fetch(`http://localhost:8000/api/candidates/${currentCandidate.id}`, {
+                        const response = await fetch(`/api/candidates/${currentCandidate.id}`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ stage: nextStage, operator: operatorName })
@@ -423,7 +423,7 @@
             if(!confirm('确定要删除该候选人以及关联的简历附件吗？删除后无法恢复。')) return;
             
             try {
-                const response = await fetch(`http://localhost:8000/api/candidates/${id}`, {
+                const response = await fetch(`/api/candidates/${id}`, {
                     method: 'DELETE'
                 });
                 

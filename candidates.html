@@ -301,7 +301,7 @@
 
         async function loadCandidates() {
             try {
-                const response = await fetch('http://localhost:8000/api/candidates');
+                const response = await fetch('/api/candidates');
                 if(!response.ok) throw new Error("Failed to fetch");
                 allCandidates = await response.json();
                 
@@ -410,7 +410,7 @@
                 try {
                     // Update sequentially for demo (could be a bulk API in real app)
                     for(let id of ids) {
-                        await fetch(`http://localhost:8000/api/candidates/${id}`, {
+                        await fetch(`/api/candidates/${id}`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ stage: stage, operator: operatorName })
@@ -433,7 +433,7 @@
         async function deleteCandidate(id) {
             showConfirm('确定要删除该候选人以及关联的简历附件吗？删除后无法恢复。', async () => {
                 try {
-                    const response = await fetch(`http://localhost:8000/api/candidates/${id}`, {
+                    const response = await fetch(`/api/candidates/${id}`, {
                         method: 'DELETE'
                     });
                     
@@ -477,7 +477,7 @@
             const detailsStr = `推至: ${manager}${comment ? ', 评语: ' + comment : ''}`;
 
             try {
-                const response = await fetch(`http://localhost:8000/api/candidates/${recommendCandidateId}`, {
+                const response = await fetch(`/api/candidates/${recommendCandidateId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -525,7 +525,7 @@
                 progressBar.style.width = '60%';
                 progressText.innerText = 'AI 模型深度解析中... (需等待几秒)';
                 
-                const response = await fetch('http://localhost:8000/api/parse-resume', {
+                const response = await fetch('/api/parse-resume', {
                     method: 'POST',
                     body: formData
                 });
