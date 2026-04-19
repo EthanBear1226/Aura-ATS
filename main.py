@@ -93,9 +93,13 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
         
         if api_key:
             # 尝试的模型列表，按优先级排序
-            # 1.5-flash 往往拥有最高的每日免费配额 (1500次)
-            # 8b 版本作为备选，配额通常更宽松
-            candidate_models = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash']
+            # 使用较新且免费配额更高的型号
+            candidate_models = [
+                'gemini-2.5-flash-lite',
+                'gemini-flash-lite-latest',
+                'gemini-2.5-flash',
+                'gemini-flash-latest'
+            ]
             success = False
             last_error = ""
 
