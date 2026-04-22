@@ -34,3 +34,15 @@ class CandidateLog(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     candidate = relationship("Candidate", back_populates="logs")
+
+class Job(Base):
+    __tablename__ = "jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(100), index=True)
+    department = Column(String(100))
+    location = Column(String(100))
+    status = Column(String(50), default="热招中") # 热招中 / 已停招
+    hr_name = Column(String(50))
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

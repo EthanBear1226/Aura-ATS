@@ -41,3 +41,33 @@ class Candidate(CandidateBase):
 
     class Config:
         from_attributes = True
+
+class JobBase(BaseModel):
+    title: str
+    department: str
+    location: str
+    status: str = "热招中"
+    hr_name: str
+
+class JobCreate(JobBase):
+    pass
+
+class JobUpdate(BaseModel):
+    status: Optional[str] = None
+
+class Job(JobBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class JobFunnel(BaseModel):
+    new: int
+    screened: int
+    interviewing: int
+    offered: int
+
+class JobWithFunnel(Job):
+    funnel: JobFunnel

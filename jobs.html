@@ -41,6 +41,17 @@
             color: var(--primary-color);
         }
         .funnel-label { color: var(--text-secondary); margin-top: 4px; }
+        
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -51,117 +62,43 @@
             <div class="page-content">
                 <div style="display:flex; justify-content:space-between; margin-bottom:24px;">
                     <h1 class="page-title" style="margin:0;">职位大厅</h1>
-                    <button class="btn btn-primary">+ 发布新职位</button>
+                    <button class="btn btn-primary" onclick="openJobModal()">+ 发布新职位</button>
                 </div>
                 
-                <div class="jobs-grid">
-                    <!-- Active Job -->
-                    <div class="card job-card">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                            <div>
-                                <div style="font-size:18px; font-weight:600; margin-bottom:4px;">高级前端工程师</div>
-                                <div style="font-size:13px; color:var(--text-secondary);">研发部 · 深圳 · 3天前发布</div>
-                            </div>
-                            <span class="tag" style="background:#E8F8F5; color:#00B06B;">热招中</span>
-                        </div>
-                        
-                        <div class="funnel">
-                            <div class="funnel-item">
-                                <div class="funnel-num">12</div>
-                                <div class="funnel-label">新简历</div>
-                            </div>
-                            <div class="funnel-item">
-                                <div class="funnel-num">8</div>
-                                <div class="funnel-label">初筛过</div>
-                            </div>
-                            <div class="funnel-item">
-                                <div class="funnel-num">4</div>
-                                <div class="funnel-label">面试中</div>
-                            </div>
-                            <div class="funnel-item">
-                                <div class="funnel-num">1</div>
-                                <div class="funnel-label">发Offer</div>
-                            </div>
-                        </div>
-
-                        <div style="display:flex; align-items:center; gap:8px; margin-top:auto;">
-                            <div style="width:24px; height:24px; border-radius:12px; background:#ccc; color:white; text-align:center; line-height:24px; font-size:12px;">HR</div>
-                            <span style="font-size:13px; color:var(--text-secondary);">负责人: HR 李</span>
-                        </div>
-                    </div>
-
-                    <!-- Active Job -->
-                    <div class="card job-card">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                            <div>
-                                <div style="font-size:18px; font-weight:600; margin-bottom:4px;">数据分析师</div>
-                                <div style="font-size:13px; color:var(--text-secondary);">增长团队 · 北京 · 1周前发布</div>
-                            </div>
-                            <span class="tag" style="background:#E8F8F5; color:#00B06B;">热招中</span>
-                        </div>
-                        
-                        <div class="funnel">
-                            <div class="funnel-item">
-                                <div class="funnel-num">35</div>
-                                <div class="funnel-label">新简历</div>
-                            </div>
-                            <div class="funnel-item">
-                                <div class="funnel-num">12</div>
-                                <div class="funnel-label">初筛过</div>
-                            </div>
-                            <div class="funnel-item">
-                                <div class="funnel-num">8</div>
-                                <div class="funnel-label">面试中</div>
-                            </div>
-                            <div class="funnel-item">
-                                <div class="funnel-num">0</div>
-                                <div class="funnel-label">发Offer</div>
-                            </div>
-                        </div>
-
-                        <div style="display:flex; align-items:center; gap:8px; margin-top:auto;">
-                            <div style="width:24px; height:24px; border-radius:12px; background:#ccc; color:white; text-align:center; line-height:24px; font-size:12px;">JM</div>
-                            <span style="font-size:13px; color:var(--text-secondary);">负责人: 经理 王</span>
-                        </div>
-                    </div>
-
-                    <!-- Inactive Job -->
-                    <div class="card job-card inactive">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                            <div>
-                                <div style="font-size:18px; font-weight:600; margin-bottom:4px;">UI 设计师</div>
-                                <div style="font-size:13px; color:var(--text-secondary);">设计部 · 深圳 · 1个月前发布</div>
-                            </div>
-                            <span class="tag" style="background:#f0f0f0; color:#666;">已停招</span>
-                        </div>
-                        
-                        <div class="funnel">
-                            <div class="funnel-item">
-                                <div class="funnel-num" style="color:#666">120</div>
-                                <div class="funnel-label">新简历</div>
-                            </div>
-                            <div class="funnel-item">
-                                <div class="funnel-num" style="color:#666">30</div>
-                                <div class="funnel-label">初筛过</div>
-                            </div>
-                            <div class="funnel-item">
-                                <div class="funnel-num" style="color:#666">5</div>
-                                <div class="funnel-label">面试中</div>
-                            </div>
-                            <div class="funnel-item">
-                                <div class="funnel-num" style="color:#666">2</div>
-                                <div class="funnel-label">发Offer</div>
-                            </div>
-                        </div>
-
-                        <div style="display:flex; align-items:center; gap:8px; margin-top:auto;">
-                            <div style="width:24px; height:24px; border-radius:12px; background:#ccc; color:white; text-align:center; line-height:24px; font-size:12px;">HR</div>
-                            <span style="font-size:13px; color:var(--text-secondary);">负责人: HR 李</span>
-                        </div>
-                    </div>
+                <div class="jobs-grid" id="jobsGrid">
+                    <!-- Jobs will be rendered here dynamically -->
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Create Job Modal -->
+    <div class="modal-overlay" id="jobModal">
+        <div class="modal-card">
+            <h2 style="margin-top:0; margin-bottom:24px;">发布新职位</h2>
+            <form id="jobForm" class="auth-form">
+                <div class="form-group">
+                    <label>职位名称</label>
+                    <input type="text" id="jobTitle" required placeholder="如：高级前端工程师">
+                </div>
+                <div class="form-group">
+                    <label>所属部门</label>
+                    <input type="text" id="jobDepartment" required placeholder="如：研发部">
+                </div>
+                <div class="form-group">
+                    <label>工作地点</label>
+                    <input type="text" id="jobLocation" required placeholder="如：深圳">
+                </div>
+                <div class="form-group">
+                    <label>负责人名称</label>
+                    <input type="text" id="jobHrName" required placeholder="如：HR 李">
+                </div>
+                <div style="display:flex; gap:12px; margin-top:24px; justify-content:flex-end;">
+                    <button type="button" class="btn" onclick="closeJobModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">确认发布</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="assets/js/app.js"></script>
@@ -169,7 +106,134 @@
         document.addEventListener("DOMContentLoaded", () => {
             renderSidebar('jobs');
             renderHeader();
+            fetchJobs();
+            
+            document.getElementById('jobForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await createJob();
+            });
         });
+
+        async function fetchJobs() {
+            try {
+                const response = await fetch('/api/jobs');
+                const jobs = await response.json();
+                renderJobs(jobs);
+            } catch (error) {
+                console.error("Error fetching jobs:", error);
+            }
+        }
+
+        function renderJobs(jobs) {
+            const grid = document.getElementById('jobsGrid');
+            grid.innerHTML = '';
+            
+            if (jobs.length === 0) {
+                grid.innerHTML = '<div style="color:var(--text-secondary); grid-column: 1 / -1; text-align: center; padding: 40px;">暂无职位数据，请点击右上角发布新职位。</div>';
+                return;
+            }
+
+            jobs.forEach(job => {
+                const isInactive = job.status === "已停招";
+                const createdDate = new Date(job.created_at).toLocaleDateString('zh-CN');
+                const initials = job.hr_name ? job.hr_name.substring(0, 2).toUpperCase() : "HR";
+                
+                const html = `
+                    <div class="card job-card ${isInactive ? 'inactive' : ''}">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <div style="font-size:18px; font-weight:600; margin-bottom:4px;">${job.title}</div>
+                                <div style="font-size:13px; color:var(--text-secondary);">${job.department} · ${job.location} · ${createdDate}发布</div>
+                            </div>
+                            <span class="tag" style="background:${isInactive ? '#f0f0f0' : '#E8F8F5'}; color:${isInactive ? '#666' : '#00B06B'}; cursor:pointer;" onclick="toggleJobStatus(${job.id}, '${job.status}')" title="点击切换状态">${job.status}</span>
+                        </div>
+                        
+                        <div class="funnel">
+                            <div class="funnel-item">
+                                <div class="funnel-num" style="${isInactive ? 'color:#666' : ''}">${job.funnel.new}</div>
+                                <div class="funnel-label">新简历</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num" style="${isInactive ? 'color:#666' : ''}">${job.funnel.screened}</div>
+                                <div class="funnel-label">初筛过</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num" style="${isInactive ? 'color:#666' : ''}">${job.funnel.interviewing}</div>
+                                <div class="funnel-label">面试中</div>
+                            </div>
+                            <div class="funnel-item">
+                                <div class="funnel-num" style="${isInactive ? 'color:#666' : ''}">${job.funnel.offered}</div>
+                                <div class="funnel-label">发Offer</div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:8px; margin-top:auto;">
+                            <div style="width:24px; height:24px; border-radius:12px; background:#ccc; color:white; text-align:center; line-height:24px; font-size:12px;">${initials}</div>
+                            <span style="font-size:13px; color:var(--text-secondary);">负责人: ${job.hr_name}</span>
+                        </div>
+                    </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        function openJobModal() {
+            document.getElementById('jobModal').classList.add('active');
+        }
+
+        function closeJobModal() {
+            document.getElementById('jobModal').classList.remove('active');
+            document.getElementById('jobForm').reset();
+        }
+
+        async function createJob() {
+            const data = {
+                title: document.getElementById('jobTitle').value,
+                department: document.getElementById('jobDepartment').value,
+                location: document.getElementById('jobLocation').value,
+                hr_name: document.getElementById('jobHrName').value,
+                status: "热招中"
+            };
+
+            // 如果项目里有封装好的 showToast，可以用 showToast
+            try {
+                const response = await fetch('/api/jobs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    if(window.showToast) showToast("发布成功", "success");
+                    closeJobModal();
+                    fetchJobs();
+                } else {
+                    if(window.showToast) showToast("发布失败", "error");
+                    else alert("发布失败");
+                }
+            } catch (error) {
+                console.error("Error creating job:", error);
+                if(window.showToast) showToast("发布异常", "error");
+                else alert("发布异常");
+            }
+        }
+
+        async function toggleJobStatus(jobId, currentStatus) {
+            const newStatus = currentStatus === "热招中" ? "已停招" : "热招中";
+            try {
+                const response = await fetch('/api/jobs/' + jobId, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (response.ok) {
+                    if(window.showToast) showToast("状态已更新为 " + newStatus, "success");
+                    fetchJobs();
+                }
+            } catch (error) {
+                console.error("Error updating job status:", error);
+            }
+        }
     </script>
 </body>
 </html>

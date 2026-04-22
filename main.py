@@ -46,6 +46,45 @@ if api_key:
 async def health_check():
     return {"status": "ok", "message": "Aura API is running."}
 
+@app.get("/api/jobs", response_model=list[schemas.JobWithFunnel])
+def get_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    jobs = db.query(models.Job).order_by(models.Job.id.desc()).offset(skip).limit(limit).all()
+    result = []
+    for job in jobs:
+        new_resume = db.query(models.Candidate).filter(models.Candidate.job == job.title, models.Candidate.stage == "新投递").count()
+        screened = db.query(models.Candidate).filter(models.Candidate.job == job.title, models.Candidate.stage == "初筛").count()
+        interviewing = db.query(models.Candidate).filter(models.Candidate.job == job.title, models.Candidate.stage.in_(["一面", "二面", "HR面"])).count()
+        offered = db.query(models.Candidate).filter(models.Candidate.job == job.title, models.Candidate.stage == "发Offer").count()
+        
+        job_dict = schemas.Job.model_validate(job).model_dump()
+        job_dict["funnel"] = {
+            "new": new_resume,
+            "screened": screened,
+            "interviewing": interviewing,
+            "offered": offered
+        }
+        result.append(job_dict)
+    return result
+
+@app.post("/api/jobs", response_model=schemas.Job)
+def create_job(job: schemas.JobCreate, db: Session = Depends(get_db)):
+    db_job = models.Job(**job.model_dump())
+    db.add(db_job)
+    db.commit()
+    db.refresh(db_job)
+    return db_job
+
+@app.patch("/api/jobs/{job_id}", response_model=schemas.Job)
+def update_job_status(job_id: int, job_update: schemas.JobUpdate, db: Session = Depends(get_db)):
+    db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
+    if not db_job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job_update.status:
+        db_job.status = job_update.status
+    db.commit()
+    db.refresh(db_job)
+    return db_job
+
 @app.get("/api/candidates", response_model=list[schemas.Candidate])
 def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     try:
@@ -146,15 +185,23 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
 
         final_job = job_title if job_title != "默认（AI自动提取）" else parsed_data.get("job", "未知")
 
+        skills_raw = parsed_data.get("skills")
+        if isinstance(skills_raw, list):
+            skills_val = [str(item) for item in skills_raw]
+        elif skills_raw:
+            skills_val = [str(skills_raw)]
+        else:
+            skills_val = []
+
         db_candidate = models.Candidate(
-            name=parsed_data.get("name", "未知"),
-            job=final_job,
+            name=str(parsed_data.get("name") or "未知"),
+            job=str(final_job or "未知"),
             stage="新投递",
-            exp=parsed_data.get("exp", "未知"),
-            email=parsed_data.get("email", "未知"),
-            skills=parsed_data.get("skills", []),
-            ai_summary=parsed_data.get("ai_summary", ""),
-            ai_analysis=parsed_data.get("ai_analysis", ""),
+            exp=str(parsed_data.get("exp") or "未知"),
+            email=str(parsed_data.get("email") or "未知"),
+            skills=skills_val,
+            ai_summary=str(parsed_data.get("ai_summary") or ""),
+            ai_analysis=str(parsed_data.get("ai_analysis") or ""),
             raw_text=extracted_text,
             pdf_path=f"/uploads/{safe_filename}"
         )
