@@ -60,9 +60,6 @@ function renderHeader() {
                     <a href="jobs.html?action=add" style="padding: 10px 16px; text-decoration: none; color: var(--text-primary); font-size: 14px; border-top: 1px solid var(--border-color); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">添加职位</a>
                 </div>
             </div>
-            <style>
-                .dropdown-container:hover .dropdown-menu { display: flex !important; }
-            </style>
             <div style="cursor:pointer; display:flex; align-items:center; gap:8px;" onclick="logout()">
                 <div style="width:32px; height:32px; border-radius:16px; background:var(--primary-color); color:white; display:flex; align-items:center; justify-content:center; font-weight:bold;">
                     ${user.name ? user.name.charAt(0) : 'U'}

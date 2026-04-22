@@ -230,6 +230,10 @@ body {
   gap: 16px;
 }
 
+.dropdown-container:hover .dropdown-menu {
+  display: flex !important;
+}
+
 .page-content {
   flex: 1;
   padding: 32px;
