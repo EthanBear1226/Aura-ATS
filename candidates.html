@@ -160,10 +160,7 @@
             <div style="margin-bottom: 16px;">
                 <label style="font-size:14px; font-weight:500; display:block; margin-bottom:8px;">投递职位</label>
                 <select id="modal-job-select" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none;">
-                    <option value="默认（AI自动提取）">默认 (依赖简历原文)</option>
-                    <option value="高级前端工程师">高级前端工程师</option>
-                    <option value="资深 AI 算法专家">资深 AI 算法专家</option>
-                    <option value="B端高级产品经理">B端高级产品经理</option>
+                    <option value="" disabled selected>请选择投递职位</option>
                 </select>
             </div>
             
@@ -458,7 +455,32 @@
             });
         }
 
-        function openModal() { document.getElementById('uploadModal').classList.add('active'); }
+        async function openModal() { 
+            document.getElementById('uploadModal').classList.add('active'); 
+            try {
+                const response = await fetch('/api/jobs');
+                const jobs = await response.json();
+                const select = document.getElementById('modal-job-select');
+                select.innerHTML = '<option value="" disabled selected>请选择投递职位</option>';
+                jobs.forEach(job => {
+                    if (job.status === '热招中') {
+                        select.innerHTML += `<option value="${job.title}">${job.title}</option>`;
+                    }
+                });
+            } catch (e) {
+                console.error('Failed to load jobs', e);
+            }
+        }
+        
+        function handleUploadAreaClick() {
+            const jobTitle = document.getElementById('modal-job-select').value;
+            if (!jobTitle) {
+                showToast("请先选择投递职位", "error");
+                return;
+            }
+            document.getElementById('resume-file').click();
+        }
+
         function closeModal() {
             document.getElementById('uploadModal').classList.remove('active');
             document.getElementById('upload-progress').style.display = 'none';

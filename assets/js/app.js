@@ -53,13 +53,6 @@ function renderHeader() {
             <input type="text" placeholder="搜索候选人、职位...">
         </div>
         <div class="header-actions">
-            <select id="roleSwitcher" onchange="switchRole(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: #f9f9f9; outline: none; cursor: pointer; font-size: 13px;">
-                <option value="SuperAdmin" ${user.role === 'SuperAdmin' ? 'selected' : ''}>👁️ 超级管理员 (全量)</option>
-                <option value="Recruiter" ${user.role === 'Recruiter' ? 'selected' : ''}>👁️ 招聘官 (业务链)</option>
-                <option value="HiringManager" ${user.role === 'HiringManager' ? 'selected' : ''}>👁️ 用人经理 (部门)</option>
-                <option value="Interviewer" ${user.role === 'Interviewer' ? 'selected' : ''}>👁️ 面试官 (任务)</option>
-                <option value="Assistant" ${user.role === 'Assistant' ? 'selected' : ''}>👁️ 协同助理 (基础)</option>
-            </select>
             <div class="dropdown-container" style="position: relative; display: inline-block;">
                 <button class="btn btn-primary" style="padding: 8px 16px;">+ 添加</button>
                 <div class="dropdown-menu" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 140px; display: none; flex-direction: column; z-index: 1000; overflow: hidden;">
