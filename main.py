@@ -260,6 +260,7 @@ if os.path.exists("assets"):
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.get("/")
+@app.get("/index.html")
 async def read_index():
     return FileResponse('index.html')
 
