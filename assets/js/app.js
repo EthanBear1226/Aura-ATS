@@ -60,7 +60,16 @@ function renderHeader() {
                 <option value="Interviewer" ${user.role === 'Interviewer' ? 'selected' : ''}>👁️ 面试官 (任务)</option>
                 <option value="Assistant" ${user.role === 'Assistant' ? 'selected' : ''}>👁️ 协同助理 (基础)</option>
             </select>
-            <button class="btn btn-primary" onclick="showToast('快捷添加功能演示', 'info')">+ 快捷添加</button>
+            <div class="dropdown-container" style="position: relative; display: inline-block;">
+                <button class="btn btn-primary" style="padding: 8px 16px;">+ 添加</button>
+                <div class="dropdown-menu" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 140px; display: none; flex-direction: column; z-index: 1000; overflow: hidden;">
+                    <a href="candidates.html?action=add" style="padding: 10px 16px; text-decoration: none; color: var(--text-primary); font-size: 14px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">添加候选人</a>
+                    <a href="jobs.html?action=add" style="padding: 10px 16px; text-decoration: none; color: var(--text-primary); font-size: 14px; border-top: 1px solid var(--border-color); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">添加职位</a>
+                </div>
+            </div>
+            <style>
+                .dropdown-container:hover .dropdown-menu { display: flex !important; }
+            </style>
             <div style="cursor:pointer; display:flex; align-items:center; gap:8px;" onclick="logout()">
                 <div style="width:32px; height:32px; border-radius:16px; background:var(--primary-color); color:white; display:flex; align-items:center; justify-content:center; font-weight:bold;">
                     ${user.name ? user.name.charAt(0) : 'U'}

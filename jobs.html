@@ -112,6 +112,12 @@
                 e.preventDefault();
                 await createJob();
             });
+
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('action') === 'add') {
+                openJobModal();
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
         });
 
         async function fetchJobs() {
