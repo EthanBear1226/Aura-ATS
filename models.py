@@ -44,5 +44,6 @@ class Job(Base):
     location = Column(String(100))
     status = Column(String(50), default="热招中") # 热招中 / 已停招
     hr_name = Column(String(50))
+    interview_process = Column(String(200), default="标准面试流程")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

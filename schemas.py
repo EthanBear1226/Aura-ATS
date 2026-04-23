@@ -48,6 +48,7 @@ class JobBase(BaseModel):
     location: str
     status: str = "热招中"
     hr_name: str
+    interview_process: str = "标准面试流程"
 
 class JobCreate(JobBase):
     pass

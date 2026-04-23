@@ -88,6 +88,74 @@
                 department: document.getElementById('jobDepartment').value,
                 location: document.getElementById('jobLocation').value,
                 hr_name: document.getElementById('jobHrName').value,
+                interview_process: document.getElementById('jobInterviewProcess').value,
+                status: "热招中"
+            };
+
+            try {
+                const response = await fetch('/api/jobs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    if(window.showToast) showToast("发布成功", "success");
+                    setTimeout(() => {
+                        window.location.href = 'jobs.html';
+                    }, 1000);
+                } else {
+                    if(window.showToast) showToast("发布失败", "error");
+                    btn.disabled = false;
+                    btn.innerText = "确认发布";
+                }
+            } catch (error) {
+                console.error("Error creating job:", error);
+                if(window.showToast) showToast("发布异常", "error");
+                btn.disabled = false;
+                btn.innerText = "确认发布";
+            }
+        }
+    </script>
+</body>
+</html>�+2轮技术+HR)</option>
+                                <option value="高管直面 (1轮直属+CEO直面)">高管直面 (1轮直属+CEO直面)</option>
+                                <option value="非技术岗标准面 (1轮业务+HR)">非技术岗标准面 (1轮业务+HR)</option>
+                                <option value="实习生面 (1轮业务+HR)">实习生面 (1轮业务+HR)</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; gap:12px; margin-top:32px; justify-content:flex-end;">
+                            <button type="button" class="btn" onclick="window.history.back()">取消返回</button>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">确认发布</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="assets/js/app.js?v=4"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            renderSidebar('jobs');
+            renderHeader();
+            
+            document.getElementById('jobForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await createJob();
+            });
+        });
+
+        async function createJob() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = "发布中...";
+
+            const data = {
+                title: document.getElementById('jobTitle').value,
+                department: document.getElementById('jobDepartment').value,
+                location: document.getElementById('jobLocation').value,
+                hr_name: document.getElementById('jobHrName').value,
                 status: "热招中"
             };
 
