@@ -55,9 +55,11 @@ function renderHeader() {
         <div class="header-actions">
             <div class="dropdown-container" style="position: relative; display: inline-block;">
                 <button class="btn btn-primary" style="padding: 8px 16px;">+ 添加</button>
-                <div class="dropdown-menu" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 140px; display: none; flex-direction: column; z-index: 1000; overflow: hidden;">
-                    <a href="add-candidate.html" style="padding: 10px 16px; text-decoration: none; color: var(--text-primary); font-size: 14px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">添加候选人</a>
-                    <a href="add-job.html" style="padding: 10px 16px; text-decoration: none; color: var(--text-primary); font-size: 14px; border-top: 1px solid var(--border-color); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">添加职位</a>
+                <div class="dropdown-menu" style="position: absolute; top: 100%; right: 0; padding-top: 8px; width: 140px; display: none; flex-direction: column; z-index: 1000;">
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden;">
+                        <a href="add-candidate.html" style="padding: 10px 16px; text-decoration: none; color: var(--text-primary); font-size: 14px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">添加候选人</a>
+                        <a href="add-job.html" style="padding: 10px 16px; text-decoration: none; color: var(--text-primary); font-size: 14px; border-top: 1px solid var(--border-color); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">添加职位</a>
+                    </div>
                 </div>
             </div>
             <div style="cursor:pointer; display:flex; align-items:center; gap:8px;" onclick="logout()">
