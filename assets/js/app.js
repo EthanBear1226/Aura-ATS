@@ -55,10 +55,16 @@ function renderHeader() {
         <div class="header-actions">
             <div class="dropdown-container" style="position: relative; display: inline-block;">
                 <button class="btn btn-primary" style="padding: 8px 16px;">+ 添加</button>
-                <div class="dropdown-menu" style="position: absolute; top: 100%; right: 0; padding-top: 8px; width: 140px; display: none; flex-direction: column; z-index: 1000;">
-                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden;">
-                        <a href="add-candidate.html" style="padding: 10px 16px; text-decoration: none; color: var(--text-primary); font-size: 14px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">添加候选人</a>
-                        <a href="add-job.html" style="padding: 10px 16px; text-decoration: none; color: var(--text-primary); font-size: 14px; border-top: 1px solid var(--border-color); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">添加职位</a>
+                <div class="dropdown-menu" style="position: absolute; top: 100%; right: 0; padding-top: 8px; width: 180px; display: none; flex-direction: column; z-index: 1000;">
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-md); padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+                        <a href="add-candidate.html" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; text-decoration: none; color: var(--text-primary); font-size: 14px; font-weight: 500; border-radius: var(--radius-sm); transition: var(--transition);" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                            添加候选人
+                        </a>
+                        <a href="add-job.html" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; text-decoration: none; color: var(--text-primary); font-size: 14px; font-weight: 500; border-radius: var(--radius-sm); transition: var(--transition);" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='transparent'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                            发布新职位
+                        </a>
                     </div>
                 </div>
             </div>
