@@ -280,6 +280,14 @@ async def read_interviews():
 async def read_jobs():
     return FileResponse('jobs.html')
 
+@app.get("/add-candidate.html")
+async def read_add_candidate():
+    return FileResponse('add-candidate.html')
+
+@app.get("/add-job.html")
+async def read_add_job():
+    return FileResponse('add-job.html')
+
 @app.get("/login.html")
 async def read_login():
     return FileResponse('login.html')

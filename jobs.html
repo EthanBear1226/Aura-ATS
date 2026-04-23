@@ -62,7 +62,7 @@
             <div class="page-content">
                 <div style="display:flex; justify-content:space-between; margin-bottom:24px;">
                     <h1 class="page-title" style="margin:0;">职位大厅</h1>
-                    <button class="btn btn-primary" onclick="openJobModal()">+ 发布新职位</button>
+                    <button class="btn btn-primary" onclick="window.location.href='add-job.html'">+ 发布新职位</button>
                 </div>
                 
                 <div class="jobs-grid" id="jobsGrid">
@@ -112,12 +112,6 @@
                 e.preventDefault();
                 await createJob();
             });
-
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('action') === 'add') {
-                openJobModal();
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
         });
 
         async function fetchJobs() {
