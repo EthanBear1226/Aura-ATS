@@ -16,7 +16,7 @@
             font-size: 14px;
             font-weight: 500;
         }
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 12px 16px;
             border: 1px solid var(--border-color);
@@ -24,9 +24,19 @@
             box-sizing: border-box;
             font-size: 14px;
             outline: none;
+            background: white;
+            appearance: none;
+            -webkit-appearance: none;
         }
-        .form-group input:focus {
+        .form-group input:focus, .form-group select:focus {
             border-color: var(--primary-color);
+        }
+        .form-group select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 16px;
+            padding-right: 40px;
         }
     </style>
 </head>
@@ -45,80 +55,45 @@
                             <input type="text" id="jobTitle" required placeholder="如：高级前端工程师">
                         </div>
                         <div class="form-group">
-                            <label>所属部门</label>
-                            <input type="text" id="jobDepartment" required placeholder="如：研发部">
+                            <label>所属部门 <span style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(预设选项，未来由超管配置)</span></label>
+                            <select id="jobDepartment" required>
+                                <option value="" disabled selected>请选择所属部门</option>
+                                <option value="研发部">研发部</option>
+                                <option value="产品部">产品部</option>
+                                <option value="设计部">设计部</option>
+                                <option value="市场部">市场部</option>
+                                <option value="销售部">销售部</option>
+                                <option value="人力资源部">人力资源部</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label>工作地点</label>
-                            <input type="text" id="jobLocation" required placeholder="如：深圳">
+                            <label>工作地点 <span style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(预设选项)</span></label>
+                            <select id="jobLocation" required>
+                                <option value="" disabled selected>请选择工作地点</option>
+                                <option value="北京">北京</option>
+                                <option value="上海">上海</option>
+                                <option value="深圳">深圳</option>
+                                <option value="广州">广州</option>
+                                <option value="杭州">杭州</option>
+                                <option value="成都">成都</option>
+                                <option value="远程办公">远程办公</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label>负责人名称</label>
-                            <input type="text" id="jobHrName" required placeholder="如：HR 李">
+                            <label>负责人名称 <span style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(预设人员列表)</span></label>
+                            <select id="jobHrName" required>
+                                <option value="" disabled selected>请选择汇报上级/负责人</option>
+                                <option value="王大锤 (技术总监)">王大锤 (技术总监)</option>
+                                <option value="赵总 (产品VP)">赵总 (产品VP)</option>
+                                <option value="李雷 (HRBP)">李雷 (HRBP)</option>
+                                <option value="韩梅梅 (招聘经理)">韩梅梅 (招聘经理)</option>
+                            </select>
                         </div>
-                        <div style="display:flex; gap:12px; margin-top:32px; justify-content:flex-end;">
-                            <button type="button" class="btn" onclick="window.history.back()">取消返回</button>
-                            <button type="submit" class="btn btn-primary" id="submitBtn">确认发布</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <script src="assets/js/app.js?v=4"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            renderSidebar('jobs');
-            renderHeader();
-            
-            document.getElementById('jobForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await createJob();
-            });
-        });
-
-        async function createJob() {
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerText = "发布中...";
-
-            const data = {
-                title: document.getElementById('jobTitle').value,
-                department: document.getElementById('jobDepartment').value,
-                location: document.getElementById('jobLocation').value,
-                hr_name: document.getElementById('jobHrName').value,
-                interview_process: document.getElementById('jobInterviewProcess').value,
-                status: "热招中"
-            };
-
-            try {
-                const response = await fetch('/api/jobs', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                if (response.ok) {
-                    if(window.showToast) showToast("发布成功", "success");
-                    setTimeout(() => {
-                        window.location.href = 'jobs.html';
-                    }, 1000);
-                } else {
-                    if(window.showToast) showToast("发布失败", "error");
-                    btn.disabled = false;
-                    btn.innerText = "确认发布";
-                }
-            } catch (error) {
-                console.error("Error creating job:", error);
-                if(window.showToast) showToast("发布异常", "error");
-                btn.disabled = false;
-                btn.innerText = "确认发布";
-            }
-        }
-    </script>
-</body>
-</html>�+2轮技术+HR)</option>
+                        <div class="form-group">
+                            <label>面试流程 <span style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(预设流程模版)</span></label>
+                            <select id="jobInterviewProcess" required>
+                                <option value="" disabled selected>请选择默认面试流程</option>
+                                <option value="标准技术面 (笔试+2轮技术+HR)">标准技术面 (笔试+2轮技术+HR)</option>
                                 <option value="高管直面 (1轮直属+CEO直面)">高管直面 (1轮直属+CEO直面)</option>
                                 <option value="非技术岗标准面 (1轮业务+HR)">非技术岗标准面 (1轮业务+HR)</option>
                                 <option value="实习生面 (1轮业务+HR)">实习生面 (1轮业务+HR)</option>
@@ -156,6 +131,7 @@
                 department: document.getElementById('jobDepartment').value,
                 location: document.getElementById('jobLocation').value,
                 hr_name: document.getElementById('jobHrName').value,
+                interview_process: document.getElementById('jobInterviewProcess').value,
                 status: "热招中"
             };
 
