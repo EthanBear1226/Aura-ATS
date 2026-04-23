@@ -51,7 +51,8 @@ def get_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     jobs = db.query(models.Job).order_by(models.Job.id.desc()).offset(skip).limit(limit).all()
     result = []
     for job in jobs:
-        new_resume = db.query(models.Candidate).filter(models.Candidate.job == job.title, models.Candidate.stage == "新投递").count()
+        yesterday = datetime.utcnow() - datetime.timedelta(days=1) if hasattr(datetime, 'timedelta') else datetime.now() - __import__('datetime').timedelta(days=1)
+        new_resume = db.query(models.Candidate).filter(models.Candidate.job == job.title, models.Candidate.stage == "初筛", models.Candidate.created_at >= yesterday).count()
         screened = db.query(models.Candidate).filter(models.Candidate.job == job.title, models.Candidate.stage == "初筛").count()
         interviewing = db.query(models.Candidate).filter(models.Candidate.job == job.title, models.Candidate.stage.in_(["一面", "二面", "HR面"])).count()
         offered = db.query(models.Candidate).filter(models.Candidate.job == job.title, models.Candidate.stage == "发Offer").count()
@@ -196,7 +197,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
         db_candidate = models.Candidate(
             name=str(parsed_data.get("name") or "未知"),
             job=str(final_job or "未知"),
-            stage="新投递",
+            stage="初筛",
             exp=str(parsed_data.get("exp") or "未知"),
             email=str(parsed_data.get("email") or "未知"),
             skills=skills_val,

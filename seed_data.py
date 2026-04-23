@@ -30,7 +30,7 @@ mock_data = [
     {
         "name": "陈浩宇",
         "job": "B端高级产品经理",
-        "stage": "新投递",
+        "stage": "初筛",
         "exp": "5年 / 硕士",
         "email": "chenhaoyu@example.com",
         "skills": ["Axure", "SaaS架构", "数据分析", "敏捷开发", "跨部门协作"],
@@ -40,7 +40,7 @@ mock_data = [
     {
         "name": "李晓彤",
         "job": "HR 数据分析师",
-        "stage": "新投递",
+        "stage": "初筛",
         "exp": "1年 / 本科",
         "email": "lixiaotong@example.com",
         "skills": ["Python", "SQL", "Tableau", "Excel高级", "数据可视化"],

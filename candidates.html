@@ -118,7 +118,6 @@
                         <span style="font-size:13px; font-weight:500;" id="selected-count">已选择 0 项</span>
                         <select id="bulk-stage-select" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); outline: none; font-size: 13px;">
                             <option value="">转移至节点...</option>
-                            <option value="新投递">新投递</option>
                             <option value="初筛">初筛</option>
                             <option value="用人部门筛选">用人部门筛选</option>
                             <option value="面试">面试</option>
@@ -216,7 +215,7 @@
         let allCandidates = [];
         let currentFilter = '全部职位';
         let currentStageFilter = '全部阶段';
-        const STAGES = ['全部阶段', '新投递', '初筛', '用人部门筛选', '面试', '沟通offer', '待入职', '已入职'];
+        const STAGES = ['全部阶段', '今日投递', '初筛', '用人部门筛选', '面试', '沟通offer', '待入职', '已入职'];
         
         // Define RBAC Rules (In a real app, this comes from backend JWT/Session)
         const rolePermissions = {
@@ -569,6 +568,17 @@
 
             } catch (error) {
                 console.error(error);
+                showToast("解析失败，请确保后端服务 (uvicorn) 正在运行。", "error");
+                progressBar.style.width = '0%';
+                document.getElementById('upload-progress').style.display = 'none';
+            }
+            
+            // Clear file input
+            e.target.value = '';
+        });
+    </script>
+</body>
+</html>le.error(error);
                 showToast("解析失败，请确保后端服务 (uvicorn) 正在运行。", "error");
                 progressBar.style.width = '0%';
                 document.getElementById('upload-progress').style.display = 'none';

@@ -9,7 +9,7 @@ class Candidate(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), index=True)
     job = Column(String(100))
-    stage = Column(String(50), default="新投递")
+    stage = Column(String(50), default="初筛")
     exp = Column(String(100))
     email = Column(String(255))
     skills = Column(JSON)
