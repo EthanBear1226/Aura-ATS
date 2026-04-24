@@ -172,15 +172,13 @@
                             <div class="form-group">
                                 <label>薪资范围</label>
                                 <div class="salary-group">
-                                    <div class="custom-select-wrapper" style="flex:1; margin:0;">
-                                        <select id="jobSalaryRange" required>
-                                            <option value="面议" selected>面议</option>
-                                            <option value="5k-10k">5k-10k</option>
-                                            <option value="10k-20k">10k-20k</option>
-                                            <option value="20k-40k">20k-40k</option>
-                                            <option value="40k以上">40k以上</option>
-                                        </select>
-                                    </div>
+                                    <select id="jobSalaryRange" required>
+                                        <option value="面议" selected>面议</option>
+                                        <option value="5k-10k">5k-10k</option>
+                                        <option value="10k-20k">10k-20k</option>
+                                        <option value="20k-40k">20k-40k</option>
+                                        <option value="40k以上">40k以上</option>
+                                    </select>
                                     <span style="color: var(--text-secondary);">×</span>
                                     <input type="number" id="jobSalaryMonths" required min="12" max="24" value="12" title="薪资发放月数">
                                     <span style="color: var(--text-secondary); font-size:14px; white-space:nowrap;">薪</span>
@@ -367,6 +365,13 @@
             } catch (error) {
                 console.error("Error creating job:", error);
                 if(window.showToast) showToast("发布异常", "error");
+                btn.disabled = false;
+                btn.innerText = "确认发布";
+            }
+        }
+    </script>
+</body>
+</html>ast("发布异常", "error");
                 btn.disabled = false;
                 btn.innerText = "确认发布";
             }

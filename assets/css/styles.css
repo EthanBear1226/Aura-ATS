@@ -647,6 +647,10 @@ body {
   transform: rotate(180deg);
 }
 
+.salary-group .custom-select-wrapper {
+  flex: 1;
+}
+
 .custom-select-options {
   position: absolute;
   top: calc(100% + 6px);
@@ -660,7 +664,7 @@ body {
   visibility: hidden;
   transform: translateY(-10px);
   transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  z-index: 2000;
+  z-index: 5000;
   overflow: hidden;
 }
 
