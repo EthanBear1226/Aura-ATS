@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>添加候选人 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=7">
+    <link rel="stylesheet" href="assets/css/styles.css?v=9">
     <style>
         .upload-area {
             border: 2px dashed var(--border-color);
@@ -90,11 +90,17 @@
                 trigger.className = 'custom-select-trigger placeholder';
                 
                 const span = document.createElement('span');
-                const defaultOption = select.querySelector('option[disabled][selected]');
+                const defaultOption = select.querySelector('option[disabled][selected]') || select.options[0];
                 span.innerText = defaultOption ? defaultOption.innerText : '';
+                
                 trigger.appendChild(span);
                 
-                trigger.innerHTML += `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+                const iconContainer = document.createElement('div');
+                iconContainer.style.display = 'flex';
+                iconContainer.style.alignItems = 'center';
+                iconContainer.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+                trigger.appendChild(iconContainer.firstChild);
+                
                 wrapper.appendChild(trigger);
                 
                 const optionsDiv = document.createElement('div');
@@ -104,6 +110,7 @@
                     if (option.disabled) return;
                     const optDiv = document.createElement('div');
                     optDiv.className = 'custom-option';
+                    if(option.selected) optDiv.classList.add('selected');
                     optDiv.innerText = option.innerText;
                     optDiv.dataset.value = option.value;
                     
@@ -117,6 +124,7 @@
                         optDiv.classList.add('selected');
                         
                         wrapper.classList.remove('open');
+                        select.dispatchEvent(new Event('change'));
                     });
                     optionsDiv.appendChild(optDiv);
                 });

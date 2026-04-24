@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>发布新职位 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=8">
+    <link rel="stylesheet" href="assets/css/styles.css?v=9">
     <!-- 引入 Quill 雪白主题样式 -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
@@ -271,20 +271,24 @@
                 select.classList.add('hidden-select');
                 
                 const trigger = document.createElement('div');
-                trigger.className = 'custom-select-trigger placeholder';
+                trigger.className = 'custom-select-trigger';
                 
                 const span = document.createElement('span');
-                const defaultOption = select.querySelector('option[selected]');
+                const defaultOption = select.querySelector('option[selected]') || select.options[0];
                 span.innerText = defaultOption ? defaultOption.innerText : '';
-                trigger.appendChild(span);
                 
-                if (!defaultOption || defaultOption.disabled) {
+                if (!defaultOption || defaultOption.disabled || !defaultOption.value) {
                      trigger.classList.add('placeholder');
-                } else {
-                     trigger.classList.remove('placeholder');
                 }
                 
-                trigger.innerHTML += `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+                trigger.appendChild(span);
+                
+                const iconContainer = document.createElement('div');
+                iconContainer.style.display = 'flex';
+                iconContainer.style.alignItems = 'center';
+                iconContainer.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+                trigger.appendChild(iconContainer.firstChild);
+                
                 wrapper.appendChild(trigger);
                 
                 const optionsDiv = document.createElement('div');
@@ -308,6 +312,7 @@
                         optDiv.classList.add('selected');
                         
                         wrapper.classList.remove('open');
+                        select.dispatchEvent(new Event('change'));
                     });
                     optionsDiv.appendChild(optDiv);
                 });
