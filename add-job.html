@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>发布新职位 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=6">
+    <link rel="stylesheet" href="assets/css/styles.css?v=8">
     <!-- 引入 Quill 雪白主题样式 -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
@@ -53,12 +53,22 @@
         .salary-group {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
         .salary-group input {
-            width: 80px;
+            flex: 1;
             text-align: center;
-            padding: 12px;
+            padding: 12px 8px;
+            min-width: 60px;
+        }
+        .salary-unit {
+            color: var(--text-secondary);
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        .salary-sep {
+            color: var(--text-secondary);
+            font-weight: 500;
         }
         
         /* Quill 编辑器覆写 */
@@ -172,16 +182,14 @@
                             <div class="form-group">
                                 <label>薪资范围</label>
                                 <div class="salary-group">
-                                    <select id="jobSalaryRange" required>
-                                        <option value="面议" selected>面议</option>
-                                        <option value="5k-10k">5k-10k</option>
-                                        <option value="10k-20k">10k-20k</option>
-                                        <option value="20k-40k">20k-40k</option>
-                                        <option value="40k以上">40k以上</option>
-                                    </select>
-                                    <span style="color: var(--text-secondary);">×</span>
+                                    <input type="number" id="jobSalaryMin" placeholder="下限" min="0">
+                                    <span class="salary-unit">k</span>
+                                    <span class="salary-sep">-</span>
+                                    <input type="number" id="jobSalaryMax" placeholder="上限" min="0">
+                                    <span class="salary-unit">k</span>
+                                    <span class="salary-sep">×</span>
                                     <input type="number" id="jobSalaryMonths" required min="12" max="24" value="12" title="薪资发放月数">
-                                    <span style="color: var(--text-secondary); font-size:14px; white-space:nowrap;">薪</span>
+                                    <span class="salary-unit">薪</span>
                                 </div>
                             </div>
 
@@ -327,6 +335,18 @@
             // 获取富文本内容，如果为空则是 <p><br></p>
             const descriptionHTML = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
 
+            // 处理薪资范围
+            const min = document.getElementById('jobSalaryMin').value;
+            const max = document.getElementById('jobSalaryMax').value;
+            let salaryRange = "面议";
+            if (min && max) {
+                salaryRange = `${min}k-${max}k`;
+            } else if (min) {
+                salaryRange = `${min}k以上`;
+            } else if (max) {
+                salaryRange = `${max}k以下`;
+            }
+
             const data = {
                 title: document.getElementById('jobTitle').value,
                 department: document.getElementById('jobDepartment').value,
@@ -340,7 +360,7 @@
                 experience: document.getElementById('jobExperience').value,
                 job_level: document.getElementById('jobLevel').value,
                 headcount: parseInt(document.getElementById('jobHeadcount').value, 10),
-                salary_range: document.getElementById('jobSalaryRange').value,
+                salary_range: salaryRange,
                 salary_months: parseInt(document.getElementById('jobSalaryMonths').value, 10),
                 description: descriptionHTML
             };
