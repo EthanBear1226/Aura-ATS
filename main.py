@@ -311,7 +311,7 @@ async def read_candidates():
 
 @app.get("/candidate-detail.html")
 async def read_detail():
-    return FileResponse('candidate-detail.html')
+    return FileResponse('candidate-detail.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/interviews.html")
 async def read_interviews():
