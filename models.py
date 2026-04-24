@@ -16,6 +16,8 @@ class Candidate(Base):
     raw_text = Column(Text)
     ai_summary = Column(Text)
     ai_analysis = Column(Text)
+    match_score = Column(Integer, nullable=True) # 0-100 系统推荐匹配分
+    match_reason = Column(Text, nullable=True) # 匹配维度点评
     pdf_path = Column(String(255))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
@@ -45,5 +47,13 @@ class Job(Base):
     status = Column(String(50), default="热招中") # 热招中 / 已停招
     hr_name = Column(String(50))
     interview_process = Column(String(200), default="标准面试流程")
+    description = Column(Text, nullable=True) # 富文本职位介绍
+    job_type = Column(String(50), default="全职") # 职位性质
+    category = Column(String(100), nullable=True) # 职位类别
+    experience = Column(String(50), default="不限") # 工作经验
+    job_level = Column(String(50), nullable=True) # 职级
+    headcount = Column(Integer, default=1) # 招聘人数
+    salary_range = Column(String(50), nullable=True) # 薪资区间
+    salary_months = Column(Integer, default=12) # 薪资月数
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

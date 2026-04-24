@@ -98,6 +98,17 @@
                         </div>
                         
                         <div class="tab-content active" id="tab-0">
+                            <div id="match-score-container" style="display: none; background: #fffcf0; border: 1px solid #ffe58f; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+                                <h3 style="margin-top: 0; color: #faad14; display: flex; align-items: center; gap: 8px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    AI 人岗匹配打分
+                                    <span style="margin-left:auto; font-size:24px; font-weight:bold; color:#faad14;"><span id="match-score">--</span> <span style="font-size:14px; font-weight:normal;">分</span></span>
+                                </h3>
+                                <div id="match-reason" style="font-size: 14px; color: #333; line-height: 1.6; margin-top: 8px;">
+                                    加载中...
+                                </div>
+                            </div>
+
                             <div style="background: #f4f8ff; border: 1px solid #d0e1ff; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
                                 <h3 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center; gap: 8px;">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
@@ -288,7 +299,34 @@
                 document.getElementById('ai-summary').innerText = candidate.ai_summary || "暂无 AI 概括数据。";
                 document.getElementById('ai-analysis').innerHTML = candidate.ai_analysis || "暂无 AI 深度分析数据。";
 
-
+                // Match Score
+                if (candidate.match_score !== null && candidate.match_score !== undefined) {
+                    document.getElementById('match-score-container').style.display = 'block';
+                    document.getElementById('match-score').innerText = candidate.match_score;
+                    document.getElementById('match-reason').innerText = candidate.match_reason || "暂无匹配维度点评。";
+                    
+                    // Update color based on score
+                    const score = candidate.match_score;
+                    const scoreSpan = document.getElementById('match-score').parentElement;
+                    const titleH3 = document.getElementById('match-score-container').querySelector('h3');
+                    
+                    if (score >= 80) {
+                        scoreSpan.style.color = '#52c41a';
+                        titleH3.style.color = '#52c41a';
+                        document.getElementById('match-score-container').style.borderColor = '#b7eb8f';
+                        document.getElementById('match-score-container').style.background = '#f6ffed';
+                    } else if (score >= 60) {
+                        scoreSpan.style.color = '#faad14';
+                        titleH3.style.color = '#faad14';
+                        document.getElementById('match-score-container').style.borderColor = '#ffe58f';
+                        document.getElementById('match-score-container').style.background = '#fffbe6';
+                    } else {
+                        scoreSpan.style.color = '#ff4d4f';
+                        titleH3.style.color = '#ff4d4f';
+                        document.getElementById('match-score-container').style.borderColor = '#ffa39e';
+                        document.getElementById('match-score-container').style.background = '#fff1f0';
+                    }
+                }
 
                 // PDF Viewer
                 if (candidate.pdf_path) {

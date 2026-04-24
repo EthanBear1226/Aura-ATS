@@ -12,6 +12,8 @@ class CandidateBase(BaseModel):
     raw_text: Optional[str] = None
     ai_summary: Optional[str] = None
     ai_analysis: Optional[str] = None
+    match_score: Optional[int] = None
+    match_reason: Optional[str] = None
     pdf_path: Optional[str] = None
 
 class CandidateCreate(CandidateBase):
@@ -49,6 +51,14 @@ class JobBase(BaseModel):
     status: str = "热招中"
     hr_name: str
     interview_process: str = "标准面试流程"
+    description: Optional[str] = None
+    job_type: str = "全职"
+    category: Optional[str] = None
+    experience: str = "不限"
+    job_level: Optional[str] = None
+    headcount: int = 1
+    salary_range: Optional[str] = None
+    salary_months: int = 12
 
 class JobCreate(JobBase):
     pass

@@ -138,12 +138,21 @@
                 const createdDate = new Date(job.created_at).toLocaleDateString('zh-CN');
                 const initials = job.hr_name ? job.hr_name.substring(0, 2).toUpperCase() : "HR";
                 
+                const exp = job.experience || "经验不限";
+                const salary = job.salary_range ? (job.salary_range === "面议" ? "面议" : `${job.salary_range}·${job.salary_months || 12}薪`) : "薪资面议";
+                const type = job.job_type || "全职";
+
                 const html = `
                     <div class="card job-card ${isInactive ? 'inactive' : ''}">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                             <div>
                                 <div style="font-size:18px; font-weight:600; margin-bottom:4px;">${job.title}</div>
-                                <div style="font-size:13px; color:var(--text-secondary);">${job.department} · ${job.location} · ${createdDate}发布</div>
+                                <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${job.department} · ${job.location} · ${createdDate}发布</div>
+                                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom: 12px;">
+                                    <span style="font-size:12px; background:#f4f4f5; color:#666; padding:2px 6px; border-radius:4px;">${type}</span>
+                                    <span style="font-size:12px; background:#e6f4ff; color:#0066ff; padding:2px 6px; border-radius:4px;">${salary}</span>
+                                    <span style="font-size:12px; background:#fff2e8; color:#d46b08; padding:2px 6px; border-radius:4px;">${exp}</span>
+                                </div>
                             </div>
                             <span class="tag" style="background:${isInactive ? '#f0f0f0' : '#E8F8F5'}; color:${isInactive ? '#666' : '#00B06B'}; cursor:pointer;" onclick="toggleJobStatus(${job.id}, '${job.status}')" title="点击切换状态">${job.status}</span>
                         </div>
@@ -170,6 +179,7 @@
                         <div style="display:flex; align-items:center; gap:8px; margin-top:auto;">
                             <div style="width:24px; height:24px; border-radius:12px; background:#ccc; color:white; text-align:center; line-height:24px; font-size:12px;">${initials}</div>
                             <span style="font-size:13px; color:var(--text-secondary);">负责人: ${job.hr_name}</span>
+                            ${job.headcount ? `<span style="margin-left:auto; font-size:12px; color:var(--text-secondary);">招 ${job.headcount} 人</span>` : ''}
                         </div>
                     </div>
                 `;

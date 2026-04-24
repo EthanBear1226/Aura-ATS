@@ -19,6 +19,34 @@ from database import engine, get_db
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
+# Database Migration for new Job columns (Safe for SQLite)
+def upgrade_db():
+    from sqlalchemy import text
+    try:
+        with engine.begin() as conn:
+            # Check if one of the new columns exists
+            result = conn.execute(text("PRAGMA table_info(jobs)")).fetchall()
+            columns = [row[1] for row in result]
+            if "description" not in columns:
+                conn.execute(text("ALTER TABLE jobs ADD COLUMN description TEXT"))
+                conn.execute(text("ALTER TABLE jobs ADD COLUMN job_type VARCHAR(50) DEFAULT '全职'"))
+                conn.execute(text("ALTER TABLE jobs ADD COLUMN category VARCHAR(100)"))
+                conn.execute(text("ALTER TABLE jobs ADD COLUMN experience VARCHAR(50) DEFAULT '不限'"))
+                conn.execute(text("ALTER TABLE jobs ADD COLUMN job_level VARCHAR(50)"))
+                conn.execute(text("ALTER TABLE jobs ADD COLUMN headcount INTEGER DEFAULT 1"))
+                conn.execute(text("ALTER TABLE jobs ADD COLUMN salary_range VARCHAR(50)"))
+                conn.execute(text("ALTER TABLE jobs ADD COLUMN salary_months INTEGER DEFAULT 12"))
+                
+            c_result = conn.execute(text("PRAGMA table_info(candidates)")).fetchall()
+            c_columns = [row[1] for row in c_result]
+            if "match_score" not in c_columns:
+                conn.execute(text("ALTER TABLE candidates ADD COLUMN match_score INTEGER"))
+                conn.execute(text("ALTER TABLE candidates ADD COLUMN match_reason TEXT"))
+    except Exception as e:
+        print(f"Migration error (ignoring if tables just created): {e}")
+
+upgrade_db()
+
 load_dotenv()
 
 app = FastAPI(title="Aura API", description="Backend API for Aura Recruitment System")
@@ -131,6 +159,15 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
 
         parsed_data = {}
         
+        job_info_text = ""
+        if job_title != "默认（AI自动提取）":
+            job_obj = db.query(models.Job).filter(models.Job.title == job_title).first()
+            if job_obj:
+                import re
+                clean_desc = re.sub(r'<[^>]+>', '', job_obj.description or '')
+                job_desc = f"{clean_desc} {job_obj.job_type or ''} {job_obj.experience or ''} {job_obj.category or ''}"
+                job_info_text = f"\n【正在应聘的职位及JD】\n职位名称：{job_title}\n职位JD：{job_desc[:1000]}\n"
+
         if api_key:
             # 尝试的模型列表，按优先级排序
             # 使用较新且免费配额更高的型号
@@ -150,6 +187,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
                     prompt = f"""
                     请作为一名资深HR数据提取专家，从以下简历文本中提取结构化信息。
                     要求：返回合法 JSON，包含 name, job, exp, email, skills(array), ai_summary, ai_analysis。
+                    如果提供了【正在应聘的职位及JD】，请在提取信息后，根据简历与JD的匹配度，额外输出 match_score（0-100的整数）和 match_reason（100字左右的客观匹配维度点评）。{job_info_text}
                     简历文本：{extracted_text[:4000]}
                     """
                     response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
@@ -203,6 +241,8 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
             skills=skills_val,
             ai_summary=str(parsed_data.get("ai_summary") or ""),
             ai_analysis=str(parsed_data.get("ai_analysis") or ""),
+            match_score=parsed_data.get("match_score"),
+            match_reason=str(parsed_data.get("match_reason") or "") if parsed_data.get("match_reason") else None,
             raw_text=extracted_text,
             pdf_path=f"/uploads/{safe_filename}"
         )

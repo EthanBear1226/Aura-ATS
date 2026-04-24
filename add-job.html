@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>发布新职位 | Aura</title>
     <link rel="stylesheet" href="assets/css/styles.css?v=3">
+    <!-- 引入 Quill 雪白主题样式 -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
         .form-group {
             margin-bottom: 20px;
@@ -38,6 +40,47 @@
             background-size: 16px;
             padding-right: 40px;
         }
+
+        /* 新增双列网格布局 */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 20px;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        /* 薪资组合框样式 */
+        .salary-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .salary-group input {
+            width: 80px;
+            text-align: center;
+            padding: 12px;
+        }
+        
+        /* Quill 编辑器覆写 */
+        #editor-container {
+            height: 250px;
+            background: white;
+            border-bottom-left-radius: var(--radius-sm);
+            border-bottom-right-radius: var(--radius-sm);
+        }
+        .ql-toolbar.ql-snow {
+            border-top-left-radius: var(--radius-sm);
+            border-top-right-radius: var(--radius-sm);
+            background: #fafafa;
+            border-color: var(--border-color);
+        }
+        .ql-container.ql-snow {
+            border-color: var(--border-color);
+            font-family: inherit;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -45,60 +88,134 @@
         <aside class="sidebar" id="sidebar-container"></aside>
         <main class="main-content">
             <header class="header" id="header-container"></header>
-            <div class="page-content" style="max-width: 600px; margin: 0 auto; padding-top: 40px;">
+            <div class="page-content" style="max-width: 800px; margin: 0 auto; padding-top: 40px;">
                 <h1 class="page-title" style="margin-bottom: 32px;">发布新职位</h1>
                 
                 <div class="card">
                     <form id="jobForm" class="auth-form">
-                        <div class="form-group">
-                            <label>职位名称</label>
-                            <input type="text" id="jobTitle" required placeholder="如：高级前端工程师">
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>职位名称</label>
+                                <input type="text" id="jobTitle" required placeholder="如：高级前端工程师">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>所属部门</label>
+                                <select id="jobDepartment" required>
+                                    <option value="" disabled selected>请选择所属部门</option>
+                                    <option value="研发部">研发部</option>
+                                    <option value="产品部">产品部</option>
+                                    <option value="设计部">设计部</option>
+                                    <option value="市场部">市场部</option>
+                                    <option value="销售部">销售部</option>
+                                    <option value="人力资源部">人力资源部</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>工作地点</label>
+                                <select id="jobLocation" required>
+                                    <option value="" disabled selected>请选择工作地点</option>
+                                    <option value="北京">北京</option>
+                                    <option value="上海">上海</option>
+                                    <option value="深圳">深圳</option>
+                                    <option value="广州">广州</option>
+                                    <option value="杭州">杭州</option>
+                                    <option value="成都">成都</option>
+                                    <option value="远程办公">远程办公</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>职位类别</label>
+                                <select id="jobCategory" required>
+                                    <option value="" disabled selected>请选择类别</option>
+                                    <option value="技术/研发">技术/研发</option>
+                                    <option value="产品/设计">产品/设计</option>
+                                    <option value="运营/市场">运营/市场</option>
+                                    <option value="职能/支持">职能/支持</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>职位性质</label>
+                                <select id="jobType" required>
+                                    <option value="全职" selected>全职</option>
+                                    <option value="兼职">兼职</option>
+                                    <option value="实习">实习</option>
+                                    <option value="外包">外包</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>工作经验</label>
+                                <select id="jobExperience" required>
+                                    <option value="不限" selected>不限</option>
+                                    <option value="应届生">应届生</option>
+                                    <option value="1-3年">1-3年</option>
+                                    <option value="3-5年">3-5年</option>
+                                    <option value="5-10年">5-10年</option>
+                                    <option value="10年以上">10年以上</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>职级</label>
+                                <select id="jobLevel" required>
+                                    <option value="" disabled selected>请选择职级</option>
+                                    <option value="初级">初级</option>
+                                    <option value="中级">中级</option>
+                                    <option value="高级">高级</option>
+                                    <option value="资深/专家">资深/专家</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>招聘人数</label>
+                                <input type="number" id="jobHeadcount" required min="1" value="1">
+                            </div>
+                            <div class="form-group">
+                                <label>薪资范围</label>
+                                <div class="salary-group">
+                                    <div class="custom-select-wrapper" style="flex:1; margin:0;">
+                                        <select id="jobSalaryRange" required>
+                                            <option value="面议" selected>面议</option>
+                                            <option value="5k-10k">5k-10k</option>
+                                            <option value="10k-20k">10k-20k</option>
+                                            <option value="20k-40k">20k-40k</option>
+                                            <option value="40k以上">40k以上</option>
+                                        </select>
+                                    </div>
+                                    <span style="color: var(--text-secondary);">×</span>
+                                    <input type="number" id="jobSalaryMonths" required min="12" max="24" value="12" title="薪资发放月数">
+                                    <span style="color: var(--text-secondary); font-size:14px; white-space:nowrap;">薪</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>负责人名称</label>
+                                <select id="jobHrName" required>
+                                    <option value="" disabled selected>请选择汇报上级/负责人</option>
+                                    <option value="王大锤 (技术总监)">王大锤 (技术总监)</option>
+                                    <option value="赵总 (产品VP)">赵总 (产品VP)</option>
+                                    <option value="李雷 (HRBP)">李雷 (HRBP)</option>
+                                    <option value="韩梅梅 (招聘经理)">韩梅梅 (招聘经理)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>面试流程</label>
+                                <select id="jobInterviewProcess" required>
+                                    <option value="" disabled selected>请选择默认面试流程</option>
+                                    <option value="标准技术面 (笔试+2轮技术+HR)">标准技术面 (笔试+2轮技术+HR)</option>
+                                    <option value="高管直面 (1轮直属+CEO直面)">高管直面 (1轮直属+CEO直面)</option>
+                                    <option value="非技术岗标准面 (1轮业务+HR)">非技术岗标准面 (1轮业务+HR)</option>
+                                    <option value="实习生面 (1轮业务+HR)">实习生面 (1轮业务+HR)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>职位介绍（职责与要求）</label>
+                                <div id="editor-container"></div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>所属部门 <span style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(预设选项，未来由超管配置)</span></label>
-                            <select id="jobDepartment" required>
-                                <option value="" disabled selected>请选择所属部门</option>
-                                <option value="研发部">研发部</option>
-                                <option value="产品部">产品部</option>
-                                <option value="设计部">设计部</option>
-                                <option value="市场部">市场部</option>
-                                <option value="销售部">销售部</option>
-                                <option value="人力资源部">人力资源部</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>工作地点 <span style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(预设选项)</span></label>
-                            <select id="jobLocation" required>
-                                <option value="" disabled selected>请选择工作地点</option>
-                                <option value="北京">北京</option>
-                                <option value="上海">上海</option>
-                                <option value="深圳">深圳</option>
-                                <option value="广州">广州</option>
-                                <option value="杭州">杭州</option>
-                                <option value="成都">成都</option>
-                                <option value="远程办公">远程办公</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>负责人名称 <span style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(预设人员列表)</span></label>
-                            <select id="jobHrName" required>
-                                <option value="" disabled selected>请选择汇报上级/负责人</option>
-                                <option value="王大锤 (技术总监)">王大锤 (技术总监)</option>
-                                <option value="赵总 (产品VP)">赵总 (产品VP)</option>
-                                <option value="李雷 (HRBP)">李雷 (HRBP)</option>
-                                <option value="韩梅梅 (招聘经理)">韩梅梅 (招聘经理)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>面试流程 <span style="font-size:12px; color:var(--text-secondary); font-weight:normal;">(预设流程模版)</span></label>
-                            <select id="jobInterviewProcess" required>
-                                <option value="" disabled selected>请选择默认面试流程</option>
-                                <option value="标准技术面 (笔试+2轮技术+HR)">标准技术面 (笔试+2轮技术+HR)</option>
-                                <option value="高管直面 (1轮直属+CEO直面)">高管直面 (1轮直属+CEO直面)</option>
-                                <option value="非技术岗标准面 (1轮业务+HR)">非技术岗标准面 (1轮业务+HR)</option>
-                                <option value="实习生面 (1轮业务+HR)">实习生面 (1轮业务+HR)</option>
-                            </select>
-                        </div>
+
                         <div style="display:flex; gap:12px; margin-top:32px; justify-content:flex-end;">
                             <button type="button" class="btn" onclick="window.history.back()">取消返回</button>
                             <button type="submit" class="btn btn-primary" id="submitBtn">确认发布</button>
@@ -110,10 +227,28 @@
     </div>
 
     <script src="assets/js/app.js?v=5"></script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
+        let quill;
+        
         document.addEventListener("DOMContentLoaded", () => {
             renderSidebar('jobs');
             renderHeader();
+            setupCustomSelects();
+            
+            // 初始化 Quill 文本编辑器
+            quill = new Quill('#editor-container', {
+                theme: 'snow',
+                placeholder: '请输入职位描述和任职要求...',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['clean']
+                    ]
+                }
+            });
             
             document.getElementById('jobForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -121,10 +256,80 @@
             });
         });
 
+        function setupCustomSelects() {
+            document.querySelectorAll('.form-group select').forEach(select => {
+                if(select.parentNode.classList.contains('custom-select-wrapper')) return;
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = 'custom-select-wrapper';
+                select.parentNode.insertBefore(wrapper, select);
+                wrapper.appendChild(select);
+                select.classList.add('hidden-select');
+                
+                const trigger = document.createElement('div');
+                trigger.className = 'custom-select-trigger placeholder';
+                
+                const span = document.createElement('span');
+                const defaultOption = select.querySelector('option[selected]');
+                span.innerText = defaultOption ? defaultOption.innerText : '';
+                trigger.appendChild(span);
+                
+                if (!defaultOption || defaultOption.disabled) {
+                     trigger.classList.add('placeholder');
+                } else {
+                     trigger.classList.remove('placeholder');
+                }
+                
+                trigger.innerHTML += `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+                wrapper.appendChild(trigger);
+                
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'custom-select-options';
+                
+                Array.from(select.options).forEach(option => {
+                    if (option.disabled) return;
+                    const optDiv = document.createElement('div');
+                    optDiv.className = 'custom-option';
+                    if(option.selected) optDiv.classList.add('selected');
+                    optDiv.innerText = option.innerText;
+                    optDiv.dataset.value = option.value;
+                    
+                    optDiv.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        select.value = option.value;
+                        span.innerText = option.innerText;
+                        trigger.classList.remove('placeholder');
+                        
+                        wrapper.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
+                        optDiv.classList.add('selected');
+                        
+                        wrapper.classList.remove('open');
+                    });
+                    optionsDiv.appendChild(optDiv);
+                });
+                
+                wrapper.appendChild(optionsDiv);
+                
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = wrapper.classList.contains('open');
+                    document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
+                    if (!isOpen) wrapper.classList.add('open');
+                });
+            });
+            
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
+            });
+        }
+
         async function createJob() {
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
             btn.innerText = "发布中...";
+
+            // 获取富文本内容，如果为空则是 <p><br></p>
+            const descriptionHTML = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
 
             const data = {
                 title: document.getElementById('jobTitle').value,
@@ -132,7 +337,16 @@
                 location: document.getElementById('jobLocation').value,
                 hr_name: document.getElementById('jobHrName').value,
                 interview_process: document.getElementById('jobInterviewProcess').value,
-                status: "热招中"
+                status: "热招中",
+                
+                category: document.getElementById('jobCategory').value,
+                job_type: document.getElementById('jobType').value,
+                experience: document.getElementById('jobExperience').value,
+                job_level: document.getElementById('jobLevel').value,
+                headcount: parseInt(document.getElementById('jobHeadcount').value, 10),
+                salary_range: document.getElementById('jobSalaryRange').value,
+                salary_months: parseInt(document.getElementById('jobSalaryMonths').value, 10),
+                description: descriptionHTML
             };
 
             try {
