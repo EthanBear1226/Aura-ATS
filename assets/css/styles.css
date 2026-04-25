@@ -603,7 +603,17 @@ body {
 }
 
 .hidden-select {
-  display: none !important;
+  position: absolute !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 100% !important;
+  bottom: 0;
+  left: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .custom-select-trigger {
