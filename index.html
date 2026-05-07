@@ -24,22 +24,22 @@
                 <div class="dashboard-metrics">
                     <div class="card metric-card">
                         <div class="metric-title">今日新增简历</div>
-                        <div class="metric-value">24</div>
-                        <div class="metric-trend">↑ 12% 较昨日</div>
+                        <div class="metric-value" id="metric-new-candidates">--</div>
+                        <div class="metric-trend" id="trend-new-candidates">加载中...</div>
                     </div>
                     <div class="card metric-card">
                         <div class="metric-title">待处理面试</div>
-                        <div class="metric-value">5</div>
-                        <div class="metric-trend" style="color:var(--text-secondary)">与昨日持平</div>
+                        <div class="metric-value" id="metric-pending-interviews">--</div>
+                        <div class="metric-trend" style="color:var(--text-secondary)">需及时跟进</div>
                     </div>
                     <div class="card metric-card">
-                        <div class="metric-title">本月发放 Offer</div>
-                        <div class="metric-value">12</div>
-                        <div class="metric-trend">↑ 30% 较上月</div>
+                        <div class="metric-title">本月累计投递</div>
+                        <div class="metric-value" id="metric-total-candidates">--</div>
+                        <div class="metric-trend" id="trend-total-candidates">人才库储备</div>
                     </div>
                     <div class="card metric-card">
                         <div class="metric-title">在招职位数</div>
-                        <div class="metric-value">8</div>
+                        <div class="metric-value" id="metric-active-jobs">--</div>
                         <div class="metric-trend" style="color:var(--text-secondary)">持续推进中</div>
                     </div>
                 </div>
@@ -47,21 +47,10 @@
                 <div class="dashboard-sections">
                     <!-- Tasks -->
                     <div class="card">
-                        <h2 class="section-title">即将进行的面试</h2>
-                        <div class="task-list">
-                            <div class="task-item">
-                                <div>
-                                    <div style="font-weight: 500;">张三 - 高级前端工程师</div>
-                                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">14:00 - 15:00 · 腾讯会议</div>
-                                </div>
-                                <span class="tag tag-blue">技术初面</span>
-                            </div>
-                            <div class="task-item">
-                                <div>
-                                    <div style="font-weight: 500;">李四 - 产品经理</div>
-                                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">16:30 - 17:30 · 会议室 A</div>
-                                </div>
-                                <span class="tag tag-green">业务复面</span>
+                        <h2 class="section-title">面试安排提示</h2>
+                        <div class="task-list" id="interview-list">
+                            <div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 14px;">
+                                加载面试数据中...
                             </div>
                         </div>
                     </div>
@@ -69,24 +58,9 @@
                     <!-- Jobs -->
                     <div class="card">
                         <h2 class="section-title">活跃职位进度</h2>
-                        <div class="job-list">
-                            <div class="job-item">
-                                <div>
-                                    <div style="font-weight: 500; font-size: 14px;">高级前端工程师</div>
-                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">研发部</div>
-                                </div>
-                                <div style="text-align: right; font-size: 12px; color: var(--text-secondary);">
-                                    12 / 4 / 1 <br> <span style="font-size:10px">(简历/面试/Offer)</span>
-                                </div>
-                            </div>
-                            <div class="job-item">
-                                <div>
-                                    <div style="font-weight: 500; font-size: 14px;">数据分析师</div>
-                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">增长团队</div>
-                                </div>
-                                <div style="text-align: right; font-size: 12px; color: var(--text-secondary);">
-                                    35 / 8 / 0 <br> <span style="font-size:10px">(简历/面试/Offer)</span>
-                                </div>
+                        <div class="job-list" id="job-progress-list">
+                            <div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 14px;">
+                                加载职位进度中...
                             </div>
                         </div>
                     </div>
@@ -101,7 +75,91 @@
         document.addEventListener("DOMContentLoaded", () => {
             renderSidebar('index');
             renderHeader();
+            fetchDashboardData();
         });
+
+        async function fetchDashboardData() {
+            try {
+                // 并发请求职位和候选人数据
+                const [jobsRes, candidatesRes] = await Promise.all([
+                    fetch('/api/jobs'),
+                    fetch('/api/candidates')
+                ]);
+                
+                const jobs = await jobsRes.json();
+                const candidates = await candidatesRes.json();
+                
+                updateMetrics(jobs, candidates);
+                renderInterviewTips(candidates);
+                renderJobProgress(jobs);
+            } catch (error) {
+                console.error("加载工作台数据失败:", error);
+                showToast("工作台数据加载失败", "error");
+            }
+        }
+
+        function updateMetrics(jobs, candidates) {
+            // 1. 在招职位数
+            const activeJobs = jobs.filter(j => j.status === '热招中').length;
+            document.getElementById('metric-active-jobs').innerText = activeJobs;
+
+            // 2. 今日新增简历
+            const today = new Date().toISOString().split('T')[0];
+            const newToday = candidates.filter(c => c.created_at.startsWith(today)).length;
+            document.getElementById('metric-new-candidates').innerText = newToday;
+            document.getElementById('trend-new-candidates').innerText = `今日已入库 ${newToday} 份`;
+
+            // 3. 待处理面试 (阶段为面试的候选人)
+            const pendingInterviews = candidates.filter(c => c.stage === '面试').length;
+            document.getElementById('metric-pending-interviews').innerText = pendingInterviews;
+
+            // 4. 本月累计投递
+            document.getElementById('metric-total-candidates').innerText = candidates.length;
+            document.getElementById('trend-total-candidates').innerText = `人才库共 ${candidates.length} 人`;
+        }
+
+        function renderInterviewTips(candidates) {
+            const list = document.getElementById('interview-list');
+            const interviewCandidates = candidates.filter(c => c.stage === '面试').slice(0, 5);
+            
+            if (interviewCandidates.length === 0) {
+                list.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary); font-size: 14px;">暂无待安排面试的候选人</div>';
+                return;
+            }
+
+            list.innerHTML = interviewCandidates.map(c => `
+                <div class="task-item" onclick="window.location.href='candidate-detail.html?id=${c.id}'" style="cursor:pointer;">
+                    <div>
+                        <div style="font-weight: 500;">${c.name} - ${c.job}</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">待沟通面试时间 · 简历匹配度: ${c.match_score || '--'}分</div>
+                    </div>
+                    <span class="tag tag-blue">待安排</span>
+                </div>
+            `).join('');
+        }
+
+        function renderJobProgress(jobs) {
+            const list = document.getElementById('job-progress-list');
+            const activeJobs = jobs.filter(j => j.status === '热招中').slice(0, 5);
+
+            if (activeJobs.length === 0) {
+                list.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary); font-size: 14px;">暂无进行中的职位</div>';
+                return;
+            }
+
+            list.innerHTML = activeJobs.map(j => `
+                <div class="job-item" onclick="window.location.href='jobs.html'" style="cursor:pointer;">
+                    <div>
+                        <div style="font-weight: 500; font-size: 14px;">${j.title}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${j.department} · ${j.location}</div>
+                    </div>
+                    <div style="text-align: right; font-size: 12px; color: var(--text-secondary);">
+                        ${j.funnel.new} / ${j.funnel.screened} / ${j.funnel.interviewing} / ${j.funnel.offered} <br> 
+                        <span style="font-size:10px">(今日/初筛/面试/Offer)</span>
+                    </div>
+                </div>
+            `).join('');
+        }
     </script>
 </body>
 </html>
