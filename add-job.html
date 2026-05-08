@@ -167,44 +167,46 @@
 
                             <div class="form-group">
                                 <label>职位类别<span class="required-mark">*</span></label>
-                                <select id="jobCategory" required>
-                                    <option value="" disabled selected>请选择类别</option>
-                                    <option value="技术/研发">技术/研发</option>
-                                    <option value="产品/设计">产品/设计</option>
-                                    <option value="运营/市场">运营/市场</option>
-                                    <option value="职能/支持">职能/支持</option>
-                                </select>
+                                <input type="hidden" id="jobCategory" required>
+                                <div class="segmented-control" data-target="jobCategory">
+                                    <div class="segmented-item" data-value="技术/研发">技术/研发</div>
+                                    <div class="segmented-item" data-value="产品/设计">产品/设计</div>
+                                    <div class="segmented-item" data-value="运营/市场">运营/市场</div>
+                                    <div class="segmented-item" data-value="职能/支持">职能/支持</div>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>职位性质</label>
-                                <select id="jobType" required>
-                                    <option value="全职" selected>全职</option>
-                                    <option value="兼职">兼职</option>
-                                    <option value="实习">实习</option>
-                                    <option value="外包">外包</option>
-                                </select>
+                                <input type="hidden" id="jobType" required value="全职">
+                                <div class="segmented-control" data-target="jobType">
+                                    <div class="segmented-item active" data-value="全职">全职</div>
+                                    <div class="segmented-item" data-value="兼职">兼职</div>
+                                    <div class="segmented-item" data-value="实习">实习</div>
+                                    <div class="segmented-item" data-value="外包">外包</div>
+                                </div>
                             </div>
 
                             <div class="form-group">
                                 <label>工作经验</label>
-                                <select id="jobExperience" required>
-                                    <option value="不限" selected>不限</option>
-                                    <option value="应届生">应届生</option>
-                                    <option value="1-3年">1-3年</option>
-                                    <option value="3-5年">3-5年</option>
-                                    <option value="5-10年">5-10年</option>
-                                    <option value="10年以上">10年以上</option>
-                                </select>
+                                <input type="hidden" id="jobExperience" required value="不限">
+                                <div class="segmented-control" data-target="jobExperience">
+                                    <div class="segmented-item active" data-value="不限">不限</div>
+                                    <div class="segmented-item" data-value="应届生">应届生</div>
+                                    <div class="segmented-item" data-value="1-3年">1-3年</div>
+                                    <div class="segmented-item" data-value="3-5年">3-5年</div>
+                                    <div class="segmented-item" data-value="5-10年">5-10年</div>
+                                    <div class="segmented-item" data-value="10年以上">10年以上</div>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>职级</label>
-                                <select id="jobLevel" required>
-                                    <option value="" disabled selected>请选择职级</option>
-                                    <option value="初级">初级</option>
-                                    <option value="中级">中级</option>
-                                    <option value="高级">高级</option>
-                                    <option value="资深/专家">资深/专家</option>
-                                </select>
+                                <input type="hidden" id="jobLevel" required>
+                                <div class="segmented-control" data-target="jobLevel">
+                                    <div class="segmented-item" data-value="初级">初级</div>
+                                    <div class="segmented-item" data-value="中级">中级</div>
+                                    <div class="segmented-item" data-value="高级">高级</div>
+                                    <div class="segmented-item" data-value="资深/专家">资深/专家</div>
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -271,6 +273,7 @@
             renderSidebar('jobs');
             renderHeader();
             setupCustomSelects();
+            setupSegmentedControls();
             
             // 初始化 Quill 文本编辑器
             quill = new Quill('#editor-container', {
@@ -377,6 +380,22 @@
             
             document.addEventListener('click', () => {
                 document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
+            });
+        }
+
+        function setupSegmentedControls() {
+            document.querySelectorAll('.segmented-control').forEach(control => {
+                const targetId = control.dataset.target;
+                const targetInput = document.getElementById(targetId);
+                
+                control.querySelectorAll('.segmented-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        control.querySelectorAll('.segmented-item').forEach(i => i.classList.remove('active'));
+                        item.classList.add('active');
+                        targetInput.value = item.dataset.value;
+                        control.classList.remove('has-error');
+                    });
+                });
             });
         }
 
