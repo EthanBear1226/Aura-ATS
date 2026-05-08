@@ -7,6 +7,7 @@ class CandidateBase(BaseModel):
     job: str
     stage: str
     exp: str
+    phone: Optional[str] = None
     email: Optional[str] = None
     skills: Optional[List[str]] = []
     raw_text: Optional[str] = None

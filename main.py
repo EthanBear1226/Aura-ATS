@@ -237,7 +237,8 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
             job=str(final_job or "未知"),
             stage="初筛",
             exp=str(parsed_data.get("exp") or "未知"),
-            email=str(parsed_data.get("email") or "未知"),
+            phone=str(parsed_data.get("phone") or "暂无"),
+            email=str(parsed_data.get("email") or "暂无"),
             skills=skills_val,
             ai_summary=str(parsed_data.get("ai_summary") or ""),
             ai_analysis=str(parsed_data.get("ai_analysis") or ""),
@@ -341,3 +342,4 @@ if __name__ == "__main__":
     # In Zeabur, use the PORT environment variable
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+", port=port, reload=True)

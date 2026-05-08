@@ -176,6 +176,16 @@
         const STAGES = ['初筛', '用人部门筛选', '面试', '沟通offer', '待入职', '已入职'];
         let currentCandidate = null;
 
+        function copyText(text, type) {
+            if (!text || text === '--' || text === '暂无') return;
+            navigator.clipboard.writeText(text).then(() => {
+                if (window.showToast) showToast(`${type}已复制`, 'success');
+                else alert(`${type}已复制`);
+            }).catch(err => {
+                console.error('Copy failed', err);
+            });
+        }
+
         function openRecommendModal(id) {
             document.getElementById('recommendModal').classList.add('active');
         }
@@ -249,6 +259,8 @@
                 document.getElementById('cand-job').innerText = candidate.job;
                 document.getElementById('cand-stage').innerText = candidate.stage;
                 document.getElementById('cand-exp').innerText = `经验: ${candidate.exp}`;
+                document.getElementById('cand-phone').innerText = candidate.phone || '暂无';
+                document.getElementById('cand-email').innerText = candidate.email || '暂无';
                 
                 // Update Next Stage Button
                 const btnNext = document.getElementById('btn-next-stage');
@@ -340,7 +352,7 @@
                 console.warn("Backend API unavailable. Using mock data for Netlify demo.", e);
                 const mockCandidates = {
                     "1": { 
-                        name: "林慕风", job: "资深 AI 算法专家", stage: "面试中", exp: "8年 / 硕士", 
+                        name: "林慕风", job: "资深 AI 算法专家", stage: "面试中", exp: "8年 / 硕士", phone: "138-1234-5678", email: "linmufeng@example.com",
                         skills: ["PyTorch", "大模型微调", "Python", "分布式训练", "NLP"], 
                         ai_summary: "候选人拥有8年以上的AI算法开发与落地经验，学术与工程能力双优。曾主导过亿级用户系统的推荐架构重构，具备多模态大模型的微调实战经验，是团队技术攻坚的绝佳人选。",
                         ai_analysis: "✅ 亮点：<br>1. 具备亿级高并发系统的工程落地经验，这在AI算法工程师中非常稀缺。<br>2. 有顶会论文发表，证明其对前沿算法有持续跟进和研究能力。<br>⚠️ 风险：<br>暂未体现带队管理经验，可能更偏向技术专家（IC）路线，如果该岗位需要大量团队管理工作，需在面试中着重考察。<br>🎯 面试建议：重点考察大模型微调的实际业务收益，以及其负责模块在整体架构中的比重。",
@@ -348,7 +360,7 @@
                         created_at: new Date().toISOString() 
                     },
                     "2": { 
-                        name: "苏婉清", job: "全栈开发工程师", stage: "初筛通过", exp: "3年 / 本科", 
+                        name: "苏婉清", job: "全栈开发工程师", stage: "初筛通过", exp: "3年 / 本科", phone: "135-2345-6789", email: "suwanqing@example.com",
                         skills: ["Vue3", "React", "Node.js", "FastAPI", "MySQL", "AWS"], 
                         ai_summary: "候选人具备3年开发经验，技能栈全面，涵盖现代主流前后端框架（Vue3/React + Node.js/FastAPI）。有独立负责中型商业项目（跨境电商）全生命周期的实战经验，业务落地能力强。",
                         ai_analysis: "✅ 亮点：<br>1. 能够独立完成全栈项目开发与 AWS 云端部署，具备独立作战能力。<br>2. 代码规范意识较强，适合快速迭代的敏捷团队。<br>⚠️ 风险：<br>工作年限仅3年，且多为独立负责项目，可能在大规模团队协作、复杂系统架构设计方面的经验略显不足。<br>🎯 面试建议：考察其面对高并发、复杂状态管理时的解决方案，以及对系统性能优化的思考。",
@@ -356,7 +368,7 @@
                         created_at: new Date().toISOString() 
                     },
                     "3": { 
-                        name: "陈浩宇", job: "B端高级产品经理", stage: "初筛", exp: "5年 / 硕士", 
+                        name: "陈浩宇", job: "B端高级产品经理", stage: "初筛", exp: "5年 / 硕士", phone: "139-3456-7890", email: "chenhaoyu@example.com",
                         skills: ["Axure", "SaaS架构", "数据分析", "敏捷开发", "跨部门协作"], 
                         ai_summary: "候选人深耕B端SaaS产品领域5年，拥有千万级营收产品的从0到1孵化经验。具备极强的数据驱动意识和跨团队协调能力，是一位懂商业、懂业务的成熟产品经理。",
                         ai_analysis: "✅ 亮点：<br>1. 有从0到1孵化千万级营收产品的成功案例，商业变现逻辑清晰。<br>2. 具备优秀的数据分析能力，不盲目依赖直觉，注重敏捷迭代。<br>⚠️ 风险：<br>业务跨度较大，需确认其过往经验是否能快速复用到我司当前的行业赛道中。<br>🎯 面试建议：深挖其在千万级产品孵化过程中的关键决策点（为什么这么做？如果重来会怎么优化？），以验证其产品方法论的深度。",
@@ -364,7 +376,7 @@
                         created_at: new Date().toISOString() 
                     },
                     "4": { 
-                        name: "李晓彤", job: "HR 数据分析师", stage: "初筛", exp: "1年 / 本科", 
+                        name: "李晓彤", job: "HR 数据分析师", stage: "初筛", exp: "1年 / 本科", phone: "136-4567-8901", email: "lixiaotong@example.com",
                         skills: ["Python", "SQL", "Tableau", "Excel高级", "数据可视化"], 
                         ai_summary: "候选人为拥有1年大厂实习经验的新人，掌握SQL、Python等核心数据处理工具，并能熟练使用Tableau进行业务可视化展示。对于人力资源数据有较好的理解。",
                         ai_analysis: "✅ 亮点：<br>1. 技术栈（Python/SQL/Tableau）在初级岗位中属于顶配，数据处理基础扎实。<br>2. 有大厂实习背书，且实际产出了可视化看板并向管理层汇报，沟通与表达能力过关。<br>⚠️ 风险：<br>经验尚浅，对复杂业务场景的深度洞察能力需要时间培养。<br>🎯 面试建议：出具一道公司现有的实际数据分析场景题，考察其将“业务诉求”转化为“数据指标”的逻辑思维能力。",
@@ -380,6 +392,8 @@
                 document.getElementById('cand-job').innerText = candidate.job;
                 document.getElementById('cand-stage').innerText = candidate.stage;
                 document.getElementById('cand-exp').innerText = `经验: ${candidate.exp}`;
+                document.getElementById('cand-phone').innerText = candidate.phone || '暂无';
+                document.getElementById('cand-email').innerText = candidate.email || '暂无';
 
                 // Render Timeline Logs
                 const timelineContainer = document.getElementById('timeline-container');
