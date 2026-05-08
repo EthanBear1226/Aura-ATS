@@ -342,4 +342,3 @@ if __name__ == "__main__":
     # In Zeabur, use the PORT environment variable
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
-", port=port, reload=True)
