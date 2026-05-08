@@ -403,7 +403,7 @@
             let isValid = true;
             document.querySelectorAll('.has-error').forEach(el => el.classList.remove('has-error'));
 
-            const requiredSelects = ['jobDepartment', 'jobLocation', 'jobCategory', 'jobHrName'];
+            const requiredSelects = ['jobDepartment', 'jobLocation', 'jobHrName'];
             requiredSelects.forEach(id => {
                 const select = document.getElementById(id);
                 if (!select.value) {
@@ -414,6 +414,20 @@
                     }
                 }
             });
+
+            // 验证职位类别 (Segmented Control)
+            const categoryInput = document.getElementById('jobCategory');
+            if (!categoryInput.value) {
+                isValid = false;
+                document.querySelector('.segmented-control[data-target="jobCategory"]').classList.add('has-error');
+            }
+
+            // 验证职级 (Segmented Control)
+            const levelInput = document.getElementById('jobLevel');
+            if (!levelInput.value) {
+                isValid = false;
+                document.querySelector('.segmented-control[data-target="jobLevel"]').classList.add('has-error');
+            }
 
             const jobTitle = document.getElementById('jobTitle');
             if (!jobTitle.value.trim()) {
