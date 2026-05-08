@@ -70,6 +70,39 @@
             font-weight: 500;
         }
         
+        /* Segmented Control Styles */
+        .segmented-control {
+            display: flex;
+            background: #f0f0f5;
+            border-radius: 8px;
+            padding: 4px;
+            gap: 4px;
+        }
+        .segmented-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .segmented-item:hover {
+            color: var(--text-primary);
+        }
+        .segmented-item.active {
+            background: white;
+            color: var(--primary-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        /* Error state for segmented control */
+        .segmented-control.has-error {
+            border: 1px solid #FF3B30;
+            background: #FFF0F0;
+        }
+
         /* Quill 编辑器覆写 */
         #editor-container {
             height: 250px;
