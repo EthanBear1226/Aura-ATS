@@ -6,7 +6,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-raw_url = os.getenv("DATABASE_URL", "sqlite:///./aura_db.db")
+raw_url = os.getenv("DATABASE_URL")
+
+# 如果没有配置 DATABASE_URL，尝试读取 Zeabur 原生注入的 MySQL 环境变量
+if not raw_url and os.getenv("MYSQL_HOST"):
+    mysql_user = os.getenv("MYSQL_USER", "root")
+    mysql_password = os.getenv("MYSQL_PASSWORD", "")
+    mysql_host = os.getenv("MYSQL_HOST")
+    mysql_port = os.getenv("MYSQL_PORT", "3306")
+    mysql_db = os.getenv("MYSQL_DATABASE", "aura_db")
+    raw_url = f"mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_db}"
+
+# 兜底使用本地 SQLite
+if not raw_url:
+    raw_url = "sqlite:///./aura_db.db"
 
 # 处理 Zeabur 提供的默认 MySQL 连接串 (mysql:// 替换为 mysql+pymysql://)
 if raw_url.startswith("mysql://"):
