@@ -83,7 +83,7 @@
                         <div class="card">
                             <h3 style="font-size:16px; margin-top:0;">基本信息</h3>
                             <div style="font-size:14px; color:var(--text-secondary); line-height:2;">
-                                <div id="cand-exp">经验: --</div>
+                                <div id="cand-exp">学历: --</div>
                                 <div style="display: flex; align-items: center; gap: 8px;">电话: <span id="cand-phone" style="cursor: pointer; color: var(--primary-color);" onclick="copyText(this.innerText, '电话')">--</span></div>
                                 <div style="display: flex; align-items: center; gap: 8px;">邮箱: <span id="cand-email" style="cursor: pointer; color: var(--primary-color);" onclick="copyText(this.innerText, '邮箱')">--</span></div>
                             </div>
@@ -258,7 +258,7 @@
                 document.getElementById('cand-avatar').innerText = candidate.name.charAt(0) || 'U';
                 document.getElementById('cand-job').innerText = candidate.job;
                 document.getElementById('cand-stage').innerText = candidate.stage;
-                document.getElementById('cand-exp').innerText = `经验: ${candidate.exp}`;
+                document.getElementById('cand-exp').innerText = `学历: ${candidate.exp}`;
                 document.getElementById('cand-phone').innerText = candidate.phone || '暂无';
                 document.getElementById('cand-email').innerText = candidate.email || '暂无';
                 
@@ -404,7 +404,7 @@
                 document.getElementById('cand-avatar').innerText = candidate.name.charAt(0) || 'U';
                 document.getElementById('cand-job').innerText = candidate.job;
                 document.getElementById('cand-stage').innerText = candidate.stage;
-                document.getElementById('cand-exp').innerText = `经验: ${candidate.exp}`;
+                document.getElementById('cand-exp').innerText = `学历: ${candidate.exp}`;
                 document.getElementById('cand-phone').innerText = candidate.phone || '暂无';
                 document.getElementById('cand-email').innerText = candidate.email || '暂无';
 

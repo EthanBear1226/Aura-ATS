@@ -195,7 +195,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
                     model = genai.GenerativeModel(model_name)
                     prompt = f"""
                     请作为一名资深HR数据提取专家，从以下简历文本中提取结构化信息。
-                    要求：返回合法 JSON，包含 name, job, exp, email, skills(array), ai_summary, ai_analysis。
+                    要求：返回合法 JSON，包含 name, job, exp(仅提取最高学历，如"本科"、"硕士"等，不要包含工作年限), phone(请仔细提取手机号，通常为11位数字), email, skills(array), ai_summary, ai_analysis。
                     如果提供了【正在应聘的职位及JD】，请在提取信息后，根据简历与JD的匹配度，额外输出 match_score（0-100的整数）和 match_reason（100字左右的客观匹配维度点评）。{job_info_text}
                     简历文本：{extracted_text[:4000]}
                     """
