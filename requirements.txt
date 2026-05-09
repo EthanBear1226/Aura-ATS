@@ -5,4 +5,5 @@ google-generativeai
 python-dotenv
 python-multipart
 sqlalchemy
-pymysqlsqlalchemy_utils
+pymysql
+sqlalchemy_utils
