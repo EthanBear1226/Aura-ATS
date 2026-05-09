@@ -6,8 +6,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# 如果 .env 中没有 DATABASE_URL，默认使用本地 SQLite，方便开发测试
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./aura_db.db")
+raw_url = os.getenv("DATABASE_URL", "sqlite:///./aura_db.db")
+
+# 处理 Zeabur 提供的默认 MySQL 连接串 (mysql:// 替换为 mysql+pymysql://)
+if raw_url.startswith("mysql://"):
+    raw_url = raw_url.replace("mysql://", "mysql+pymysql://", 1)
+# 处理可能的 Postgres 协议
+elif raw_url.startswith("postgres://"):
+    raw_url = raw_url.replace("postgres://", "postgresql://", 1)
+
+SQLALCHEMY_DATABASE_URL = raw_url
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
