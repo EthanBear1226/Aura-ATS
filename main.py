@@ -19,6 +19,15 @@ from database import engine, get_db
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
+# Auto-migrate: add phone column if it doesn't exist
+from sqlalchemy import text
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE candidates ADD COLUMN phone VARCHAR(50);"))
+except Exception:
+    pass  # column already exists or other error
+
+
 # Database Migration for new Job columns (Safe for SQLite)
 def upgrade_db():
     from sqlalchemy import text
