@@ -319,6 +319,10 @@ async def read_index():
 async def read_candidates():
     return FileResponse('candidates.html')
 
+@app.get("/talent-pool.html")
+async def read_talent_pool():
+    return FileResponse('talent-pool.html')
+
 @app.get("/candidate-detail.html")
 async def read_detail():
     return FileResponse('candidate-detail.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
