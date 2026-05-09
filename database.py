@@ -30,6 +30,16 @@ elif raw_url.startswith("postgres://"):
 
 SQLALCHEMY_DATABASE_URL = raw_url
 
+# 如果是 MySQL，在创建主引擎前，先确保数据库本身存在
+if SQLALCHEMY_DATABASE_URL.startswith("mysql+pymysql://"):
+    from sqlalchemy_utils import database_exists, create_database
+    try:
+        if not database_exists(SQLALCHEMY_DATABASE_URL):
+            create_database(SQLALCHEMY_DATABASE_URL)
+            print("Successfully created missing MySQL database automatically.")
+    except Exception as e:
+        print(f"Warning: Failed to auto-create database: {e}")
+
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     # sqlite 需要 check_same_thread=False
