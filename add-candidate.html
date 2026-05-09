@@ -206,6 +206,12 @@
                 
                 const result = await response.json();
                 
+                try {
+                    sessionStorage.setItem('last_parsed_candidate', JSON.stringify(result));
+                } catch(err) {
+                    console.warn('sessionStorage not available', err);
+                }
+                
                 progressBar.style.width = '100%';
                 progressText.innerText = '解析并入库完成！正在进入详情...';
 

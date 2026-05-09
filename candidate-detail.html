@@ -385,7 +385,20 @@
                     }
                 };
                 
-                const candidate = mockCandidates[id] || mockCandidates["1"];
+                let candidate = null;
+                try {
+                    const lastParsed = sessionStorage.getItem('last_parsed_candidate');
+                    if (lastParsed) {
+                        const parsedObj = JSON.parse(lastParsed);
+                        if (parsedObj.id == id) {
+                            candidate = parsedObj;
+                        }
+                    }
+                } catch(err) {}
+                
+                if (!candidate) {
+                    candidate = mockCandidates[id] || mockCandidates["1"];
+                }
                 
                 document.getElementById('cand-name').innerText = candidate.name;
                 document.getElementById('cand-avatar').innerText = candidate.name.charAt(0) || 'U';
