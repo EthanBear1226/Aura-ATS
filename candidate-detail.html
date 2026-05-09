@@ -84,8 +84,8 @@
                             <h3 style="font-size:16px; margin-top:0;">基本信息</h3>
                             <div style="font-size:14px; color:var(--text-secondary); line-height:2;">
                                 <div id="cand-exp">经验: --</div>
-                                <div>电话: 138-xxxx-xxxx</div>
-                                <div>邮箱: candidate@example.com</div>
+                                <div style="display: flex; align-items: center; gap: 8px;">电话: <span id="cand-phone" style="cursor: pointer; color: var(--primary-color);" onclick="copyText(this.innerText, '电话')">--</span></div>
+                                <div style="display: flex; align-items: center; gap: 8px;">邮箱: <span id="cand-email" style="cursor: pointer; color: var(--primary-color);" onclick="copyText(this.innerText, '邮箱')">--</span></div>
                             </div>
                         </div>
                     </div>
