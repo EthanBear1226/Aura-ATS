@@ -720,3 +720,155 @@ body {
   margin-top: 4px;
   display: none;
 }
+
+/* =========================================
+   Mobile Responsive Adjustments 
+   ========================================= */
+@media (max-width: 768px) {
+  /* 1. App Container & Sidebar */
+  .app-container {
+    padding-left: 0;
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    position: fixed;
+    width: 100%;
+    height: 60px;
+    bottom: 0;
+    top: auto;
+    left: 0;
+    flex-direction: row;
+    padding: 0;
+    border-top: 1px solid #333;
+    z-index: 9999;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  
+  .sidebar:hover {
+    width: 100%;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .sidebar-logo {
+    display: none;
+  }
+  
+  .nav-menu {
+    flex-direction: row;
+    width: 100%;
+    padding: 0;
+    justify-content: space-around;
+    align-items: center;
+  }
+  
+  .nav-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 0;
+    border-radius: 0;
+  }
+  
+  .nav-item svg {
+    margin: 0;
+  }
+  
+  .nav-text {
+    opacity: 1 !important;
+    font-size: 10px;
+    pointer-events: auto;
+    display: block;
+    margin: 0;
+  }
+
+  /* 2. Main Content & Header */
+  .main-content {
+    padding-bottom: 60px; /* Space for bottom nav */
+  }
+  
+  .header {
+    padding: 0 16px;
+    height: 56px;
+  }
+  
+  .header-search input {
+    width: 140px; /* Compress search bar */
+  }
+  
+  .header-actions {
+    gap: 8px;
+  }
+
+  .page-content {
+    padding: 16px;
+  }
+
+  /* 3. Grid & Layouts overrides */
+  .dashboard-main,
+  .stats-grid,
+  .form-grid,
+  .detail-layout,
+  .split,
+  .pros-cons {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+  }
+  
+  /* Details Page Specific (candidate-detail) */
+  .detail-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .profile-pane {
+    width: 100%;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .content-pane {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  /* 4. Kanban & Tables */
+  .kanban-board {
+    height: auto !important;
+    padding-bottom: 30px;
+  }
+  
+  .kanban-column {
+    min-width: 280px;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+    display: block;
+    white-space: nowrap;
+  }
+
+  /* 5. Modals & Drawers */
+  .modal-card {
+    width: 90% !important;
+    padding: 20px !important;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  .drawer {
+    width: 100% !important;
+  }
+  
+  /* Segmented control wrap */
+  .segmented-control {
+    flex-wrap: wrap;
+  }
+  .segmented-item {
+    flex: 1 1 40%;
+  }
+}
