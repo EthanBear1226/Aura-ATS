@@ -351,6 +351,98 @@ async def read_login():
 async def read_register():
     return FileResponse('register.html')
 
+# --- System Settings APIs ---
+
+@app.get("/api/settings/departments", response_model=list[schemas.Department])
+def get_departments(db: Session = Depends(get_db)):
+    return db.query(models.Department).all()
+
+@app.post("/api/settings/departments", response_model=schemas.Department)
+def create_department(item: schemas.DepartmentCreate, db: Session = Depends(get_db)):
+    db_item = models.Department(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/api/settings/departments/{item_id}")
+def delete_department(item_id: int, db: Session = Depends(get_db)):
+    db.query(models.Department).filter(models.Department.id == item_id).delete()
+    db.commit()
+    return {"ok": True}
+
+@app.get("/api/settings/interviewers", response_model=list[schemas.Interviewer])
+def get_interviewers(db: Session = Depends(get_db)):
+    return db.query(models.Interviewer).all()
+
+@app.post("/api/settings/interviewers", response_model=schemas.Interviewer)
+def create_interviewer(item: schemas.InterviewerCreate, db: Session = Depends(get_db)):
+    db_item = models.Interviewer(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/api/settings/interviewers/{item_id}")
+def delete_interviewer(item_id: int, db: Session = Depends(get_db)):
+    db.query(models.Interviewer).filter(models.Interviewer.id == item_id).delete()
+    db.commit()
+    return {"ok": True}
+
+@app.get("/api/settings/locations", response_model=list[schemas.Location])
+def get_locations(db: Session = Depends(get_db)):
+    return db.query(models.Location).all()
+
+@app.post("/api/settings/locations", response_model=schemas.Location)
+def create_location(item: schemas.LocationCreate, db: Session = Depends(get_db)):
+    db_item = models.Location(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/api/settings/locations/{item_id}")
+def delete_location(item_id: int, db: Session = Depends(get_db)):
+    db.query(models.Location).filter(models.Location.id == item_id).delete()
+    db.commit()
+    return {"ok": True}
+
+@app.get("/api/settings/interview-processes", response_model=list[schemas.InterviewProcess])
+def get_interview_processes(db: Session = Depends(get_db)):
+    return db.query(models.InterviewProcess).all()
+
+@app.post("/api/settings/interview-processes", response_model=schemas.InterviewProcess)
+def create_interview_process(item: schemas.InterviewProcessCreate, db: Session = Depends(get_db)):
+    db_item = models.InterviewProcess(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/api/settings/interview-processes/{item_id}")
+def delete_interview_process(item_id: int, db: Session = Depends(get_db)):
+    db.query(models.InterviewProcess).filter(models.InterviewProcess.id == item_id).delete()
+    db.commit()
+    return {"ok": True}
+
+@app.get("/api/settings/categories", response_model=list[schemas.JobCategory])
+def get_categories(db: Session = Depends(get_db)):
+    return db.query(models.JobCategory).all()
+
+@app.post("/api/settings/categories", response_model=schemas.JobCategory)
+def create_category(item: schemas.JobCategoryCreate, db: Session = Depends(get_db)):
+    db_item = models.JobCategory(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/api/settings/categories/{item_id}")
+def delete_category(item_id: int, db: Session = Depends(get_db)):
+    db.query(models.JobCategory).filter(models.JobCategory.id == item_id).delete()
+    db.commit()
+    return {"ok": True}
+
 if __name__ == "__main__":
     # In Zeabur, use the PORT environment variable
     port = int(os.getenv("PORT", 8000))
