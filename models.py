@@ -58,3 +58,38 @@ class Job(Base):
     salary_months = Column(Integer, default=12) # 薪资月数
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class Department(Base):
+    __tablename__ = "departments"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, index=True)
+    status = Column(String(50), default="active")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Interviewer(Base):
+    __tablename__ = "interviewers"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), index=True)
+    role_type = Column(String(50)) # HR, Manager, Interviewer
+    department_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Location(Base):
+    __tablename__ = "locations"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100))
+    type = Column(String(50), default="线下") # 线上, 线下
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class InterviewProcess(Base):
+    __tablename__ = "interview_processes"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100))
+    stages = Column(String(200))
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class JobCategory(Base):
+    __tablename__ = "job_categories"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100))
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

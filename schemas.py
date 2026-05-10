@@ -83,3 +83,38 @@ class JobFunnel(BaseModel):
 
 class JobWithFunnel(Job):
     funnel: JobFunnel
+
+class DictItemBase(BaseModel):
+    name: str
+
+class DepartmentCreate(DictItemBase):
+    pass
+class Department(DictItemBase):
+    id: int
+    status: str
+    class Config: from_attributes = True
+
+class InterviewerCreate(DictItemBase):
+    role_type: str
+    department_id: Optional[int] = None
+class Interviewer(InterviewerCreate):
+    id: int
+    class Config: from_attributes = True
+
+class LocationCreate(DictItemBase):
+    type: str = "线下"
+class Location(LocationCreate):
+    id: int
+    class Config: from_attributes = True
+
+class InterviewProcessCreate(DictItemBase):
+    stages: str
+class InterviewProcess(InterviewProcessCreate):
+    id: int
+    class Config: from_attributes = True
+
+class JobCategoryCreate(DictItemBase):
+    pass
+class JobCategory(DictItemBase):
+    id: int
+    class Config: from_attributes = True

@@ -59,5 +59,37 @@ for data in mock_data:
     db.add(candidate)
 
 db.commit()
+
+# 写入字典数据
+def seed_dicts():
+    if db.query(models.Department).count() == 0:
+        for d in ["研发部", "产品部", "设计部", "市场部", "销售部", "人力资源部"]:
+            db.add(models.Department(name=d))
+        db.commit()
+        
+    if db.query(models.Location).count() == 0:
+        db.add(models.Location(name="北京总部", type="线下"))
+        db.add(models.Location(name="腾讯会议", type="线上"))
+        db.commit()
+
+    if db.query(models.JobCategory).count() == 0:
+        for c in ["技术/研发", "产品/设计", "运营/市场", "职能/支持"]:
+            db.add(models.JobCategory(name=c))
+        db.commit()
+        
+    if db.query(models.InterviewProcess).count() == 0:
+        db.add(models.InterviewProcess(name="标准技术面试", stages="初筛,一面,二面,HR面"))
+        db.add(models.InterviewProcess(name="简易面试", stages="初筛,直属leader面"))
+        db.commit()
+
+    if db.query(models.Interviewer).count() == 0:
+        db.add(models.Interviewer(name="研发总监", role_type="Manager"))
+        db.add(models.Interviewer(name="产品总监", role_type="Manager"))
+        db.add(models.Interviewer(name="HR 李", role_type="HR"))
+        db.commit()
+
+seed_dicts()
+
 db.close()
 print("🎉 4位虚拟精英候选人数据已成功注入数据库！")
+print("🎉 数据字典(部门、面试官等)已成功注入数据库！")
