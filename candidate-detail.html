@@ -71,11 +71,11 @@
                             <div style="color:var(--text-secondary); font-size:14px; margin-bottom:16px;" id="cand-job">--</div>
                             <span class="tag tag-blue" style="margin-bottom:24px;" id="cand-stage">--</span>
                             
-                            <div style="width:100%; display:flex; flex-direction:column; gap:8px;">
+                            <div style="width:100%; display:flex; flex-direction:column; gap:8px;" id="cand-actions-container">
                                 <button class="btn btn-primary" id="btn-next-stage" style="width:100%; justify-content:center;" onclick="moveToNextStage()">推进流程</button>
                                 <div style="display:flex; gap:8px; width:100%;">
                                     <button class="btn" style="flex:1;" onclick="openScheduleDrawer(currentCandidate?.name || '', currentCandidate?.email || '', currentCandidate?.job || '')">安排面试</button>
-                                    <button class="btn" style="flex:1; color:#FF3B30;" onclick="deleteCurrentCandidate()">删除</button>
+                                    <button class="btn" style="flex:1; color:#FF3B30;" onclick="eliminateCurrentCandidate()">淘汰</button>
                                 </div>
                             </div>
                         </div>
@@ -283,21 +283,33 @@
                 document.getElementById('cand-phone').innerText = candidate.phone || '暂无';
                 document.getElementById('cand-email').innerText = candidate.email || '暂无';
                 
-                // Update Next Stage Button
-                const btnNext = document.getElementById('btn-next-stage');
-                const currentIndex = STAGES.indexOf(candidate.stage);
-                if (currentIndex >= 0 && currentIndex < STAGES.length - 1) {
-                    const nextStage = STAGES[currentIndex + 1];
-                    if (nextStage === '用人部门筛选') {
-                        btnNext.innerText = '推荐给用人部门';
-                        btnNext.onclick = () => openRecommendModal(candidate.id);
-                    } else {
-                        btnNext.innerText = `推进至「${nextStage}」`;
-                        btnNext.onclick = moveToNextStage;
-                    }
-                    btnNext.style.display = 'block';
+                // Update Actions Container
+                const actionsContainer = document.getElementById('cand-actions-container');
+                if (candidate.stage === '已淘汰') {
+                    // 只读模式 / 人才库模式
+                    actionsContainer.innerHTML = `
+                        <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="reactivateCurrentCandidate()">重新激活并移入工作台</button>
+                    `;
                 } else {
-                    btnNext.style.display = 'none';
+                    // 正常活跃模式
+                    const currentIndex = STAGES.indexOf(candidate.stage);
+                    let nextBtnHtml = '';
+                    if (currentIndex >= 0 && currentIndex < STAGES.length - 1) {
+                        const nextStage = STAGES[currentIndex + 1];
+                        if (nextStage === '用人部门筛选') {
+                            nextBtnHtml = `<button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="openRecommendModal(${candidate.id})">推荐给用人部门</button>`;
+                        } else {
+                            nextBtnHtml = `<button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="moveToNextStage()">推进至「${nextStage}」</button>`;
+                        }
+                    }
+                    
+                    actionsContainer.innerHTML = `
+                        ${nextBtnHtml}
+                        <div style="display:flex; gap:8px; width:100%; margin-top:8px;">
+                            <button class="btn" style="flex:1;" onclick="openScheduleDrawer('${candidate.name}', '${candidate.email || ''}', '${candidate.job}')">安排面试</button>
+                            <button class="btn" style="flex:1; color:#FF3B30;" onclick="eliminateCurrentCandidate()">淘汰</button>
+                        </div>
+                    `;
                 }
                 
                 // Render Timeline Logs
@@ -527,6 +539,35 @@
                 } catch (error) {
                     console.error(error);
                     showToast('操作失败，请检查网络或后端服务', 'error');
+                }
+            });
+        }
+
+        async function reactivateCurrentCandidate() {
+            if(!currentCandidate) return;
+            showConfirm('确定要重新激活该候选人吗？TA 将回到初筛节点并移入工作台。', async () => {
+                try {
+                    const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+                    const operatorName = user.name || '系统';
+                    
+                    const response = await fetch(`/api/candidates/${currentCandidate.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ stage: '初筛', operator: operatorName, details: '从人才库重新激活' })
+                    });
+                    
+                    if(response.ok) {
+                        showToast('已重新激活', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'candidates.html';
+                        }, 1000);
+                    } else {
+                        const data = await response.json();
+                        showToast(`操作失败: ${data.detail || '未知错误'}`, 'error');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast('操作失败，请检查网络', 'error');
                 }
             });
         }

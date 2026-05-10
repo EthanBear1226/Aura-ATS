@@ -446,22 +446,27 @@
         }
 
         async function eliminateCandidate(id) {
-            showConfirm('确定要删除该候选人以及关联的简历附件吗？删除后无法恢复。', async () => {
+            showConfirm('确定要淘汰该候选人并将其归档到人才库吗？', async () => {
                 try {
+                    const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+                    const operatorName = user.name || '系统';
+                    
                     const response = await fetch(`/api/candidates/${id}`, {
-                        method: 'DELETE'
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ stage: '已淘汰', operator: operatorName, details: '淘汰至人才库' })
                     });
                     
                     if(response.ok) {
-                        showToast('删除成功', 'success');
+                        showToast('已淘汰并归档', 'success');
                         loadCandidates(); // Refresh the list
                     } else {
                         const data = await response.json();
-                        showToast(`删除失败: ${data.detail || '未知错误'}`, 'error');
+                        showToast(`操作失败: ${data.detail || '未知错误'}`, 'error');
                     }
                 } catch (error) {
                     console.error(error);
-                    showToast('删除失败，请检查网络或后端服务', 'error');
+                    showToast('操作失败，请检查网络或后端服务', 'error');
                 }
             });
         }

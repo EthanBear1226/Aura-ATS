@@ -99,6 +99,11 @@ body {
   fill: currentColor;
 }
 
+.sidebar-logo .nav-text {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .nav-text {
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -752,7 +757,20 @@ body {
   }
   
   .sidebar-logo {
-    display: none;
+    display: flex;
+    padding: 0 12px;
+    margin: 0;
+    gap: 6px;
+  }
+  
+  .sidebar-logo svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .sidebar-logo .nav-text {
+    font-size: 14px;
+    font-weight: 700;
   }
   
   .nav-menu {
