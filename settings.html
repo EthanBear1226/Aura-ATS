@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置 | Aura</title>
+    <link rel="stylesheet" href="assets/css/styles.css?v=6">
+    <style>
+        .settings-layout { display: flex; height: calc(100vh - 64px); background: #fff; }
+        .settings-nav { width: 240px; border-right: 1px solid var(--border-color); background: #fafafa; padding: 20px 0; }
+        .settings-nav-item { padding: 12px 24px; cursor: pointer; color: var(--text-primary); font-weight: 500; }
+        .settings-nav-item:hover { background: #f0f0f0; }
+        .settings-nav-item.active { background: #e8f4fd; color: var(--primary-color); border-right: 3px solid var(--primary-color); }
+        .settings-content { flex: 1; padding: 32px; overflow-y: auto; }
+        .settings-section { display: none; }
+        .settings-section.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar-container"></aside>
+        <main class="main-content">
+            <header class="header" id="header-container"></header>
+            <div class="settings-layout">
+                <div class="settings-nav">
+                    <div class="settings-nav-item active" onclick="switchSetting('departments')">部门管理</div>
+                    <div class="settings-nav-item" onclick="switchSetting('interviewers')">人员管理</div>
+                    <div class="settings-nav-item" onclick="switchSetting('locations')">面试地点</div>
+                    <div class="settings-nav-item" onclick="switchSetting('processes')">面试流程</div>
+                    <div class="settings-nav-item" onclick="switchSetting('categories')">职位类别</div>
+                </div>
+                <div class="settings-content">
+                    <div id="sec-departments" class="settings-section active">
+                        <h2>部门管理</h2>
+                        <button class="btn btn-primary" onclick="addDict('departments')">新增部门</button>
+                        <table class="table-container" style="margin-top: 16px;">
+                            <thead><tr><th>名称</th><th>操作</th></tr></thead>
+                            <tbody id="tb-departments"></tbody>
+                        </table>
+                    </div>
+                    <!-- 其他占位 -->
+                    <div id="sec-interviewers" class="settings-section">
+                        <h2>人员管理</h2>
+                        <button class="btn btn-primary" onclick="addDict('interviewers')">新增人员</button>
+                        <table class="table-container" style="margin-top: 16px;">
+                            <thead><tr><th>名称</th><th>角色</th><th>操作</th></tr></thead>
+                            <tbody id="tb-interviewers"></tbody>
+                        </table>
+                    </div>
+                    <div id="sec-locations" class="settings-section">
+                        <h2>面试地点</h2>
+                        <button class="btn btn-primary" onclick="addDict('locations')">新增地点</button>
+                        <table class="table-container" style="margin-top: 16px;">
+                            <thead><tr><th>名称</th><th>类型</th><th>操作</th></tr></thead>
+                            <tbody id="tb-locations"></tbody>
+                        </table>
+                    </div>
+                    <div id="sec-processes" class="settings-section">
+                        <h2>面试流程</h2>
+                        <button class="btn btn-primary" onclick="addDict('interview-processes')">新增流程</button>
+                        <table class="table-container" style="margin-top: 16px;">
+                            <thead><tr><th>名称</th><th>流转节点</th><th>操作</th></tr></thead>
+                            <tbody id="tb-processes"></tbody>
+                        </table>
+                    </div>
+                    <div id="sec-categories" class="settings-section">
+                        <h2>职位类别</h2>
+                        <button class="btn btn-primary" onclick="addDict('categories')">新增类别</button>
+                        <table class="table-container" style="margin-top: 16px;">
+                            <thead><tr><th>名称</th><th>操作</th></tr></thead>
+                            <tbody id="tb-categories"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="assets/js/app.js?v=7"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            renderSidebar('settings');
+            renderHeader();
+            loadAllDicts();
+        });
+
+        function switchSetting(type) {
+            document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.settings-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('sec-' + type).classList.add('active');
+        }
+
+        async function loadAllDicts() {
+            // Fetch and render Departments
+            fetch('/api/settings/departments').then(r => r.json()).then(data => {
+                document.getElementById('tb-departments').innerHTML = data.map(d => \`<tr><td>\${d.name}</td><td><button class="btn" style="color:red;" onclick="deleteDict('departments', \${d.id})">删除</button></td></tr>\`).join('');
+            });
+            // Fetch Interviewers
+            fetch('/api/settings/interviewers').then(r => r.json()).then(data => {
+                document.getElementById('tb-interviewers').innerHTML = data.map(d => \`<tr><td>\${d.name}</td><td>\${d.role_type}</td><td><button class="btn" style="color:red;" onclick="deleteDict('interviewers', \${d.id})">删除</button></td></tr>\`).join('');
+            });
+            // Fetch Locations
+            fetch('/api/settings/locations').then(r => r.json()).then(data => {
+                document.getElementById('tb-locations').innerHTML = data.map(d => \`<tr><td>\${d.name}</td><td>\${d.type}</td><td><button class="btn" style="color:red;" onclick="deleteDict('locations', \${d.id})">删除</button></td></tr>\`).join('');
+            });
+            // Fetch Processes
+            fetch('/api/settings/interview-processes').then(r => r.json()).then(data => {
+                document.getElementById('tb-processes').innerHTML = data.map(d => \`<tr><td>\${d.name}</td><td>\${d.stages}</td><td><button class="btn" style="color:red;" onclick="deleteDict('interview-processes', \${d.id})">删除</button></td></tr>\`).join('');
+            });
+            // Fetch Categories
+            fetch('/api/settings/categories').then(r => r.json()).then(data => {
+                document.getElementById('tb-categories').innerHTML = data.map(d => \`<tr><td>\${d.name}</td><td><button class="btn" style="color:red;" onclick="deleteDict('categories', \${d.id})">删除</button></td></tr>\`).join('');
+            });
+        }
+
+        async function addDict(type) {
+            let name = prompt("请输入名称:");
+            if (!name) return;
+            let payload = { name };
+            if (type === 'interviewers') {
+                payload.role_type = prompt("请输入角色 (Manager, HR, Interviewer):", "Manager");
+            } else if (type === 'locations') {
+                payload.type = prompt("请输入类型 (线上, 线下):", "线下");
+            } else if (type === 'interview-processes') {
+                payload.stages = prompt("请输入流转节点 (逗号分隔):", "初筛,一面,HR面");
+            }
+            
+            await fetch(\`/api/settings/\${type}\`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            loadAllDicts();
+        }
+
+        async function deleteDict(type, id) {
+            if(!confirm("确认删除？")) return;
+            await fetch(\`/api/settings/\${type}/\${id}\`, { method: 'DELETE' });
+            loadAllDicts();
+        }
+    </script>
+</body>
+</html>

@@ -351,6 +351,10 @@ async def read_login():
 async def read_register():
     return FileResponse('register.html')
 
+@app.get("/settings.html")
+async def read_settings():
+    return FileResponse('settings.html')
+
 # --- System Settings APIs ---
 
 @app.get("/api/settings/departments", response_model=list[schemas.Department])
