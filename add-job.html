@@ -142,13 +142,7 @@
                             <div class="form-group">
                                 <label>所属部门<span class="required-mark">*</span></label>
                                 <select id="jobDepartment" required>
-                                    <option value="" disabled selected>请选择所属部门</option>
-                                    <option value="研发部">研发部</option>
-                                    <option value="产品部">产品部</option>
-                                    <option value="设计部">设计部</option>
-                                    <option value="市场部">市场部</option>
-                                    <option value="销售部">销售部</option>
-                                    <option value="人力资源部">人力资源部</option>
+                                    <option value="" disabled selected>加载中...</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -230,11 +224,7 @@
                             <div class="form-group">
                                 <label>负责人名称<span class="required-mark">*</span></label>
                                 <select id="jobHrName" required>
-                                    <option value="" disabled selected>请选择汇报上级/负责人</option>
-                                    <option value="王大锤 (技术总监)">王大锤 (技术总监)</option>
-                                    <option value="赵总 (产品VP)">赵总 (产品VP)</option>
-                                    <option value="李雷 (HRBP)">李雷 (HRBP)</option>
-                                    <option value="韩梅梅 (招聘经理)">韩梅梅 (招聘经理)</option>
+                                    <option value="" disabled selected>加载中...</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -310,6 +300,39 @@
                 });
             });
         });
+
+        async function loadDictionaries() {
+            try {
+                // 部门
+                const deps = await fetch('/api/settings/departments').then(r=>r.json());
+                const depSelect = document.getElementById('jobDepartment');
+                depSelect.innerHTML = '<option value="" disabled selected>请选择所属部门</option>' + deps.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+
+                // 地点
+                const locs = await fetch('/api/settings/locations').then(r=>r.json());
+                const locSelect = document.getElementById('jobLocation');
+                locSelect.innerHTML = '<option value="" disabled selected>请选择工作地点</option>' + locs.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+
+                // 面试官(HR)
+                const hrs = await fetch('/api/settings/interviewers').then(r=>r.json());
+                const hrSelect = document.getElementById('jobHrName');
+                hrSelect.innerHTML = '<option value="" disabled selected>请选择负责人</option>' + hrs.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+
+                // 职位类别 (Segmented Control)
+                const cats = await fetch('/api/settings/categories').then(r=>r.json());
+                const catContainer = document.querySelector('.segmented-control[data-target="jobCategory"]');
+                catContainer.innerHTML = cats.map(c => `<div class="segmented-item" data-value="${c.name}">${c.name}</div>`).join('');
+                
+                // Add active class to first item in segmented controls dynamically loaded to ensure some selection if needed
+                const firstCat = catContainer.querySelector('.segmented-item');
+                if (firstCat) {
+                    firstCat.classList.add('active');
+                    document.getElementById('jobCategory').value = firstCat.dataset.value;
+                }
+            } catch(e) {
+                console.error("Failed to load dictionaries", e);
+            }
+        }
 
         function setupCustomSelects() {
             document.querySelectorAll('.form-group select').forEach(select => {
@@ -508,6 +531,11 @@
                 if(window.showToast) showToast("发布异常", "error");
                 btn.disabled = false;
                 btn.innerText = "确认发布";
+            }
+        }
+    </script>
+</body>
+</html>nnerText = "确认发布";
             }
         }
     </script>
