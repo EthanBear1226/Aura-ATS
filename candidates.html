@@ -226,10 +226,27 @@
             'Assistant': { allowedJobs: 'ALL', canAdd: true, canDelete: false }
         };
 
+        async function loadDictionariesForList() {
+            try {
+                const interviewers = await fetch('/api/settings/interviewers').then(r=>r.json());
+                const drawSelect = document.getElementById('drawerInterviewerSelect');
+                if (drawSelect) {
+                    drawSelect.innerHTML = '<option value="" disabled selected>请选择面试官</option>' + interviewers.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
+                }
+                
+                const managers = interviewers.filter(i => i.role_type === 'Manager');
+                const recSelect = document.getElementById('recommend-manager-select');
+                if (recSelect) {
+                    recSelect.innerHTML = managers.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+                }
+            } catch(e) {}
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             renderSidebar('candidates');
             renderHeader();
             initRoleUI();
+            loadDictionariesForList();
             loadCandidates();
         });
         
