@@ -61,6 +61,19 @@ body {
   white-space: nowrap;
 }
 
+.sidebar-logo svg {
+  min-width: 24px;
+  flex-shrink: 0;
+}
+
+.sidebar-logo .nav-text {
+  display: none;
+}
+
+.sidebar:hover .sidebar-logo .nav-text {
+  display: block;
+}
+
 .nav-menu {
   display: flex;
   flex-direction: column;
