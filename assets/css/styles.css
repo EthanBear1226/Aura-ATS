@@ -13,6 +13,10 @@
   --transition: all 0.2s ease;
 }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -777,8 +781,7 @@ body {
   }
 
   .sidebar-logo .nav-text {
-    font-size: 14px;
-    font-weight: 700;
+    display: none !important;
   }
   
   .nav-menu {
