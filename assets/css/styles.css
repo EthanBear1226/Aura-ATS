@@ -99,11 +99,6 @@ body {
   fill: currentColor;
 }
 
-.sidebar-logo .nav-text {
-  opacity: 1;
-  pointer-events: auto;
-}
-
 .nav-text {
   opacity: 0;
   transition: opacity 0.2s ease;
