@@ -313,15 +313,15 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 @app.get("/")
 @app.get("/index.html")
 async def read_index():
-    return FileResponse('index.html')
+    return FileResponse('index.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/candidates.html")
 async def read_candidates():
-    return FileResponse('candidates.html')
+    return FileResponse('candidates.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/talent-pool.html")
 async def read_talent_pool():
-    return FileResponse('talent-pool.html')
+    return FileResponse('talent-pool.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/candidate-detail.html")
 async def read_detail():
@@ -329,31 +329,31 @@ async def read_detail():
 
 @app.get("/interviews.html")
 async def read_interviews():
-    return FileResponse('interviews.html')
+    return FileResponse('interviews.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/jobs.html")
 async def read_jobs():
-    return FileResponse('jobs.html')
+    return FileResponse('jobs.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/add-candidate.html")
 async def read_add_candidate():
-    return FileResponse('add-candidate.html')
+    return FileResponse('add-candidate.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/add-job.html")
 async def read_add_job():
-    return FileResponse('add-job.html')
+    return FileResponse('add-job.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/login.html")
 async def read_login():
-    return FileResponse('login.html')
+    return FileResponse('login.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/register.html")
 async def read_register():
-    return FileResponse('register.html')
+    return FileResponse('register.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/settings.html")
 async def read_settings():
-    return FileResponse('settings.html')
+    return FileResponse('settings.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 # --- System Settings APIs ---
 
