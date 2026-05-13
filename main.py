@@ -196,7 +196,11 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
                     prompt = f"""
                     请作为一名资深HR数据提取专家，从以下简历文本中提取结构化信息。
                     要求：返回合法 JSON，包含 name, job, exp(仅提取最高学历，如"本科"、"硕士"等，不要包含工作年限), phone(请仔细提取手机号，通常为11位数字), email, skills(array), ai_summary, ai_analysis。
-                    如果提供了【正在应聘的职位及JD】，请在提取信息后，根据简历与JD的匹配度，额外输出 match_score（0-100的整数）和 match_reason（100字左右的客观匹配维度点评）。{job_info_text}
+                    在编写 ai_analysis 时，请务必包含以下三个维度的结构化点评（可使用 HTML 的 <br> 换行）：
+                    ✅ 亮点（候选人优势）；
+                    ⚠️ 风险（劣势项或经验短板）；
+                    🎯 面试建议（结合职位描述，提示需面试官重点关注或追问的维度）。
+                    如果提供了【正在应聘的职位及JD】，请在提取信息和编写点评时，紧密结合该 JD 要求，并额外输出 match_score（0-100的整数）和 match_reason（简短的综合匹配度总结）。{job_info_text}
                     简历文本：{extracted_text[:4000]}
                     """
                     response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
