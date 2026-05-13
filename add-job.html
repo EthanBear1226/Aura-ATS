@@ -262,9 +262,12 @@
     <script>
         let quill;
         
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", async () => {
             renderSidebar('jobs');
             renderHeader();
+            
+            await loadDictionaries();
+            
             setupCustomSelects();
             setupSegmentedControls();
             
