@@ -173,9 +173,31 @@
                         <td style="color:var(--text-secondary);">${dateStr}</td>
                         <td style="text-align:right; white-space: nowrap;">
                             <button class="btn btn-primary" onclick="event.stopPropagation(); reactivateCandidate('${c.id}')" style="padding:6px 16px; font-size:12px; background: var(--primary-color); color: white; border: none; border-radius: 4px;">重新激活</button>
+                            <button class="btn" onclick="event.stopPropagation(); hardDeleteCandidate('${c.id}')" style="padding:6px 16px; font-size:12px; color: #FF3B30; border-color: transparent; background: transparent; border-radius: 4px;">彻底删除</button>
                         </td>
                     </tr>
                 `;
+            });
+        }
+
+        async function hardDeleteCandidate(id) {
+            showConfirm('确定要彻底删除该候选人以及关联的简历附件吗？删除后将从数据库中永久抹除，无法恢复。', async () => {
+                try {
+                    const response = await fetch(`/api/candidates/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if(response.ok) {
+                        showToast('已彻底删除', 'success');
+                        loadCandidates(); // Refresh the list
+                    } else {
+                        const data = await response.json();
+                        showToast(`删除失败: ${data.detail || '未知错误'}`, 'error');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast('删除失败，请检查网络或后端服务', 'error');
+                }
             });
         }
 
