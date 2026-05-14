@@ -61,73 +61,182 @@
                 </div>
                 
                 <div class="kanban-board">
-                    <!-- Column 1: Today -->
+                    <!-- Column: Today/Planned -->
                     <div class="kanban-column">
                         <div class="kanban-column-header">
-                            <span>今日 (Today)</span>
-                            <span style="color:var(--text-secondary); font-weight:normal;">2</span>
+                            <span>已安排 (Planned)</span>
                         </div>
-                        
-                        <div class="kanban-card">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                                <span class="tag tag-blue">线上初面</span>
-                                <span style="font-size:12px; color:var(--text-secondary);">14:00 - 15:00</span>
-                            </div>
-                            <div style="font-weight:600; margin-bottom:4px;">张三 · 高级前端工程师</div>
-                            <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">面试官: 王大锤</div>
-                            <button class="btn" style="width:100%; justify-content:center; padding:6px;">进入腾讯会议</button>
-                        </div>
-
-                        <div class="kanban-card onsite">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                                <span class="tag tag-green">现场复面</span>
-                                <span style="font-size:12px; color:var(--text-secondary);">16:30 - 17:30</span>
-                            </div>
-                            <div style="font-weight:600; margin-bottom:4px;">李四 · 产品经理</div>
-                            <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">面试官: 赵总 · 地点: 会议室 A</div>
-                            <button class="btn" style="width:100%; justify-content:center; padding:6px;">查看详情</button>
-                        </div>
+                        <div id="col-today" style="display:flex; flex-direction:column; gap:16px; min-height: 100px;"></div>
                     </div>
 
-                    <!-- Column 2: Tomorrow -->
+                    <!-- Column: Pending Feedback -->
                     <div class="kanban-column">
                         <div class="kanban-column-header">
-                            <span>明日 (Tomorrow)</span>
-                            <span style="color:var(--text-secondary); font-weight:normal;">1</span>
+                            <span>待评价 (Pending Feedback)</span>
                         </div>
-                        
-                        <div class="kanban-card">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                                <span class="tag tag-blue">线上初面</span>
-                                <span style="font-size:12px; color:var(--text-secondary);">10:00 - 11:00</span>
-                            </div>
-                            <div style="font-weight:600; margin-bottom:4px;">王五 · 数据分析师</div>
-                            <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">面试官: 李总监</div>
-                            <button class="btn" style="width:100%; justify-content:center; padding:6px;">获取会议链接</button>
-                        </div>
+                        <div id="col-pending-feedback" style="display:flex; flex-direction:column; gap:16px; min-height: 100px;"></div>
                     </div>
 
-                    <!-- Column 3: Later -->
+                    <!-- Column: Completed -->
                     <div class="kanban-column">
                         <div class="kanban-column-header">
-                            <span>本周稍后 (Later)</span>
-                            <span style="color:var(--text-secondary); font-weight:normal;">0</span>
+                            <span>已完成 (Completed)</span>
                         </div>
-                        <div style="text-align:center; color:var(--text-secondary); font-size:14px; margin-top:20px;">
-                            暂无日程
-                        </div>
+                        <div id="col-completed" style="display:flex; flex-direction:column; gap:16px; min-height: 100px;"></div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
+    <div class="modal-overlay" id="feedbackModal">
+        <div class="modal-card">
+            <h2>面试评价反馈</h2>
+            <input type="hidden" id="feedbackInterviewId">
+            <div class="form-group">
+                <label>面试结论</label>
+                <select id="feedbackResult" class="form-control">
+                    <option value="满意">满意 (推进)</option>
+                    <option value="待定">待定 (观望)</option>
+                    <option value="不满意">不满意 (淘汰)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>详细评价</label>
+                <textarea id="feedbackText" class="form-control" style="height:150px;"></textarea>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:24px;">
+                <button class="btn" style="flex:1; justify-content:center;" onclick="closeFeedbackModal()">取消</button>
+                <button class="btn btn-primary" id="btnSubmitFeedback" style="flex:1; justify-content:center;" onclick="submitFeedback()">提交评价</button>
+            </div>
+        </div>
+    </div>
+
     <script src="assets/js/app.js?v=8"></script>
     <script>
+        let allInterviews = [];
+
         document.addEventListener("DOMContentLoaded", () => {
             renderSidebar('interviews');
             renderHeader();
+            loadInterviews();
         });
+
+        async function loadInterviews() {
+            try {
+                const response = await fetch('/api/interviews');
+                allInterviews = await response.json();
+                renderKanban();
+            } catch(e) { console.error(e); }
+        }
+
+        function renderKanban() {
+            const colToday = document.getElementById('col-today');
+            const colPending = document.getElementById('col-pending-feedback');
+            const colCompleted = document.getElementById('col-completed');
+            
+            if(colToday) colToday.innerHTML = '';
+            if(colPending) colPending.innerHTML = '';
+            if(colCompleted) colCompleted.innerHTML = '';
+
+            allInterviews.forEach(interview => {
+                let statusColor = '#E5E5EA'; // default gray
+                let statusText = interview.status;
+                let btnHtml = '';
+                let targetCol = colToday;
+
+                if (interview.status === '已安排') {
+                    statusColor = '#0A84FF';
+                    targetCol = colToday;
+                    btnHtml = `<button class="btn" style="width:100%; justify-content:center; padding:6px; margin-top:8px;" onclick="openFeedbackModal(${interview.id})">填写评价</button>`;
+                } else if (interview.status === '已完成') {
+                    statusColor = '#34C759';
+                    targetCol = colCompleted;
+                    btnHtml = `<button class="btn" style="width:100%; justify-content:center; padding:6px; margin-top:8px;" onclick="openFeedbackModal(${interview.id}, true)">查看评价</button>`;
+                }
+
+                const cardHtml = `
+                    <div class="kanban-card">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                            <div style="font-weight:600; font-size:15px;">${interview.candidate?.name || '未知'} <span style="color:var(--text-secondary); font-weight:normal; font-size:13px; margin-left:4px;">${interview.job_title}</span></div>
+                            <span class="tag" style="background-color: ${statusColor}20; color: ${statusColor}; border: 1px solid ${statusColor}40;">${statusText}</span>
+                        </div>
+                        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">时间: ${new Date(interview.start_time).toLocaleString()}</div>
+                        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">地点: ${interview.location}</div>
+                        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">面试官: ${interview.interviewer_name}</div>
+                        ${btnHtml}
+                    </div>
+                `;
+                
+                if(targetCol) targetCol.innerHTML += cardHtml;
+            });
+            
+            // Add Empty states
+            [colToday, colPending, colCompleted].forEach(col => {
+                if(col && col.innerHTML.trim() === '') {
+                    col.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary); font-size: 13px;">暂无数据</div>';
+                }
+            });
+        }
+
+        let isReadOnlyFeedback = false;
+
+        async function openFeedbackModal(id, isReadOnly=false) {
+            document.getElementById('feedbackInterviewId').value = id;
+            isReadOnlyFeedback = isReadOnly;
+            
+            const interview = allInterviews.find(i => i.id === id);
+            
+            if (isReadOnly) {
+                document.getElementById('feedbackResult').value = interview.feedback_result || '待定';
+                document.getElementById('feedbackText').value = interview.feedback_text || '';
+                document.getElementById('feedbackResult').disabled = true;
+                document.getElementById('feedbackText').disabled = true;
+                document.getElementById('btnSubmitFeedback').style.display = 'none';
+            } else {
+                document.getElementById('feedbackResult').disabled = false;
+                document.getElementById('feedbackText').disabled = false;
+                document.getElementById('btnSubmitFeedback').style.display = 'flex';
+                
+                // Fetch template if new
+                try {
+                    const tpls = await fetch('/api/settings/feedback-templates').then(r=>r.json());
+                    if (tpls && tpls.length > 0) {
+                        document.getElementById('feedbackText').value = tpls[0].content;
+                    }
+                } catch(e) {}
+            }
+            
+            document.getElementById('feedbackModal').classList.add('active');
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('feedbackModal').classList.remove('active');
+        }
+
+        async function submitFeedback() {
+            const id = document.getElementById('feedbackInterviewId').value;
+            const result = document.getElementById('feedbackResult').value;
+            const text = document.getElementById('feedbackText').value;
+            
+            try {
+                const response = await fetch(`/api/interviews/${id}/feedback`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ feedback_result: result, feedback_text: text })
+                });
+                
+                if (response.ok) {
+                    showToast('评价提交成功', 'success');
+                    closeFeedbackModal();
+                    loadInterviews();
+                } else {
+                    showToast('提交失败', 'error');
+                }
+            } catch(e) {
+                showToast('网络异常', 'error');
+            }
+        }
     </script>
 </body>
 </html>
