@@ -358,26 +358,6 @@ async function loadDrawerAvailability() {
     }
 }
 
-    ];
-
-    mockData.forEach((slot, index) => {
-        const isFree = slot.status === 'free';
-        const bg = isFree ? '#F2FCEE' : '#FFF0F0';
-        const border = isFree ? '#B7E4A1' : '#FFD2D2';
-        const color = isFree ? '#238636' : '#D92D20';
-        
-        blocksContainer.innerHTML += `
-            <label style="background: ${bg}; border: 1px solid ${border}; border-radius: var(--radius-sm); padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor: ${isFree ? 'pointer' : 'not-allowed'}; opacity: ${isFree ? '1' : '0.6'}; transition: var(--transition); box-shadow: var(--shadow-sm);">
-                <div style="font-weight: 500; color: var(--text-primary); font-size: 14px;">${slot.time}</div>
-                <div style="color: ${color}; font-size: 13px; font-weight: 600; display:flex; align-items:center;">
-                    ${isFree ? `<input type="radio" name="drawerTimeSlot" style="margin-right:8px; accent-color: var(--primary-color);" ${index===1 ? 'checked' : ''}>` : ''}
-                    ${slot.label}
-                </div>
-            </label>
-        `;
-    });
-}
-
 async function submitDrawerSchedule() {
     const date = document.getElementById('drawerInterviewDate').value;
     const interviewer = document.getElementById('drawerInterviewerSelect').value;
