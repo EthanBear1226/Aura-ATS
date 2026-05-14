@@ -93,3 +93,34 @@ class JobCategory(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class EmailTemplate(Base):
+    __tablename__ = "email_templates"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100))
+    subject = Column(String(200))
+    content = Column(Text)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class FeedbackTemplate(Base):
+    __tablename__ = "feedback_templates"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100))
+    content = Column(Text)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Interview(Base):
+    __tablename__ = "interviews"
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidates.id"))
+    interviewer_name = Column(String(100))
+    job_title = Column(String(100))
+    start_time = Column(DateTime)
+    end_time = Column(DateTime)
+    location = Column(String(100))
+    status = Column(String(50), default="已安排") # 已安排, 已完成, 已取消
+    feedback_result = Column(String(50), nullable=True) # 满意, 待定, 不满意
+    feedback_text = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    candidate = relationship("Candidate")

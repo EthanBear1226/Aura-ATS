@@ -88,6 +88,14 @@ def seed_dicts():
         db.add(models.Interviewer(name="HR 李", role_type="HR"))
         db.commit()
 
+    if db.query(models.EmailTemplate).count() == 0:
+        db.add(models.EmailTemplate(name="默认面试邀约", subject="Aura ATS 面试邀请 - {job_title}", content="您好 {candidate_name}，\n\n诚挚邀请您参加 {job_title} 的面试。\n时间：{interview_time}\n地点：{location}\n\n期待您的回复！"))
+        db.commit()
+
+    if db.query(models.FeedbackTemplate).count() == 0:
+        db.add(models.FeedbackTemplate(name="标准评价表", content="1. 专业技能匹配度：\n2. 沟通表达能力：\n3. 综合潜质评估：\n"))
+        db.commit()
+
 seed_dicts()
 
 db.close()

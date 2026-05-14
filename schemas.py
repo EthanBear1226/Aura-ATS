@@ -118,3 +118,39 @@ class JobCategoryCreate(DictItemBase):
 class JobCategory(DictItemBase):
     id: int
     class Config: from_attributes = True
+
+class EmailTemplateCreate(BaseModel):
+    name: str
+    subject: str
+    content: str
+class EmailTemplate(EmailTemplateCreate):
+    id: int
+    class Config: from_attributes = True
+
+class FeedbackTemplateCreate(BaseModel):
+    name: str
+    content: str
+class FeedbackTemplate(FeedbackTemplateCreate):
+    id: int
+    class Config: from_attributes = True
+
+class InterviewCreate(BaseModel):
+    candidate_id: int
+    interviewer_name: str
+    job_title: str
+    start_time: datetime
+    end_time: datetime
+    location: str
+
+class InterviewUpdateFeedback(BaseModel):
+    feedback_result: str
+    feedback_text: str
+
+class Interview(InterviewCreate):
+    id: int
+    status: str
+    feedback_result: Optional[str] = None
+    feedback_text: Optional[str] = None
+    created_at: datetime
+    candidate: Optional[CandidateBase] = None
+    class Config: from_attributes = True
