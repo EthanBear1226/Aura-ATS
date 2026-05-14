@@ -212,13 +212,13 @@ function renderScheduleDrawer() {
                 <div style="display: flex; gap: 16px; margin-bottom: 24px;">
                     <div class="form-group" style="flex: 1;">
                         <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">面试日期</label>
-                        <input type="date" id="drawerInterviewDate" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="mockLoadDrawerAvailability()">
+                        <input type="date" id="drawerInterviewDate" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="loadDrawerAvailability()">
                     </div>
                     <div class="form-group" style="flex: 1;">
                         <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">
                             面试官
                         </label>
-                        <select id="drawerInterviewerSelect" class="form-control" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="mockLoadDrawerAvailability()">
+                        <select id="drawerInterviewerSelect" class="form-control" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="loadDrawerAvailability()">
                             <option value="">请选择面试官...</option>
                             <option value="wang">王大锤 (技术总监)</option>
                             <option value="zhao">赵总 (产品VP)</option>
@@ -266,7 +266,11 @@ function renderScheduleDrawer() {
     document.body.insertAdjacentHTML('beforeend', drawerHTML);
 }
 
-function openScheduleDrawer(candidateName = '', candidateEmail = '', candidateJob = '') {
+let currentDrawerCandidateId = null;
+let currentDrawerCandidateJob = null;
+function openScheduleDrawer(candidateName = '', candidateEmail = '', candidateJob = '', candidateId = null) {
+    currentDrawerCandidateId = candidateId;
+    currentDrawerCandidateJob = candidateJob;
     const overlay = document.getElementById('globalScheduleDrawerOverlay');
     const drawer = document.getElementById('globalScheduleDrawer');
     if (!overlay || !drawer) return;
@@ -314,23 +318,46 @@ function updateDrawerCandidateEmail() {
     emailInput.value = selectElement.value || '';
 }
 
-function mockLoadDrawerAvailability() {
+async function loadDrawerAvailability() {
     const date = document.getElementById('drawerInterviewDate').value;
     const interviewer = document.getElementById('drawerInterviewerSelect').value;
-    const blocksContainer = document.getElementById('drawerAvailabilityBlocks');
-    const statusText = document.getElementById('drawerAvailabilityStatus');
-
     if (!date || !interviewer) return;
+    
+    // Update status text
+    const statusText = document.getElementById('drawerAvailabilityStatus');
+    if (statusText) statusText.innerHTML = `已同步 <b>系统日历</b> 实时数据`;
+    
+    try {
+        const response = await fetch(`/api/calendar/freebusy?interviewer=${interviewer}&date=${date}`);
+        if (!response.ok) throw new Error("Failed to fetch slots");
+        const slots = await response.json();
+        
+        const container = document.getElementById('drawerAvailabilityBlocks');
+        container.innerHTML = slots.map((slot, index) => {
+            const isFree = slot.isFree;
+            return `
+            <label style="border:1px solid ${isFree ? 'var(--border-color)' : '#eee'}; background:${isFree ? '#fff' : '#fafafa'}; padding:8px; border-radius:4px; text-align:center; cursor:${isFree ? 'pointer' : 'not-allowed'}; opacity:${isFree ? '1' : '0.5'}; display:block; margin-bottom:8px;">
+                <input type="radio" name="drawerTimeSlot" value="${slot.time}" ${!isFree ? 'disabled' : ''} style="display:none;">
+                <div style="font-size:14px; font-weight:500;">${slot.time}</div>
+                <div style="font-size:12px; color:var(--text-secondary);">${isFree ? '空闲' : '忙碌'}</div>
+            </label>
+            `;
+        }).join('');
+        
+        // Add event listeners to radio buttons to update UI on select
+        container.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                container.querySelectorAll('label').forEach(l => l.style.borderColor = 'var(--border-color)');
+                e.target.parentElement.style.borderColor = 'var(--primary-color)';
+            });
+        });
+    } catch(e) { 
+        console.error(e); 
+        const container = document.getElementById('drawerAvailabilityBlocks');
+        if (container) container.innerHTML = `<div style="text-align:center; color:#FF3B30; font-size:13px; padding:20px;">获取档期失败</div>`;
+    }
+}
 
-    statusText.innerHTML = `已同步 <b>飞书日历</b> 实时数据`;
-    blocksContainer.innerHTML = '';
-
-    const mockData = [
-        { time: '10:00 - 11:00', status: 'busy', label: '产研周会' },
-        { time: '11:00 - 12:00', status: 'free', label: '空闲可约' },
-        { time: '13:30 - 14:30', status: 'busy', label: '面试：李四' },
-        { time: '14:30 - 16:30', status: 'free', label: '空闲可约' },
-        { time: '16:30 - 18:00', status: 'busy', label: '需求评审' }
     ];
 
     mockData.forEach((slot, index) => {
@@ -351,19 +378,61 @@ function mockLoadDrawerAvailability() {
     });
 }
 
-function submitDrawerSchedule() {
+async function submitDrawerSchedule() {
+    const date = document.getElementById('drawerInterviewDate').value;
+    const interviewer = document.getElementById('drawerInterviewerSelect').value;
+    const slotRadio = document.querySelector('input[name="drawerTimeSlot"]:checked');
+    
+    if (!date || !interviewer || !slotRadio || !currentDrawerCandidateId) {
+        if(window.showToast) window.showToast("请完整选择面试日期、面试官和时间段", "error");
+        return;
+    }
+    
+    const time = slotRadio.value; // e.g. "10:00 - 11:00"
+    const startTimeStr = time.split(' - ')[0]; // extract "10:00" from "10:00 - 11:00" if applicable
+    const start_time = `${date}T${startTimeStr || time}:00`;
+    
+    // Simple mock for end time (1 hour later)
+    const [hour, min] = (startTimeStr || time).split(':');
+    const end_time = `${date}T${parseInt(hour)+1}:${min}:00`;
+
     const btn = document.getElementById('drawerSubmitBtn');
     const originalText = btn.innerText;
-    btn.innerText = '发送邀约中...';
+    btn.innerText = "发送邀约中...";
     btn.disabled = true;
+    
+    try {
+        const payload = {
+            candidate_id: currentDrawerCandidateId,
+            interviewer_name: interviewer,
+            job_title: currentDrawerCandidateJob || '未知',
+            start_time: start_time,
+            end_time: end_time,
+            location: "线上 / 待定"
+        };
 
-    setTimeout(() => {
-        showToast('面试邀约发送成功！飞书日程已同步锁定。', 'success');
-        closeScheduleDrawer();
+        const response = await fetch('/api/interviews', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+            if(window.showToast) window.showToast("邀约已发送，日程已锁定", "success");
+            closeScheduleDrawer();
+        } else {
+            const data = await response.json();
+            if(window.showToast) window.showToast(`安排失败: ${data.detail || '未知错误'}`, "error");
+        }
+    } catch(e) {
+        console.error(e);
+        if(window.showToast) window.showToast("安排失败，请检查网络", "error");
+    } finally {
         btn.innerText = originalText;
         btn.disabled = false;
-    }, 1000);
+    }
 }
+
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAuth();

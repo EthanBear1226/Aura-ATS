@@ -212,7 +212,7 @@
         </div>
     </div>
 
-    <script src="assets/js/app.js?v=8"></script>
+    <script src="assets/js/app.js?v=9"></script>
     <script>
         // Global State for Data and Filters
         let allCandidates = [];
@@ -380,7 +380,7 @@
                         <td style="color:var(--text-secondary);">${dateStr}</td>
                         <td style="white-space: nowrap;">
                             <button class="btn" onclick="event.stopPropagation(); openRecommendModal('${c.id}')" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff;">推荐</button>
-                            <button class="btn btn-primary" onclick="event.stopPropagation(); openScheduleDrawer('${c.name}', '${c.email || ''}', '${c.job}')" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none; margin-right: 4px;">面试</button>
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); openScheduleDrawer('${c.name}', '${c.email || ''}', '${c.job}', ${c.id})" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none; margin-right: 4px;">面试</button>
                             ${deleteBtnHtml}
                         </td>
                     </tr>
