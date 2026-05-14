@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 
 import models
 import schemas
+import services
 from database import engine, get_db
 
 # Create database tables
@@ -450,6 +451,58 @@ def delete_category(item_id: int, db: Session = Depends(get_db)):
     db.query(models.JobCategory).filter(models.JobCategory.id == item_id).delete()
     db.commit()
     return {"ok": True}
+
+@app.get("/api/settings/email-templates", response_model=list[schemas.EmailTemplate])
+def get_email_templates(db: Session = Depends(get_db)):
+    return db.query(models.EmailTemplate).all()
+
+@app.get("/api/settings/feedback-templates", response_model=list[schemas.FeedbackTemplate])
+def get_feedback_templates(db: Session = Depends(get_db)):
+    return db.query(models.FeedbackTemplate).all()
+
+@app.get("/api/calendar/freebusy")
+def get_freebusy(interviewer: str, date: str):
+    return services.FeishuCalendarService.get_freebusy(interviewer, date)
+
+@app.post("/api/interviews", response_model=schemas.Interview)
+def create_interview(item: schemas.InterviewCreate, db: Session = Depends(get_db)):
+    db_item = models.Interview(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    
+    # Send email and create event
+    candidate = db.query(models.Candidate).filter(models.Candidate.id == item.candidate_id).first()
+    if candidate:
+        template = db.query(models.EmailTemplate).first() # Simplify: get first template
+        if template:
+            content = template.content.replace("{candidate_name}", candidate.name) \
+                                      .replace("{job_title}", item.job_title) \
+                                      .replace("{interview_time}", str(item.start_time)) \
+                                      .replace("{location}", item.location)
+            subject = template.subject.replace("{job_title}", item.job_title)
+            services.EmailService.send_interview_invitation(candidate.email or "demo@example.com", subject, content)
+            
+    services.FeishuCalendarService.create_event(item.interviewer_name, item.start_time, item.end_time, "面试安排", "...")
+    
+    return db_item
+
+@app.get("/api/interviews", response_model=list[schemas.Interview])
+def get_interviews(db: Session = Depends(get_db)):
+    return db.query(models.Interview).all()
+
+@app.patch("/api/interviews/{interview_id}/feedback", response_model=schemas.Interview)
+def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback, db: Session = Depends(get_db)):
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+    
+    interview.feedback_result = feedback.feedback_result
+    interview.feedback_text = feedback.feedback_text
+    interview.status = "已完成" # Automatically set status to completed
+    db.commit()
+    db.refresh(interview)
+    return interview
 
 if __name__ == "__main__":
     # In Zeabur, use the PORT environment variable
