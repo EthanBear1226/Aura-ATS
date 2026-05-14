@@ -49,6 +49,8 @@
                     <div class="settings-nav-item" onclick="switchSetting('locations', event)">📍 面试地点</div>
                     <div class="settings-nav-item" onclick="switchSetting('processes', event)">🔄 面试流程</div>
                     <div class="settings-nav-item" onclick="switchSetting('categories', event)">🏷️ 职位类别</div>
+                    <div class="settings-nav-item" onclick="switchSetting('email-templates', event)">📧 邮件模板</div>
+                    <div class="settings-nav-item" onclick="switchSetting('feedback-templates', event)">📝 评价模板</div>
                 </div>
                 <div class="settings-content">
                     <!-- Departments -->
@@ -108,6 +110,28 @@
                         <table class="table-container">
                             <thead><tr><th>类别名称</th><th style="text-align:right;">操作</th></tr></thead>
                             <tbody id="tb-categories"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Email Templates -->
+                    <div id="sec-email-templates" class="settings-section">
+                        <div class="section-header">
+                            <h2 class="section-title">邮件模板配置</h2>
+                        </div>
+                        <table class="table-container">
+                            <thead><tr><th>模板名称</th><th>邮件标题</th></tr></thead>
+                            <tbody id="tb-email-templates"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Feedback Templates -->
+                    <div id="sec-feedback-templates" class="settings-section">
+                        <div class="section-header">
+                            <h2 class="section-title">面试评价表配置</h2>
+                        </div>
+                        <table class="table-container">
+                            <thead><tr><th>模板名称</th></tr></thead>
+                            <tbody id="tb-feedback-templates"></tbody>
                         </table>
                     </div>
                 </div>
@@ -186,6 +210,24 @@
                 fetch('/api/settings/locations').then(r=>r.json()).then(d => renderTableRows('tb-locations', d, 3, 'locations'));
                 fetch('/api/settings/interview-processes').then(r=>r.json()).then(d => renderTableRows('tb-processes', d, 3, 'interview-processes'));
                 fetch('/api/settings/categories').then(r=>r.json()).then(d => renderTableRows('tb-categories', d, 2, 'categories'));
+
+                fetch('/api/settings/email-templates').then(r=>r.json()).then(d => {
+                    const tbody = document.getElementById('tb-email-templates');
+                    if (!d || d.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="2" class="empty-state">暂无数据</td></tr>`;
+                    } else {
+                        tbody.innerHTML = d.map(item => `<tr><td>${item.name}</td><td>${item.subject}</td></tr>`).join('');
+                    }
+                }).catch(e => console.error(e));
+
+                fetch('/api/settings/feedback-templates').then(r=>r.json()).then(d => {
+                    const tbody = document.getElementById('tb-feedback-templates');
+                    if (!d || d.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="1" class="empty-state">暂无数据</td></tr>`;
+                    } else {
+                        tbody.innerHTML = d.map(item => `<tr><td>${item.name}</td></tr>`).join('');
+                    }
+                }).catch(e => console.error(e));
             } catch(e) { console.error('Failed to load settings', e); }
         }
 
