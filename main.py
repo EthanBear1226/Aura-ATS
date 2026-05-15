@@ -461,8 +461,8 @@ def get_feedback_templates(db: Session = Depends(get_db)):
     return db.query(models.FeedbackTemplate).all()
 
 @app.get("/api/calendar/freebusy")
-def get_freebusy(interviewer: str, date: str):
-    return services.FeishuCalendarService.get_freebusy(interviewer, date)
+def get_freebusy(interviewer: str, date: str, db: Session = Depends(get_db)):
+    return services.FeishuCalendarService.get_freebusy(interviewer, date, db)
 
 @app.post("/api/interviews", response_model=schemas.Interview)
 def create_interview(item: schemas.InterviewCreate, db: Session = Depends(get_db)):

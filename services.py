@@ -1,18 +1,35 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class FeishuCalendarService:
     @staticmethod
-    def get_freebusy(interviewer_email: str, date: str):
+    def get_freebusy(interviewer_email_or_name: str, date_str: str, db=None):
         # TODO: 接入真实飞书 OpenAPI 获取忙闲
-        # 目前返回 Mock 的空闲时间段 (9:00, 10:00, 14:00, 15:00, 16:00 等)
-        return [
-            {"time": "09:00", "isFree": True},
-            {"time": "10:00", "isFree": False},
-            {"time": "11:00", "isFree": True},
-            {"time": "14:00", "isFree": True},
-            {"time": "15:00", "isFree": True},
-            {"time": "16:00", "isFree": False},
-        ]
+        # 目前结合本地数据库实现一个动态计算的档期版本
+        working_hours = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"]
+        slots = []
+        busy_times = set()
+
+        if db:
+            import models
+            from sqlalchemy import func
+            try:
+                target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                interviews = db.query(models.Interview).filter(
+                    models.Interview.interviewer_name == interviewer_email_or_name,
+                    models.Interview.status != "已取消",
+                    func.date(models.Interview.start_time) == target_date
+                ).all()
+
+                for interview in interviews:
+                    # 将时间格式化为 HH:MM 格式，标记为忙碌
+                    busy_times.add(interview.start_time.strftime("%H:%M"))
+            except Exception as e:
+                print("Error parsing date or querying db:", e)
+
+        for t in working_hours:
+            slots.append({"time": t, "isFree": t not in busy_times})
+            
+        return slots
         
     @staticmethod
     def create_event(interviewer_email: str, start_time: datetime, end_time: datetime, summary: str, description: str):
