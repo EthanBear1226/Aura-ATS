@@ -6,46 +6,72 @@
     <meta http-equiv="Expires" content="0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>面试日程 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=14">
+    <title>面试安排 | Aura</title>
+    <link rel="stylesheet" href="assets/css/styles.css?v=15">
     <style>
-        .kanban-board {
-            display: flex;
-            gap: 24px;
-            overflow-x: auto;
-            padding-bottom: 16px;
-            height: calc(100vh - 140px);
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            margin-top: 32px;
+            color: var(--text-primary);
         }
-        .kanban-column {
-            min-width: 320px;
-            width: 320px;
-            background: #EBECF0;
-            border-radius: var(--radius-md);
-            padding: 16px;
+        .section-title:first-child {
+            margin-top: 0;
+        }
+        .interview-list {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 12px;
         }
-        .kanban-column-header {
-            font-weight: 600;
-            color: var(--text-primary);
-            display: flex;
-            justify-content: space-between;
-        }
-        .kanban-card {
+        .interview-item {
             background: var(--card-bg);
-            padding: 16px;
-            border-radius: var(--radius-sm);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-left: 4px solid var(--primary-color);
-            cursor: pointer;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
             transition: var(--transition);
         }
-        .kanban-card:hover {
-            box-shadow: var(--shadow-md);
+        .interview-item:hover {
+            box-shadow: var(--shadow-sm);
+            border-color: #d0d0d5;
         }
-        .kanban-card.onsite {
-            border-left-color: #34C759;
+        .interview-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .interview-col-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .interview-col-value {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .interview-actions {
+            display: flex;
+            gap: 8px;
+            min-width: 100px;
+            justify-content: flex-end;
+        }
+        @media (max-width: 768px) {
+            .interview-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .interview-actions {
+                width: 100%;
+                justify-content: stretch;
+            }
+            .interview-actions .btn {
+                flex: 1;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -56,35 +82,17 @@
             <header class="header" id="header-container"></header>
             <div class="page-content" style="padding-top:20px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
-                    <h1 class="page-title" style="margin:0;">面试日程看板</h1>
-                    <button class="btn btn-primary" onclick="openScheduleDrawer()">安排新面试</button>
+                    <h1 class="page-title" style="margin:0;">面试安排</h1>
                 </div>
                 
-                <div class="kanban-board">
-                    <!-- Column: Today/Planned -->
-                    <div class="kanban-column">
-                        <div class="kanban-column-header">
-                            <span>已安排 (Planned)</span>
-                        </div>
-                        <div id="col-today" style="display:flex; flex-direction:column; gap:16px; min-height: 100px;"></div>
-                    </div>
+                <div class="section-title">今天的面试</div>
+                <div class="interview-list" id="list-today"></div>
 
-                    <!-- Column: Pending Feedback -->
-                    <div class="kanban-column">
-                        <div class="kanban-column-header">
-                            <span>待评价 (Pending Feedback)</span>
-                        </div>
-                        <div id="col-pending-feedback" style="display:flex; flex-direction:column; gap:16px; min-height: 100px;"></div>
-                    </div>
+                <div class="section-title">明天及之后的面试</div>
+                <div class="interview-list" id="list-future"></div>
 
-                    <!-- Column: Completed -->
-                    <div class="kanban-column">
-                        <div class="kanban-column-header">
-                            <span>已完成 (Completed)</span>
-                        </div>
-                        <div id="col-completed" style="display:flex; flex-direction:column; gap:16px; min-height: 100px;"></div>
-                    </div>
-                </div>
+                <div class="section-title">之前的面试</div>
+                <div class="interview-list" id="list-past"></div>
             </div>
         </main>
     </div>
@@ -126,57 +134,89 @@
             try {
                 const response = await fetch('/api/interviews');
                 allInterviews = await response.json();
-                renderKanban();
+                renderList();
             } catch(e) { console.error(e); }
         }
 
-        function renderKanban() {
-            const colToday = document.getElementById('col-today');
-            const colPending = document.getElementById('col-pending-feedback');
-            const colCompleted = document.getElementById('col-completed');
+        function renderList() {
+            const listToday = document.getElementById('list-today');
+            const listFuture = document.getElementById('list-future');
+            const listPast = document.getElementById('list-past');
             
-            if(colToday) colToday.innerHTML = '';
-            if(colPending) colPending.innerHTML = '';
-            if(colCompleted) colCompleted.innerHTML = '';
+            listToday.innerHTML = '';
+            listFuture.innerHTML = '';
+            listPast.innerHTML = '';
+            
+            // Normalize current time to start of day for comparison
+            const now = new Date();
+            const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            // Sort interviews by date ascending
+            allInterviews.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+            
+            let countToday = 0, countFuture = 0, countPast = 0;
 
             allInterviews.forEach(interview => {
-                let statusColor = '#E5E5EA'; // default gray
-                let statusText = interview.status;
                 let btnHtml = '';
-                let targetCol = colToday;
 
                 if (interview.status === '已安排') {
-                    statusColor = '#0A84FF';
-                    targetCol = colToday;
-                    btnHtml = `<button class="btn" style="width:100%; justify-content:center; padding:6px; margin-top:8px;" onclick="openFeedbackModal(${interview.id})">填写评价</button>`;
+                    btnHtml = `<button class="btn btn-primary" style="padding:6px 16px; font-size:13px;" onclick="openFeedbackModal(${interview.id})">填写评价</button>`;
                 } else if (interview.status === '已完成') {
-                    statusColor = '#34C759';
-                    targetCol = colCompleted;
-                    btnHtml = `<button class="btn" style="width:100%; justify-content:center; padding:6px; margin-top:8px;" onclick="openFeedbackModal(${interview.id}, true)">查看评价</button>`;
+                    btnHtml = `<button class="btn" style="padding:6px 16px; font-size:13px;" onclick="openFeedbackModal(${interview.id}, true)">查看评价</button>`;
                 }
+                
+                let feedbackText = interview.feedback_result ? `<span class="tag tag-blue">${interview.feedback_result}</span>` : '<span style="color:var(--text-secondary); font-size:13px;">待填写</span>';
+
+                const dateObj = new Date(interview.start_time);
+                const interviewDateObj = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+                
+                // Formatted string
+                const dateStr = dateObj.toLocaleDateString();
+                const timeStr = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
                 const cardHtml = `
-                    <div class="kanban-card">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                            <div style="font-weight:600; font-size:15px;">${interview.candidate?.name || '未知'} <span style="color:var(--text-secondary); font-weight:normal; font-size:13px; margin-left:4px;">${interview.job_title}</span></div>
-                            <span class="tag" style="background-color: ${statusColor}20; color: ${statusColor}; border: 1px solid ${statusColor}40;">${statusText}</span>
+                    <div class="interview-item">
+                        <div class="interview-col" style="flex:1.2;">
+                            <div class="interview-col-label">候选人姓名</div>
+                            <div class="interview-col-value" style="font-weight:600;">${interview.candidate?.name || '未知'}</div>
                         </div>
-                        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">时间: ${new Date(interview.start_time).toLocaleString()}</div>
-                        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">地点: ${interview.location}</div>
-                        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">面试官: ${interview.interviewer_name}</div>
-                        ${btnHtml}
+                        <div class="interview-col" style="flex:1.5;">
+                            <div class="interview-col-label">面试职位</div>
+                            <div class="interview-col-value">${interview.job_title}</div>
+                        </div>
+                        <div class="interview-col" style="flex:1.5;">
+                            <div class="interview-col-label">面试日期及时间</div>
+                            <div class="interview-col-value">${dateStr} ${timeStr}</div>
+                        </div>
+                        <div class="interview-col" style="flex:1;">
+                            <div class="interview-col-label">面试官</div>
+                            <div class="interview-col-value">${interview.interviewer_name}</div>
+                        </div>
+                        <div class="interview-col" style="flex:1;">
+                            <div class="interview-col-label">面试反馈</div>
+                            <div>${feedbackText}</div>
+                        </div>
+                        <div class="interview-actions">
+                            ${btnHtml}
+                        </div>
                     </div>
                 `;
                 
-                if(targetCol) targetCol.innerHTML += cardHtml;
-            });
-            
-            // Add Empty states
-            [colToday, colPending, colCompleted].forEach(col => {
-                if(col && col.innerHTML.trim() === '') {
-                    col.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary); font-size: 13px;">暂无数据</div>';
+                if (interviewDateObj.getTime() === todayDate.getTime()) {
+                    listToday.innerHTML += cardHtml;
+                    countToday++;
+                } else if (interviewDateObj.getTime() > todayDate.getTime()) {
+                    listFuture.innerHTML += cardHtml;
+                    countFuture++;
+                } else {
+                    listPast.innerHTML += cardHtml;
+                    countPast++;
                 }
             });
+            
+            if (countToday === 0) listToday.innerHTML = '<div style="color:var(--text-secondary); font-size:13px; padding:24px; text-align:center; border:1px dashed var(--border-color); border-radius:8px;">今日暂无面试安排</div>';
+            if (countFuture === 0) listFuture.innerHTML = '<div style="color:var(--text-secondary); font-size:13px; padding:24px; text-align:center; border:1px dashed var(--border-color); border-radius:8px;">暂无即将到来的面试</div>';
+            if (countPast === 0) listPast.innerHTML = '<div style="color:var(--text-secondary); font-size:13px; padding:24px; text-align:center; border:1px dashed var(--border-color); border-radius:8px;">暂无历史面试</div>';
         }
 
         let isReadOnlyFeedback = false;
@@ -227,14 +267,14 @@
                 });
                 
                 if (response.ok) {
-                    showToast('评价提交成功', 'success');
+                    if (window.showToast) showToast('评价提交成功', 'success');
                     closeFeedbackModal();
                     loadInterviews();
                 } else {
-                    showToast('提交失败', 'error');
+                    if (window.showToast) showToast('提交失败', 'error');
                 }
             } catch(e) {
-                showToast('网络异常', 'error');
+                if (window.showToast) showToast('网络异常', 'error');
             }
         }
     </script>
