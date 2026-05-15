@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>面试安排 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=15">
+    <link rel="stylesheet" href="assets/css/styles.css?v=16">
     <style>
         .section-title {
             font-size: 18px;
@@ -98,29 +98,47 @@
     </div>
 
     <div class="modal-overlay" id="feedbackModal">
-        <div class="modal-card">
-            <h2>面试评价反馈</h2>
+        <div class="modal-card" style="width: 520px; padding: 32px 40px; border: none; box-shadow: 0 20px 40px rgba(0,0,0,0.15);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                <h2 style="margin:0; font-size:20px; font-weight:600;">填写面试评价</h2>
+                <div id="feedbackCandidateInfo" style="font-size:13px; color:var(--text-secondary); background:var(--bg-color); padding:6px 12px; border-radius:20px; font-weight:500;">--</div>
+            </div>
+            
             <input type="hidden" id="feedbackInterviewId">
-            <div class="form-group">
-                <label>面试结论</label>
-                <select id="feedbackResult" class="form-control">
-                    <option value="满意">满意 (推进)</option>
-                    <option value="待定">待定 (观望)</option>
-                    <option value="不满意">不满意 (淘汰)</option>
-                </select>
+            <input type="hidden" id="feedbackResult" value="满意">
+            
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label style="font-weight:600; margin-bottom:12px; display:block; font-size:14px;">综合面试结论 <span class="required-mark">*</span></label>
+                <div class="segmented-control" id="feedbackSegmentedControl" style="padding: 4px; background: #F5F5F7; border-radius: 12px;">
+                    <div class="segmented-item active" data-value="满意" style="border-radius: 8px;">
+                        <span style="display:block; font-size:14px; margin-bottom:4px; font-weight:600;">满意</span>
+                        <span style="font-size:11px; font-weight:normal; opacity:0.7;">建议推进</span>
+                    </div>
+                    <div class="segmented-item" data-value="待定" style="border-radius: 8px;">
+                        <span style="display:block; font-size:14px; margin-bottom:4px; font-weight:600;">待定</span>
+                        <span style="font-size:11px; font-weight:normal; opacity:0.7;">保留观望</span>
+                    </div>
+                    <div class="segmented-item" data-value="不满意" style="border-radius: 8px;">
+                        <span style="display:block; font-size:14px; margin-bottom:4px; font-weight:600;">不满意</span>
+                        <span style="font-size:11px; font-weight:normal; opacity:0.7;">建议淘汰</span>
+                    </div>
+                </div>
             </div>
             <div class="form-group">
-                <label>详细评价</label>
-                <textarea id="feedbackText" class="form-control" style="height:150px;"></textarea>
+                <label style="font-weight:600; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; font-size:14px;">
+                    详细评价记录
+                    <span style="font-weight:500; font-size:12px; color:var(--primary-color); cursor:pointer; background:#e8f4fd; padding:4px 10px; border-radius:12px;" onclick="loadFeedbackTemplate()" id="btnLoadTemplate">加载模板</span>
+                </label>
+                <textarea id="feedbackText" class="form-control" style="height:180px; font-family:inherit; resize:vertical; padding:16px; border-radius:12px; line-height:1.5; font-size:14px; border:1px solid var(--border-color);" placeholder="请输入面试反馈..."></textarea>
             </div>
-            <div style="display:flex; gap:12px; margin-top:24px;">
-                <button class="btn" style="flex:1; justify-content:center;" onclick="closeFeedbackModal()">取消</button>
-                <button class="btn btn-primary" id="btnSubmitFeedback" style="flex:1; justify-content:center;" onclick="submitFeedback()">提交评价</button>
+            <div style="display:flex; gap:16px; margin-top:32px;">
+                <button class="btn" style="flex:1; justify-content:center; padding:12px; border-radius:8px; font-weight:500;" onclick="closeFeedbackModal()">取消</button>
+                <button class="btn btn-primary" id="btnSubmitFeedback" style="flex:1; justify-content:center; padding:12px; border-radius:8px; font-weight:500;" onclick="submitFeedback()">提交最终评价</button>
             </div>
         </div>
     </div>
 
-    <script src="assets/js/app.js?v=10"></script>
+    <script src="assets/js/app.js?v=11"></script>
     <script>
         let allInterviews = [];
 
@@ -221,22 +239,49 @@
 
         let isReadOnlyFeedback = false;
 
+        document.querySelectorAll('#feedbackSegmentedControl .segmented-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (isReadOnlyFeedback) return;
+                document.querySelectorAll('#feedbackSegmentedControl .segmented-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                document.getElementById('feedbackResult').value = item.dataset.value;
+            });
+        });
+
         async function openFeedbackModal(id, isReadOnly=false) {
             document.getElementById('feedbackInterviewId').value = id;
             isReadOnlyFeedback = isReadOnly;
             
             const interview = allInterviews.find(i => i.id === id);
             
+            if (interview && interview.candidate) {
+                document.getElementById('feedbackCandidateInfo').innerText = `${interview.candidate.name} · ${interview.job_title}`;
+            } else {
+                document.getElementById('feedbackCandidateInfo').innerText = interview ? interview.job_title : '--';
+            }
+            
+            const resultVal = interview.feedback_result || '满意';
+            document.getElementById('feedbackResult').value = resultVal;
+            
+            // Sync Segmented Control UI
+            document.querySelectorAll('#feedbackSegmentedControl .segmented-item').forEach(i => {
+                i.classList.remove('active');
+                if (i.dataset.value === resultVal) {
+                    i.classList.add('active');
+                }
+            });
+            
             if (isReadOnly) {
-                document.getElementById('feedbackResult').value = interview.feedback_result || '待定';
-                document.getElementById('feedbackText').value = interview.feedback_text || '';
-                document.getElementById('feedbackResult').disabled = true;
+                document.getElementById('feedbackText').value = interview.feedback_text || '暂无评价内容';
                 document.getElementById('feedbackText').disabled = true;
                 document.getElementById('btnSubmitFeedback').style.display = 'none';
+                document.getElementById('btnLoadTemplate').style.display = 'none';
+                document.querySelector('#feedbackModal h2').innerText = '面试评价记录';
             } else {
-                document.getElementById('feedbackResult').disabled = false;
                 document.getElementById('feedbackText').disabled = false;
                 document.getElementById('btnSubmitFeedback').style.display = 'flex';
+                document.getElementById('btnLoadTemplate').style.display = 'inline-block';
+                document.querySelector('#feedbackModal h2').innerText = '填写面试评价';
                 
                 // Fetch template if new
                 try {
@@ -248,6 +293,20 @@
             }
             
             document.getElementById('feedbackModal').classList.add('active');
+        }
+
+        async function loadFeedbackTemplate() {
+            try {
+                const tpls = await fetch('/api/settings/feedback-templates').then(r=>r.json());
+                if (tpls && tpls.length > 0) {
+                    document.getElementById('feedbackText').value = tpls[0].content;
+                    if(window.showToast) showToast('模板已加载', 'success');
+                } else {
+                    if(window.showToast) showToast('系统未配置评价模板', 'error');
+                }
+            } catch(e) {
+                if(window.showToast) showToast('模板加载失败', 'error');
+            }
         }
 
         function closeFeedbackModal() {
