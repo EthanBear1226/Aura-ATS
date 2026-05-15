@@ -135,9 +135,16 @@
                                 </div>
                             </div>
 
-                            <h3>📄 原始简历预览</h3>
-                            <div style="height: 600px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-bottom: 24px;">
-                                <iframe id="pdf-viewer" style="width:100%; height:100%; border:none;" src=""></iframe>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+                                <h3 style="margin:0;">📄 原始简历预览</h3>
+                                <a id="pdf-download-btn" href="#" target="_blank" class="btn" style="text-decoration:none; display:none; font-size:13px;">在新标签页打开 / 下载</a>
+                            </div>
+                            <div style="height: 600px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-bottom: 24px; background: #fafafa; display: flex; align-items: center; justify-content: center; position: relative;">
+                                <div id="pdf-loading-fallback" style="position: absolute; color: var(--text-secondary); font-size: 14px; text-align: center; padding: 20px;">
+                                    简历加载中...<br>
+                                    <span style="font-size: 12px; opacity: 0.7;">（若长时间显示黑屏或空白，请点击右上方按钮直接在新标签页打开）</span>
+                                </div>
+                                <iframe id="pdf-viewer" style="width:100%; height:100%; border:none; position: relative; z-index: 2;" onload="document.getElementById('pdf-loading-fallback').style.display='none'"></iframe>
                             </div>
                         </div>
                         
@@ -380,8 +387,11 @@
                 if (candidate.pdf_path) {
                     // Prepend backend URL so it works when frontend is opened directly
                     document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
+                    document.getElementById('pdf-download-btn').href = `${candidate.pdf_path}`;
+                    document.getElementById('pdf-download-btn').style.display = 'inline-flex';
                 } else {
                     document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif'>暂无附件</div>";
+                    document.getElementById('pdf-loading-fallback').style.display = 'none';
                 }
 
             } catch (e) {
@@ -484,7 +494,14 @@
 
                 
                 // PDF Viewer Fallback
-                document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>演示模式 (脱机状态)</h4><p>当前运行在静态演示模式，无法加载本地 PDF 附件。</p></div>";
+                if (candidate.pdf_path) {
+                    document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
+                    document.getElementById('pdf-download-btn').href = `${candidate.pdf_path}`;
+                    document.getElementById('pdf-download-btn').style.display = 'inline-flex';
+                } else {
+                    document.getElementById('pdf-loading-fallback').style.display = 'none';
+                    document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>演示模式 (脱机状态)</h4><p>当前运行在静态演示模式，无法加载本地 PDF 附件。</p></div>";
+                }
             }
         }
         async function moveToNextStage() {
