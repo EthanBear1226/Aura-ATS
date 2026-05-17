@@ -385,10 +385,19 @@
 
                 // PDF Viewer
                 if (candidate.pdf_path) {
-                    // Prepend backend URL so it works when frontend is opened directly
-                    document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
-                    document.getElementById('pdf-download-btn').href = `${candidate.pdf_path}`;
-                    document.getElementById('pdf-download-btn').style.display = 'inline-flex';
+                    try {
+                        const pdfRes = await fetch(candidate.pdf_path, { method: 'HEAD' });
+                        if (pdfRes.ok) {
+                            document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
+                            document.getElementById('pdf-download-btn').href = `${candidate.pdf_path}`;
+                            document.getElementById('pdf-download-btn').style.display = 'inline-flex';
+                        } else {
+                            document.getElementById('pdf-loading-fallback').style.display = 'none';
+                            document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>文件已过期或丢失</h4><p>系统运行在无状态容器中，您之前上传的 PDF 文件可能已被清理。<br>请重新上传以查看。</p></div>";
+                        }
+                    } catch(e) {
+                        document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
+                    }
                 } else {
                     document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif'>暂无附件</div>";
                     document.getElementById('pdf-loading-fallback').style.display = 'none';
@@ -495,9 +504,19 @@
                 
                 // PDF Viewer Fallback
                 if (candidate.pdf_path) {
-                    document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
-                    document.getElementById('pdf-download-btn').href = `${candidate.pdf_path}`;
-                    document.getElementById('pdf-download-btn').style.display = 'inline-flex';
+                    try {
+                        const pdfRes = await fetch(candidate.pdf_path, { method: 'HEAD' });
+                        if (pdfRes.ok) {
+                            document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
+                            document.getElementById('pdf-download-btn').href = `${candidate.pdf_path}`;
+                            document.getElementById('pdf-download-btn').style.display = 'inline-flex';
+                        } else {
+                            document.getElementById('pdf-loading-fallback').style.display = 'none';
+                            document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>文件已过期或丢失</h4><p>系统运行在无状态容器中，您之前上传的 PDF 文件可能已被清理。<br>请重新上传以查看。</p></div>";
+                        }
+                    } catch(e) {
+                        document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
+                    }
                 } else {
                     document.getElementById('pdf-loading-fallback').style.display = 'none';
                     document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>演示模式 (脱机状态)</h4><p>当前运行在静态演示模式，无法加载本地 PDF 附件。</p></div>";
