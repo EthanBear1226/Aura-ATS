@@ -50,7 +50,7 @@
             const role = user.role || 'HR';
             const name = user.name || '系统';
             
-            document.getElementById('workbench-welcome').innerText = `欢迎回来，${name} (${role})`;
+            document.getElementById('workbench-welcome').innerText = `${name}，${role}`;
 
             try {
                 const response = await fetch(`/api/workbench/dashboard?role=${role}&name=${name}`);
@@ -64,56 +64,80 @@
         function renderWorkbench(data) {
             const grid = document.getElementById('workbench-grid');
             grid.innerHTML = '';
+            // 重写网格布局为紧凑模式
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+            grid.style.gridTemplateRows = 'auto 1fr';
+            grid.style.gap = '16px';
+            grid.style.height = 'calc(100vh - 180px)'; // 使其适配单屏高度
+            grid.style.marginTop = '16px';
 
-            // 1. 统计磁贴 (Stats)
+            // 1. 紧凑型统计磁贴 (Stats) - 占据顶栏
             data.stats.forEach(stat => {
                 const card = document.createElement('div');
                 card.className = 'glass-card';
-                card.style.padding = '20px';
+                card.style.padding = '16px';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.justifyContent = 'space-between';
                 card.innerHTML = `
-                    <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">${stat.label}</div>
-                    <div style="font-size: 32px; font-weight: 700; margin: 10px 0;">${stat.value}</div>
-                    <div style="font-size: 12px; color: var(--primary-color);">${stat.trend}</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">${stat.label}</div>
+                    <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 8px;">
+                        <span style="font-size: 28px; font-weight: 700; line-height: 1;">${stat.value}</span>
+                        <span style="font-size: 11px; color: ${stat.trend && stat.trend.includes('预警') ? 'var(--danger-color)' : 'var(--primary-color)'}; font-weight: 500;">${stat.trend || ''}</span>
+                    </div>
                 `;
                 grid.appendChild(card);
             });
 
-            // 2. 主待办区域 (Todos) - 占据两列
+            // 2. 主待办区域 (Todos) - 占据左侧和中间
             const todoCard = document.createElement('div');
             todoCard.className = 'glass-card';
-            todoCard.style.padding = '24px';
-            todoCard.style.gridColumn = window.innerWidth > 1024 ? 'span 2' : 'span 1';
-            todoCard.style.gridRow = 'span 2';
+            todoCard.style.padding = '20px';
+            todoCard.style.gridColumn = 'span 3';
+            todoCard.style.overflowY = 'auto'; // 允许内部滚动
             
             let todoItems = data.todos.map(todo => `
-                <div class="task-item" onclick="window.location.href='candidate-detail.html?id=${todo.target_id}'" style="cursor:pointer; background:rgba(255,255,255,0.5); border-radius:14px; margin-bottom:12px; padding:16px; border: 1px solid rgba(255,255,255,0.3);">
+                <div class="task-item" onclick="window.location.href='candidate-detail.html?id=${todo.target_id}'" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <div style="width:10px; height:10px; border-radius:5px; background:${todo.priority === 'high' ? 'var(--danger-color)' : 'var(--primary-color)'}"></div>
-                        <div style="flex:1;">
-                            <div style="font-weight:600;">${todo.title}</div>
-                            <div style="font-size:13px; color:var(--text-secondary);">${todo.subtitle}</div>
+                        <div style="width:8px; height:8px; border-radius:4px; background:${todo.priority === 'high' ? '#FF3B30' : '#007AFF'}; flex-shrink: 0;"></div>
+                        <div>
+                            <div style="font-weight:600; font-size: 14px; color: var(--text-primary);">${todo.title}</div>
+                            <div style="font-size:12px; color:var(--text-secondary); margin-top: 2px;">${todo.subtitle}</div>
                         </div>
-                        ${todo.time ? `<div style="font-weight:700; color:var(--text-primary);">${todo.time}</div>` : ''}
+                    </div>
+                    <div style="text-align: right;">
+                        ${todo.time ? `<div style="font-weight:600; font-size: 13px; color:var(--text-primary);">${todo.time}</div>` : ''}
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${todo.status || '待处理'}</div>
                     </div>
                 </div>
             `).join('');
 
             todoCard.innerHTML = `
-                <h3 style="margin-bottom:20px; font-size: 1.1rem; font-weight: 600;">待办事项</h3>
-                ${todoItems || '<div style="text-align:center; color:var(--text-secondary); padding:40px; font-size: 14px;">暂无紧急待办</div>'}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="font-size: 15px; font-weight: 600; margin: 0;">优先处理事项</h3>
+                    <span style="font-size: 12px; color: var(--primary-color); cursor: pointer; font-weight: 500;">查看全部</span>
+                </div>
+                <div style="display: flex; flex-direction: column;">
+                    ${todoItems || '<div style="text-align:center; color:var(--text-secondary); padding:40px; font-size: 13px;">当前无紧急待办</div>'}
+                </div>
             `;
             grid.appendChild(todoCard);
 
-            // 3. 动态流 (Activities)
+            // 3. 动态流 (Activities) - 占据右侧
             const activityCard = document.createElement('div');
             activityCard.className = 'glass-card';
-            activityCard.style.padding = '24px';
+            activityCard.style.padding = '20px';
+            activityCard.style.gridColumn = 'span 1';
+            activityCard.style.overflowY = 'auto'; // 允许内部滚动
+            activityCard.style.background = 'rgba(250, 250, 252, 0.8)'; // 稍微深一点的背景区分层级
+            
             activityCard.innerHTML = `
-                <h3 style="margin-bottom:20px; font-size: 1.1rem; font-weight: 600;">团队动态</h3>
+                <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 16px 0;">近期动态</h3>
                 <div style="display:flex; flex-direction:column; gap:16px;">
                     ${data.activities.map(a => `
-                        <div style="font-size:13px;">
-                            <div style="color:var(--text-primary); font-weight: 500;">${a.content}</div>
+                        <div style="position: relative; padding-left: 12px; border-left: 2px solid rgba(0, 122, 255, 0.2);">
+                            <div style="color:var(--text-primary); font-size: 13px; font-weight: 500; line-height: 1.4;">${a.content}</div>
                             <div style="color:var(--text-secondary); font-size:11px; margin-top:4px;">${a.time}</div>
                         </div>
                     `).join('')}
