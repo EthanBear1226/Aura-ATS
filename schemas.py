@@ -155,30 +155,30 @@ class Interview(InterviewCreate):
     candidate: Optional[CandidateBase] = None
     class Config: from_attributes = True
 
-    # --- Workbench Dashboard Schemas ---
+# --- Workbench Dashboard Schemas ---
 
-    class DashboardStat(BaseModel):
-        label: str
-        value: int
-        change: str
-        icon: str
+class DashboardStat(BaseModel):
+    label: str
+    value: int
+    change: str
+    icon: str
 
-    class DashboardTodo(BaseModel):
-        id: int
-        type: str # 'interview' or 'resume_alert'
-        title: str
-        time: str
-        status: str
-        candidate_id: Optional[int] = None
+class DashboardTodo(BaseModel):
+    id: int
+    type: str # 'interview' or 'resume_alert'
+    title: str
+    time: str
+    status: str
+    candidate_id: Optional[int] = None
 
-    class DashboardActivity(BaseModel):
-        id: int
-        user: str
-        action: str
-        target: str
-        time: str
+class DashboardActivity(BaseModel):
+    id: int
+    user: str
+    action: str
+    target: str
+    time: str
 
-    class DashboardSummary(BaseModel):
-        stats: List[DashboardStat]
-        todos: List[DashboardTodo]
-        activities: List[DashboardActivity]
+class DashboardSummary(BaseModel):
+    stats: List[DashboardStat]
+    todos: List[DashboardTodo]
+    activities: List[DashboardActivity]
