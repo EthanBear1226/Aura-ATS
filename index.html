@@ -98,12 +98,12 @@
             todoCard.style.overflowY = 'auto'; // 允许内部滚动
             
             let todoItems = data.todos.map(todo => `
-                <div class="task-item" onclick="window.location.href='candidate-detail.html?id=${todo.target_id}'" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                <div class="task-item" onclick="window.location.href='candidate-detail.html?id=${todo.candidate_id}'" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
                     <div style="display:flex; align-items:center; gap:12px;">
                         <div style="width:8px; height:8px; border-radius:4px; background:${todo.priority === 'high' ? '#FF3B30' : '#007AFF'}; flex-shrink: 0;"></div>
                         <div>
                             <div style="font-weight:600; font-size: 14px; color: var(--text-primary);">${todo.title}</div>
-                            <div style="font-size:12px; color:var(--text-secondary); margin-top: 2px;">${todo.subtitle}</div>
+                            <div style="font-size:12px; color:var(--text-secondary); margin-top: 2px;">${todo.subtitle || ''}</div>
                         </div>
                     </div>
                     <div style="text-align: right;">
