@@ -1,0 +1,34 @@
+<h2>工作台 2.0 实现方案对比</h2>
+<p class="subtitle">为了实现你要求的“针对到每个账号”，我提议以下三种技术方案：</p>
+
+<div class="options" data-choice-container>
+  <div class="option" data-choice="server-side" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>方案一：后端驱动型 (推荐)</h3>
+      <p><strong>做法</strong>：在 FastAPI 中增加 <code>/api/workbench/dashboard</code> 接口。后端根据用户 ID 直接计算好待办、面试和统计数据，前端仅负责渲染。</p>
+      <p style="font-size: 0.8rem; color: #8e8e93;">优点：安全性高、速度快、逻辑统一。后续增加移动端可直接复用。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="client-side" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>方案二：前端聚合型</h3>
+      <p><strong>做法</strong>：前端拉取现有的所有职位、候选人、面试列表，然后在 JS 中根据 <code>localStorage</code> 的账号信息进行过滤。</p>
+      <p style="font-size: 0.8rem; color: #8e8e93;">优点：开发最快。缺点：当数据量大时浏览器会卡顿，且面试官也能在网络请求中看到别人的面试信息。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="widget-based" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>方案三：模块化组件型</h3>
+      <p><strong>做法</strong>：将工作台拆分为多个独立的 Widget（小组件），每个组件有自己的 API。根据账号权限动态加载哪些组件显示。</p>
+      <p style="font-size: 0.8rem; color: #8e8e93;">优点：极其灵活，可以像 macOS 组件库一样自定义。缺点：初期开发成本最高。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>我的建议：</h3>
+  <p>采用 <strong>方案一 (后端驱动型)</strong>。这最符合 SaaS 系统的规范，能保证数据安全，且加载体验最为丝滑。</p>
+</div>

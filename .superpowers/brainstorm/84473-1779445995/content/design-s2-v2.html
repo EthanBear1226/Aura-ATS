@@ -1,0 +1,65 @@
+<h2>工作台 2.0 详细设计 (Section 2/3)</h2>
+<p class="subtitle">这一部分聚焦于组件的交互细节与视觉打磨，赋予系统“灵魂”。</p>
+
+<div class="mockup" style="background: #ffffff; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 24px;">
+  <div class="mockup-header" style="background: transparent; border: none; padding: 20px 20px 0;">视觉与交互预览</div>
+  <div class="mockup-body" style="padding: 20px; background: #f5f5f7;">
+    
+    <!-- 模拟工作台局部 -->
+    <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+      
+      <!-- 磨砂玻璃卡片示例 -->
+      <div style="position: relative; padding: 24px; border-radius: 20px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+          <div>
+            <div class="label" style="margin-bottom: 4px; color: #007aff; font-weight: 600;">待办事项</div>
+            <h3 style="font-size: 1.4rem; margin: 0;">今日面试安排</h3>
+          </div>
+          <div style="background: rgba(0, 113, 227, 0.1); color: #007aff; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">3 场待面试</div>
+        </div>
+
+        <!-- 面试列表项 -->
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px; background: #ffffff; padding: 12px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <div style="width: 44px; height: 44px; background: #ff9500; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">L</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 600; font-size: 1rem;">刘晨 - 前端开发</div>
+              <div style="font-size: 0.85rem; color: #86868b;">14:30 | 腾讯会议 ID: 123-456</div>
+            </div>
+            <button class="mock-button" style="border-radius: 18px; padding: 6px 16px; font-weight: 500;">进入面试</button>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 12px; background: #ffffff; padding: 12px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <div style="width: 44px; height: 44px; background: #34c759; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">W</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 600; font-size: 1rem;">王浩然 - 算法工程师</div>
+              <div style="font-size: 0.85rem; color: #86868b;">16:00 | 线下 - A1 会议室</div>
+            </div>
+            <button class="mock-button" style="border-radius: 18px; padding: 6px 16px; font-weight: 500;">进入面试</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 磁贴布局展示 -->
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+        <div style="background: #ffffff; padding: 24px; border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.04);">
+          <div class="label">简历动态</div>
+          <div style="font-size: 2rem; font-weight: 700;">+24</div>
+          <p style="font-size: 0.85rem; color: #86868b; margin-top: 5px;">本周新收到简历</p>
+        </div>
+        <div style="background: linear-gradient(135deg, #007aff, #00c7ff); color: white; padding: 24px; border-radius: 20px; box-shadow: 0 8px 32px rgba(0,122,255,0.2);">
+          <div class="label" style="color: rgba(255,255,255,0.8);">录用率</div>
+          <div style="font-size: 2rem; font-weight: 700;">12.5%</div>
+          <div style="height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; margin-top: 15px;">
+            <div style="width: 40%; height: 100%; background: white; border-radius: 3px;"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p><strong>我刚才对预览界面进行了深度重绘。现在你能感受到那种“大圆角、磨砂玻璃背景、细腻文字排版”的感觉吗？</strong></p>
+</div>

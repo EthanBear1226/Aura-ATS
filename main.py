@@ -504,6 +504,90 @@ def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback
     db.refresh(interview)
     return interview
 
+# --- Workbench Dashboard API ---
+
+@app.get("/api/workbench/dashboard", response_model=schemas.DashboardSummary)
+def get_dashboard_data(role: str = "Admin", name: str = "Admin", db: Session = Depends(get_db)):
+    # 1. 统计数据 (Stats)
+    active_jobs = db.query(models.Job).filter(models.Job.status == "热招中").count()
+    
+    from datetime import datetime, timedelta
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    week_candidates = db.query(models.Candidate).filter(models.Candidate.created_at >= seven_days_ago).count()
+    
+    pending_interviews = db.query(models.Interview).filter(models.Interview.status == "已安排").count()
+    
+    high_score_alerts = db.query(models.Candidate).filter(models.Candidate.match_score > 85).count()
+    
+    stats = [
+        {"label": "活跃职位", "value": active_jobs, "change": "+2", "icon": "briefcase"},
+        {"label": "本周候选人", "value": week_candidates, "change": "+15%", "icon": "users"},
+        {"label": "待安排面试", "value": pending_interviews, "change": "今日 4 场", "icon": "calendar"},
+        {"label": "待处理预警", "value": high_score_alerts, "change": "高分简历", "icon": "alert-circle"}
+    ]
+    
+    # 2. 待办事项 (Todos)
+    todos = []
+    
+    # 面试官视角：仅看自己的面试
+    if role == "Interviewer":
+        my_interviews = db.query(models.Interview).filter(
+            models.Interview.interviewer_name == name,
+            models.Interview.status == "已安排"
+        ).order_by(models.Interview.start_time.asc()).limit(5).all()
+        
+        for idx, itv in enumerate(my_interviews):
+            todos.append({
+                "id": itv.id,
+                "type": "interview",
+                "title": f"面试: {itv.job_title}",
+                "time": itv.start_time.strftime("%m-%d %H:%M"),
+                "status": "已预约",
+                "candidate_id": itv.candidate_id
+            })
+    else:
+        # HR/管理员视角：看高分预警
+        alerts = db.query(models.Candidate).filter(
+            models.Candidate.match_score > 85
+        ).order_by(models.Candidate.match_score.desc()).limit(5).all()
+        
+        for c in alerts:
+            todos.append({
+                "id": c.id,
+                "type": "resume_alert",
+                "title": f"高分预警: {c.name} ({c.match_score}分)",
+                "time": "刚刚",
+                "status": "待查看",
+                "candidate_id": c.id
+            })
+            
+    # 3. 最近动态 (Activities)
+    logs = db.query(models.CandidateLog).order_by(models.CandidateLog.created_at.desc()).limit(5).all()
+    activities = []
+    for log in logs:
+        # 简单处理 time，计算分钟数
+        diff = datetime.utcnow() - log.created_at
+        if diff.seconds < 3600:
+            time_str = f"{diff.seconds // 60} 分钟前"
+        elif diff.days < 1:
+            time_str = f"{diff.seconds // 3600} 小时前"
+        else:
+            time_str = f"{diff.days} 天前"
+            
+        activities.append({
+            "id": log.id,
+            "user": log.operator,
+            "action": log.action,
+            "target": "候选人简历", # 简化处理
+            "time": time_str
+        })
+        
+    return {
+        "stats": stats,
+        "todos": todos,
+        "activities": activities
+    }
+
 if __name__ == "__main__":
     # In Zeabur, use the PORT environment variable
     port = int(os.getenv("PORT", 8000))

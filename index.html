@@ -21,51 +21,15 @@
 
             <!-- Page Content -->
             <div class="page-content">
-                <h1 class="page-title">工作台</h1>
+                <header class="workbench-header">
+                    <h1 class="page-title" id="workbench-welcome">加载中...</h1>
+                </header>
                 
-                <!-- Metrics Grid -->
-                <div class="dashboard-metrics">
-                    <div class="card metric-card">
-                        <div class="metric-title">今日新增简历</div>
-                        <div class="metric-value" id="metric-new-candidates">--</div>
-                        <div class="metric-trend" id="trend-new-candidates">加载中...</div>
-                    </div>
-                    <div class="card metric-card">
-                        <div class="metric-title">待处理面试</div>
-                        <div class="metric-value" id="metric-pending-interviews">--</div>
-                        <div class="metric-trend" style="color:var(--text-secondary)">需及时跟进</div>
-                    </div>
-                    <div class="card metric-card">
-                        <div class="metric-title">本月累计投递</div>
-                        <div class="metric-value" id="metric-total-candidates">--</div>
-                        <div class="metric-trend" id="trend-total-candidates">人才库储备</div>
-                    </div>
-                    <div class="card metric-card">
-                        <div class="metric-title">在招职位数</div>
-                        <div class="metric-value" id="metric-active-jobs">--</div>
-                        <div class="metric-trend" style="color:var(--text-secondary)">持续推进中</div>
-                    </div>
-                </div>
-
-                <div class="dashboard-sections">
-                    <!-- Tasks -->
-                    <div class="card">
-                        <h2 class="section-title">面试安排提示</h2>
-                        <div class="task-list" id="interview-list">
-                            <div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 14px;">
-                                加载面试数据中...
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Jobs -->
-                    <div class="card">
-                        <h2 class="section-title">活跃职位进度</h2>
-                        <div class="job-list" id="job-progress-list">
-                            <div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 14px;">
-                                加载职位进度中...
-                            </div>
-                        </div>
+                <!-- Bento Grid Workbench -->
+                <div class="bento-grid" id="workbench-grid">
+                    <!-- 磁贴将由 JS 动态渲染 -->
+                    <div style="grid-column: span 12; padding: 100px; text-align: center; color: var(--text-secondary);">
+                        正在准备您的工作台...
                     </div>
                 </div>
             </div>
@@ -82,86 +46,80 @@
         });
 
         async function fetchDashboardData() {
-            try {
-                // 并发请求职位和候选人数据
-                const [jobsRes, candidatesRes] = await Promise.all([
-                    fetch('/api/jobs'),
-                    fetch('/api/candidates')
-                ]);
-                
-                const jobs = await jobsRes.json();
-                const candidates = await candidatesRes.json();
-                
-                updateMetrics(jobs, candidates);
-                renderInterviewTips(candidates);
-                renderJobProgress(jobs);
-            } catch (error) {
-                console.error("加载工作台数据失败:", error);
-                showToast("工作台数据加载失败", "error");
-            }
-        }
-
-        function updateMetrics(jobs, candidates) {
-            // 1. 在招职位数
-            const activeJobs = jobs.filter(j => j.status === '热招中').length;
-            document.getElementById('metric-active-jobs').innerText = activeJobs;
-
-            // 2. 今日新增简历
-            const today = new Date().toISOString().split('T')[0];
-            const newToday = candidates.filter(c => c.created_at.startsWith(today)).length;
-            document.getElementById('metric-new-candidates').innerText = newToday;
-            document.getElementById('trend-new-candidates').innerText = `今日已入库 ${newToday} 份`;
-
-            // 3. 待处理面试 (阶段为面试的候选人)
-            const pendingInterviews = candidates.filter(c => c.stage === '面试').length;
-            document.getElementById('metric-pending-interviews').innerText = pendingInterviews;
-
-            // 4. 本月累计投递
-            document.getElementById('metric-total-candidates').innerText = candidates.length;
-            document.getElementById('trend-total-candidates').innerText = `人才库共 ${candidates.length} 人`;
-        }
-
-        function renderInterviewTips(candidates) {
-            const list = document.getElementById('interview-list');
-            const interviewCandidates = candidates.filter(c => c.stage === '面试').slice(0, 5);
+            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+            const role = user.role || 'HR';
+            const name = user.name || '系统';
             
-            if (interviewCandidates.length === 0) {
-                list.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary); font-size: 14px;">暂无待安排面试的候选人</div>';
-                return;
-            }
+            document.getElementById('workbench-welcome').innerText = `欢迎回来，${name} (${role})`;
 
-            list.innerHTML = interviewCandidates.map(c => `
-                <div class="task-item" onclick="window.location.href='candidate-detail.html?id=${c.id}'" style="cursor:pointer;">
-                    <div>
-                        <div style="font-weight: 500;">${c.name} - ${c.job}</div>
-                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">待沟通面试时间 · 简历匹配度: ${c.match_score || '--'}分</div>
-                    </div>
-                    <span class="tag tag-blue">待安排</span>
-                </div>
-            `).join('');
+            try {
+                const response = await fetch(`/api/workbench/dashboard?role=${role}&name=${name}`);
+                const data = await response.json();
+                renderWorkbench(data);
+            } catch (error) {
+                console.error("加载工作台失败:", error);
+            }
         }
 
-        function renderJobProgress(jobs) {
-            const list = document.getElementById('job-progress-list');
-            const activeJobs = jobs.filter(j => j.status === '热招中').slice(0, 5);
+        function renderWorkbench(data) {
+            const grid = document.getElementById('workbench-grid');
+            grid.innerHTML = '';
 
-            if (activeJobs.length === 0) {
-                list.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary); font-size: 14px;">暂无进行中的职位</div>';
-                return;
-            }
+            // 1. 统计磁贴 (Stats)
+            data.stats.forEach(stat => {
+                const card = document.createElement('div');
+                card.className = 'glass-card';
+                card.style.padding = '20px';
+                card.innerHTML = `
+                    <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">${stat.label}</div>
+                    <div style="font-size: 32px; font-weight: 700; margin: 10px 0;">${stat.value}</div>
+                    <div style="font-size: 12px; color: var(--primary-color);">${stat.trend}</div>
+                `;
+                grid.appendChild(card);
+            });
 
-            list.innerHTML = activeJobs.map(j => `
-                <div class="job-item" onclick="window.location.href='jobs.html'" style="cursor:pointer;">
-                    <div>
-                        <div style="font-weight: 500; font-size: 14px;">${j.title}</div>
-                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${j.department} · ${j.location}</div>
-                    </div>
-                    <div style="text-align: right; font-size: 12px; color: var(--text-secondary);">
-                        ${j.funnel.new} / ${j.funnel.screened} / ${j.funnel.interviewing} / ${j.funnel.offered} <br> 
-                        <span style="font-size:10px">(今日/初筛/面试/Offer)</span>
+            // 2. 主待办区域 (Todos) - 占据两列
+            const todoCard = document.createElement('div');
+            todoCard.className = 'glass-card';
+            todoCard.style.padding = '24px';
+            todoCard.style.gridColumn = window.innerWidth > 1024 ? 'span 2' : 'span 1';
+            todoCard.style.gridRow = 'span 2';
+            
+            let todoItems = data.todos.map(todo => `
+                <div class="task-item" onclick="window.location.href='candidate-detail.html?id=${todo.target_id}'" style="cursor:pointer; background:rgba(255,255,255,0.5); border-radius:14px; margin-bottom:12px; padding:16px; border: 1px solid rgba(255,255,255,0.3);">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="width:10px; height:10px; border-radius:5px; background:${todo.priority === 'high' ? 'var(--danger-color)' : 'var(--primary-color)'}"></div>
+                        <div style="flex:1;">
+                            <div style="font-weight:600;">${todo.title}</div>
+                            <div style="font-size:13px; color:var(--text-secondary);">${todo.subtitle}</div>
+                        </div>
+                        ${todo.time ? `<div style="font-weight:700; color:var(--text-primary);">${todo.time}</div>` : ''}
                     </div>
                 </div>
             `).join('');
+
+            todoCard.innerHTML = `
+                <h3 style="margin-bottom:20px; font-size: 1.1rem; font-weight: 600;">待办事项</h3>
+                ${todoItems || '<div style="text-align:center; color:var(--text-secondary); padding:40px; font-size: 14px;">暂无紧急待办</div>'}
+            `;
+            grid.appendChild(todoCard);
+
+            // 3. 动态流 (Activities)
+            const activityCard = document.createElement('div');
+            activityCard.className = 'glass-card';
+            activityCard.style.padding = '24px';
+            activityCard.innerHTML = `
+                <h3 style="margin-bottom:20px; font-size: 1.1rem; font-weight: 600;">团队动态</h3>
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                    ${data.activities.map(a => `
+                        <div style="font-size:13px;">
+                            <div style="color:var(--text-primary); font-weight: 500;">${a.content}</div>
+                            <div style="color:var(--text-secondary); font-size:11px; margin-top:4px;">${a.time}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            grid.appendChild(activityCard);
         }
     </script>
 </body>

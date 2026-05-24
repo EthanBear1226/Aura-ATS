@@ -1,0 +1,40 @@
+<h2>工作台 2.0 详细设计 (Section 2/3)</h2>
+<p class="subtitle">这一部分聚焦于组件的交互细节与视觉打磨，赋予系统“灵魂”。</p>
+
+<div class="mockup">
+  <div class="mockup-header">交互与视觉细节</div>
+  <div class="mockup-body" style="padding: 20px; background: #f5f5f7;">
+    <h3>1. 视觉语言 (Visual Language)</h3>
+    <ul>
+      <li><strong>材质</strong>：卡片背景使用半透明白色 (<code>rgba(255, 255, 255, 0.7)</code>) 配合 <code>backdrop-filter: blur(20px)</code>。</li>
+      <li><strong>圆角</strong>：采用 Apple 标准的 <code>16px</code> 到 <code>20px</code> 的大圆角，边缘极度圆润。</li>
+      <li><strong>阴影</strong>：弃用深色重阴影，改用非常淡的扩散阴影 (<code>box-shadow: 0 4px 24px rgba(0,0,0,0.04)</code>)。</li>
+    </ul>
+
+    <h3>2. 微交互 (Micro-interactions)</h3>
+    <div style="display: flex; gap: 15px; margin-top: 15px;">
+      <div class="card" style="flex: 1; text-align: center; border: 1px solid #e5e5ea; cursor: pointer;">
+        <div class="label">Hover 缩放</div>
+        <p style="font-size: 0.8rem;">卡片在鼠标悬停时轻微放大并提升阴影。使用 <code>cubic-bezier</code> 动画。</p>
+      </div>
+      <div class="card" style="flex: 1; text-align: center; border: 1px solid #e5e5ea; cursor: pointer;">
+        <div class="label">平滑转场</div>
+        <p style="font-size: 0.8rem;">列表项增加或删除时使用 Slide 动画，而非瞬间消失。</p>
+      </div>
+    </div>
+
+    <h3>3. 组件设计示例：待办项</h3>
+    <div style="background: #fff; padding: 12px; border-radius: 12px; margin-top: 15px; display: flex; align-items: center; gap: 10px;">
+      <div style="width: 4px; height: 30px; background: #007aff; border-radius: 2px;"></div>
+      <div style="flex-grow: 1;">
+        <div style="font-weight: 500; font-size: 0.9rem;">初试：王浩然</div>
+        <div style="font-size: 0.75rem; color: #8e8e93;">算法工程师 | 15:00</div>
+      </div>
+      <button class="mock-button" style="border-radius: 20px; font-size: 0.75rem; padding: 4px 12px;">进入</button>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p><strong>你对这种带有“磨砂玻璃感”和“丝滑动画”的设计方向满意吗？</strong></p>
+</div>
