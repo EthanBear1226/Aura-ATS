@@ -173,10 +173,11 @@ class DashboardTodo(BaseModel):
 
 class DashboardActivity(BaseModel):
     id: int
-    user: str
-    action: str
-    target: str
+    content: str
     time: str
+    icon: Optional[str] = None
+    color: Optional[str] = None
+    candidate_id: Optional[int] = None
 
 class DashboardSummary(BaseModel):
     stats: List[DashboardStat]

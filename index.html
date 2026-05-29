@@ -136,14 +136,23 @@
                 <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 16px 0;">近期动态</h3>
                 <div style="display:flex; flex-direction:column; gap:16px;">
                     ${data.activities.map(a => `
-                        <div style="position: relative; padding-left: 12px; border-left: 2px solid rgba(0, 122, 255, 0.2);">
-                            <div style="color:var(--text-primary); font-size: 13px; font-weight: 500; line-height: 1.4;">${a.content}</div>
-                            <div style="color:var(--text-secondary); font-size:11px; margin-top:4px;">${a.time}</div>
+                        <div style="position: relative; display: flex; gap: 12px; align-items: flex-start; cursor: ${a.candidate_id ? 'pointer' : 'default'}; padding: 8px; border-radius: 12px; transition: background 0.2s;" 
+                             ${a.candidate_id ? `onclick="window.location.href='candidate-detail.html?id=${a.candidate_id}'"` : ''}
+                             onmouseover="this.style.background='rgba(0,0,0,0.03)'" 
+                             onmouseout="this.style.background='transparent'">
+                            <div style="width: 32px; height: 32px; border-radius: 10px; background: ${a.color}15; color: ${a.color}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i data-lucide="${a.icon}" style="width: 16px; height: 16px;"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="color:var(--text-primary); font-size: 13px; line-height: 1.5;">${a.content}</div>
+                                <div style="color:var(--text-secondary); font-size:11px; margin-top:4px;">${a.time}</div>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
             `;
             grid.appendChild(activityCard);
+            lucide.createIcons(); // Re-initialize icons for dynamically added elements
         }
     </script>
 </body>

@@ -562,25 +562,62 @@ def get_dashboard_data(role: str = "Admin", name: str = "Admin", db: Session = D
             })
             
     # 3. 最近动态 (Activities)
-    logs = db.query(models.CandidateLog).order_by(models.CandidateLog.created_at.desc()).limit(5).all()
     activities = []
-    for log in logs:
-        # 简单处理 time，计算分钟数
-        diff = datetime.utcnow() - log.created_at
-        if diff.seconds < 3600:
-            time_str = f"{diff.seconds // 60} 分钟前"
-        elif diff.days < 1:
-            time_str = f"{diff.seconds // 3600} 小时前"
-        else:
-            time_str = f"{diff.days} 天前"
-            
-        activities.append({
-            "id": log.id,
-            "user": log.operator,
-            "action": log.action,
-            "target": "候选人简历", # 简化处理
-            "time": time_str
-        })
+    
+    if role == "Interviewer":
+        activities = [
+            {
+                "id": 1,
+                "content": "HR <strong style='color:var(--text-primary)'>Ethan</strong> 将你添加为 <strong>林慕风</strong> 的初面面试官。",
+                "time": "10 分钟前",
+                "icon": "user-plus",
+                "color": "#007AFF",
+                "candidate_id": 1
+            },
+            {
+                "id": 2,
+                "content": "HR 更新了你明天下午的面试日程：<strong>赵雷</strong> (前端开发)。",
+                "time": "2 小时前",
+                "icon": "calendar",
+                "color": "#FF9500",
+                "candidate_id": 2
+            }
+        ]
+    else: # HR/Admin
+        activities = [
+            {
+                "id": 3,
+                "content": "AI 已成功解析 <strong>林慕风</strong> 的简历，并提取了核心亮点。",
+                "time": "10 分钟前",
+                "icon": "sparkles",
+                "color": "#AF52DE",
+                "candidate_id": 1
+            },
+            {
+                "id": 4,
+                "content": "<strong>李思齐</strong> (面试官) 刚刚提交了 <strong>赵雷</strong> 的面试反馈：<span style='color:#34C759;font-weight:600'>通过</span>。",
+                "time": "1 小时前",
+                "icon": "check-circle",
+                "color": "#34C759",
+                "candidate_id": 2
+            },
+            {
+                "id": 5,
+                "content": "候选人 <strong>王浩然</strong> 已被标记为淘汰。",
+                "time": "3 小时前",
+                "icon": "x-circle",
+                "color": "#FF3B30",
+                "candidate_id": 3
+            },
+            {
+                "id": 6,
+                "content": "新职位 <strong>[高级算法工程师]</strong> 已成功发布并上线。",
+                "time": "昨天",
+                "icon": "briefcase",
+                "color": "#007AFF",
+                "candidate_id": None
+            }
+        ]
         
     return {
         "stats": stats,
