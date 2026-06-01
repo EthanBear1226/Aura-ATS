@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加入我们 - Aura ATS</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <!-- Load Quill core css for rendering HTML -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.core.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Portal Specific Overrides */
+        body {
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .portal-header {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 16px 0;
+        }
+
+        .portal-header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .portal-container {
+            max-width: 800px;
+            width: 100%;
+            padding: 40px 24px;
+            box-sizing: border-box;
+        }
+
+        .job-hero {
+            margin-bottom: 40px;
+        }
+
+        .job-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 16px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .job-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .tag-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(0, 122, 255, 0.08);
+            color: var(--primary-color);
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .tag-pill.salary {
+            background: rgba(255, 149, 0, 0.1);
+            color: #FF9500;
+        }
+
+        .job-description-content {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+            margin-bottom: 40px;
+            color: var(--text-primary);
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .job-description-content h1, .job-description-content h2 {
+            margin-top: 0;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .upload-section {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(0, 122, 255, 0.3);
+            border-radius: 16px;
+            padding: 40px 20px;
+            background: rgba(0, 122, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary-color);
+            background: rgba(0, 122, 255, 0.05);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            color: var(--primary-color);
+        }
+
+        .upload-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .upload-hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .selected-file-info {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.04);
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .submit-btn {
+            margin-top: 24px;
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            border-radius: 12px;
+            display: none; /* Hidden until file selected */
+        }
+        
+        .loading-skeleton {
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .success-state {
+            display: none;
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            color: #34C759;
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="portal-header">
+        <div class="portal-header-content">
+            <div style="width: 32px; height: 32px; background: var(--primary-color); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <span style="color: white; font-weight: bold; font-size: 18px;">A</span>
+            </div>
+            <span style="font-size: 18px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.5px;">Aura ATS</span>
+        </div>
+    </header>
+
+    <div class="portal-container" id="portalContainer">
+        <!-- Skeleton Loading -->
+        <div id="loadingState">
+            <div class="job-hero">
+                <div class="loading-skeleton" style="height: 40px; width: 60%; margin-bottom: 24px;"></div>
+                <div style="display:flex; gap:12px;">
+                    <div class="loading-skeleton" style="height: 28px; width: 80px; border-radius: 100px;"></div>
+                    <div class="loading-skeleton" style="height: 28px; width: 100px; border-radius: 100px;"></div>
+                    <div class="loading-skeleton" style="height: 28px; width: 80px; border-radius: 100px;"></div>
+                </div>
+            </div>
+            <div class="job-description-content">
+                <div class="loading-skeleton" style="width: 100%;"></div>
+                <div class="loading-skeleton" style="width: 90%;"></div>
+                <div class="loading-skeleton" style="width: 95%;"></div>
+                <div class="loading-skeleton" style="width: 80%; margin-bottom: 30px;"></div>
+                <div class="loading-skeleton" style="width: 100%;"></div>
+                <div class="loading-skeleton" style="width: 85%;"></div>
+            </div>
+        </div>
+
+        <!-- Real Content (Hidden initially) -->
+        <div id="contentState" style="display: none;">
+            <div class="job-hero">
+                <h1 class="job-title" id="jobTitle"></h1>
+                <div class="job-tags" id="jobTags">
+                    <!-- Tags will be injected here -->
+                </div>
+            </div>
+
+            <div class="job-description-content ql-editor" id="jobDescription">
+                <!-- Quill HTML content will be injected here -->
+            </div>
+
+            <div class="upload-section" id="uploadSection">
+                <h2 style="margin-top: 0; margin-bottom: 24px; font-size: 20px; font-weight: 600;">投递该职位</h2>
+                <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <i data-lucide="cloud-upload" class="upload-icon"></i>
+                    <div>
+                        <p class="upload-text">点击或将 PDF 简历拖拽至此</p>
+                        <p class="upload-hint">仅支持 .pdf 格式，最大 10MB</p>
+                    </div>
+                </div>
+                <input type="file" id="fileInput" accept="application/pdf">
+                
+                <div class="selected-file-info" id="fileInfo">
+                    <i data-lucide="file-text" style="color: var(--primary-color);"></i>
+                    <div style="flex: 1; overflow: hidden;">
+                        <div style="font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="fileName"></div>
+                        <div style="color: var(--text-secondary); font-size: 12px;" id="fileSize"></div>
+                    </div>
+                    <i data-lucide="x" style="color: var(--text-secondary); cursor: pointer;" onclick="clearFile(event)"></i>
+                </div>
+
+                <button class="btn btn-primary submit-btn" id="submitBtn" onclick="submitApplication()">一键投递</button>
+            </div>
+
+            <!-- Success State -->
+            <div class="success-state" id="successState">
+                <div style="display: flex; justify-content: center;">
+                    <i data-lucide="check-circle" class="success-icon"></i>
+                </div>
+                <h2 style="font-size: 24px; margin: 0 0 16px 0;">投递成功！</h2>
+                <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 32px;">
+                    您的简历已成功提交并进入 Aura 智能解析流程。<br>HR 团队将尽快审阅您的履历。
+                </p>
+                <button class="btn" onclick="window.close()" style="border-radius: 100px; padding: 12px 32px;">关闭页面</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification (Inline for standalone portal) -->
+    <div id="toast" style="position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-100px); background: #323232; color: #fff; padding: 12px 24px; border-radius: 100px; font-size: 14px; font-weight: 500; opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 9999; display: flex; align-items: center; gap: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);">
+        <span id="toastMessage"></span>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let selectedFile = null;
+        let currentJobId = null;
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const jobId = urlParams.get('job_id');
+
+            if (!jobId) {
+                showError("无效的职位链接，缺少 job_id");
+                return;
+            }
+            
+            currentJobId = jobId;
+            await loadJobDetail(jobId);
+            setupDragAndDrop();
+        });
+
+        async function loadJobDetail(id) {
+            try {
+                // Fetch job from backend
+                const response = await fetch(`/api/jobs/${id}`);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        showError("职位不存在或已下线");
+                    } else {
+                        showError("加载职位信息失败");
+                    }
+                    return;
+                }
+                
+                const job = await response.json();
+                
+                if (job.status === "已停招") {
+                    showError("该职位已停止招聘");
+                    return;
+                }
+
+                // Render Content
+                document.getElementById('jobTitle').textContent = job.title;
+                
+                const salary = job.salary_range ? (job.salary_range === "面议" ? "面议" : `${job.salary_range}·${job.salary_months || 12}薪`) : "薪资面议";
+                
+                document.getElementById('jobTags').innerHTML = `
+                    <div class="tag-pill"><i data-lucide="map-pin" style="width:14px;height:14px;"></i> ${job.location || '不限'}</div>
+                    <div class="tag-pill"><i data-lucide="briefcase" style="width:14px;height:14px;"></i> ${job.experience || '经验不限'}</div>
+                    <div class="tag-pill salary"><i data-lucide="banknote" style="width:14px;height:14px;"></i> ${salary}</div>
+                `;
+                
+                document.getElementById('jobDescription').innerHTML = job.description || '<p style="color:var(--text-secondary)">HR 暂未填写详细描述...</p>';
+
+                // Switch states
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('contentState').style.display = 'block';
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error(error);
+                showError("网络错误，无法连接到服务器");
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('portalContainer').innerHTML = `
+                <div style="text-align:center; padding: 100px 20px;">
+                    <i data-lucide="frown" style="width: 48px; height: 48px; color: var(--text-secondary); margin-bottom: 16px;"></i>
+                    <h2 style="color: var(--text-primary); margin:0 0 8px 0;">出错了</h2>
+                    <p style="color: var(--text-secondary);">${msg}</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // --- File Upload Logic ---
+        
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function setupDragAndDrop() {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                handleFiles(e.dataTransfer.files);
+            }, false);
+        }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            const file = files[0];
+            
+            if (file.type !== 'application/pdf') {
+                showToast("仅支持 PDF 格式的文件", "error");
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                showToast("文件不能超过 10MB", "error");
+                return;
+            }
+
+            selectedFile = file;
+            
+            // Update UI
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+            document.getElementById('dropZone').style.display = 'none';
+            document.getElementById('fileInfo').style.display = 'flex';
+            document.getElementById('submitBtn').style.display = 'block';
+        }
+
+        function clearFile(e) {
+            e.stopPropagation(); // Prevent triggering dropzone click
+            selectedFile = null;
+            fileInput.value = '';
+            document.getElementById('dropZone').style.display = 'flex';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'none';
+        }
+
+        async function submitApplication() {
+            if (!selectedFile || !currentJobId) return;
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:16px;height:16px;vertical-align:middle;margin-right:8px;"></i> 正在上传并解析...';
+            lucide.createIcons();
+
+            const jobTitleText = document.getElementById('jobTitle').textContent;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('job_title', jobTitleText); // Pass the job title to the backend
+            formData.append('operator', 'Candidate (Self-Submitted)');
+
+            try {
+                // Post to the existing parse endpoint
+                const response = await fetch('/api/parse-resume', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    // Success! Switch to success state
+                    document.getElementById('uploadSection').style.display = 'none';
+                    document.getElementById('successState').style.display = 'block';
+                } else {
+                    const err = await response.json();
+                    showToast(err.detail || "上传失败，请重试", "error");
+                    resetBtn(btn);
+                }
+            } catch (error) {
+                console.error(error);
+                showToast("网络连接失败", "error");
+                resetBtn(btn);
+            }
+        }
+        
+        function resetBtn(btn) {
+            btn.disabled = false;
+            btn.innerText = "一键投递";
+        }
+
+        function showToast(message, type="info") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            
+            if (type === "error") toast.style.background = "#FF3B30";
+            else if (type === "success") toast.style.background = "#34C759";
+            else toast.style.background = "#323232";
+            
+            toast.style.transform = "translateX(-50%) translateY(0)";
+            toast.style.opacity = "1";
+            
+            setTimeout(() => {
+                toast.style.transform = "translateX(-50%) translateY(-100px)";
+                toast.style.opacity = "0";
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
