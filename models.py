@@ -124,3 +124,13 @@ class Interview(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     candidate = relationship("Candidate")
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    company = Column(String(100), nullable=True)
+    email = Column(String(255), unique=True, index=True)
+    hashed_password = Column(String(255))
+    name = Column(String(100))
+    role = Column(String(50), default="Admin") # SuperAdmin, Admin, Recruiter, HiringManager, Interviewer
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

@@ -35,11 +35,48 @@
     </div>
     
     <script>
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            localStorage.setItem('aura_user', JSON.stringify({ name: 'Admin', email: document.getElementById('email').value }));
-            window.location.href = 'index.html';
+            const company = document.getElementById('company').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = '正在注册...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        company: company,
+                        email: email,
+                        password: password,
+                        name: '企业管理员',
+                        role: 'SuperAdmin'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('aura_token', data.access_token);
+                    localStorage.setItem('aura_user', JSON.stringify(data.user));
+                    window.location.href = 'index.html';
+                } else {
+                    const err = await response.json();
+                    alert(err.detail || '注册失败，该工作邮箱可能已被注册');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('网络异常，请检查后端服务是否正常启动');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         });
     </script>
+
 </body>
 </html>

@@ -183,3 +183,31 @@ class DashboardSummary(BaseModel):
     stats: List[DashboardStat]
     todos: List[DashboardTodo]
     activities: List[DashboardActivity]
+
+# --- Auth Schemas ---
+
+class UserCreate(BaseModel):
+    company: Optional[str] = None
+    email: str
+    password: str
+    name: str
+    role: Optional[str] = "Admin"
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    company: Optional[str] = None
+    email: str
+    name: str
+    role: str
+
+    class Config:
+        from_attributes = True
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserResponse

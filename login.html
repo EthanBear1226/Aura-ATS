@@ -32,12 +32,41 @@
     </div>
     
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            // Mock authentication
-            localStorage.setItem('aura_user', JSON.stringify({ name: 'HR Manager', email: 'hr@example.com' }));
-            window.location.href = 'index.html';
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = '正在登录...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('aura_token', data.access_token);
+                    localStorage.setItem('aura_user', JSON.stringify(data.user));
+                    window.location.href = 'index.html';
+                } else {
+                    const err = await response.json();
+                    alert(err.detail || '邮箱或密码错误，登录失败');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('网络异常，请检查后端服务是否正常启动');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         });
     </script>
+
 </body>
 </html>

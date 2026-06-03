@@ -1,7 +1,41 @@
+// --- Global Fetch Interceptor for JWT Authentication ---
+const originalFetch = window.fetch;
+window.fetch = async function (url, options = {}) {
+    options.headers = options.headers || {};
+    const token = localStorage.getItem('aura_token');
+    
+    // 注入 JWT 令牌
+    if (token && url.startsWith('/api/') && !url.includes('/api/auth/')) {
+        if (options.headers instanceof Headers) {
+            options.headers.set('Authorization', `Bearer ${token}`);
+        } else {
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+    }
+    
+    try {
+        const response = await originalFetch(url, options);
+        // 若后端返回 401 凭证失效，则自动退登
+        if (response.status === 401 && url.startsWith('/api/') && !url.includes('/api/auth/')) {
+            localStorage.removeItem('aura_token');
+            localStorage.removeItem('aura_user');
+            const path = window.location.pathname;
+            if (!path.includes('login.html') && !path.includes('register.html')) {
+                window.location.href = 'login.html';
+            }
+        }
+        return response;
+    } catch (error) {
+        console.error("Fetch interceptor error:", error);
+        throw error;
+    }
+};
+
 function checkAuth() {
+    const token = localStorage.getItem('aura_token');
     const user = localStorage.getItem('aura_user');
     const path = window.location.pathname;
-    if (!user && !path.includes('login.html') && !path.includes('register.html')) {
+    if ((!token || !user) && !path.includes('login.html') && !path.includes('register.html')) {
         window.location.href = 'login.html';
     }
 }

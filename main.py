@@ -11,6 +11,7 @@ import google.generativeai as genai
 import json
 from datetime import datetime
 from dotenv import load_dotenv
+from typing import Optional
 
 import models
 import schemas
@@ -57,9 +58,86 @@ def upgrade_db():
 
 upgrade_db()
 
+# --- AUTH SECURITY CONFIG & TOOLS ---
+import hashlib
+import base64
+import jwt
+from datetime import timedelta
+from fastapi.security import OAuth2PasswordBearer
+
+SECRET_KEY = "aura-ats-super-secret-key-change-in-production"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+
+def hash_password(password: str) -> str:
+    salt = os.urandom(16)
+    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+    return f"{base64.b64encode(salt).decode('utf-8')}:{base64.b64encode(pwd_hash).decode('utf-8')}"
+
+def verify_password(password: str, hashed: str) -> bool:
+    try:
+        salt_b64, hash_b64 = hashed.split(":")
+        salt = base64.b64decode(salt_b64)
+        target_hash = base64.b64decode(hash_b64)
+        pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+        return pwd_hash == target_hash
+    except Exception:
+        return False
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(db: Session = Depends(get_db), token: Optional[str] = Depends(oauth2_scheme)):
+    if not token:
+        raise HTTPException(status_code=401, detail="未提供登录凭证")
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="登录凭证已失效")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="登录凭证已过期")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="登录凭证解析失败")
+        
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="用户不存在")
+    return user
+
+def init_admin_user():
+    db = next(get_db())
+    try:
+        admin = db.query(models.User).filter(models.User.email == "hr@example.com").first()
+        if not admin:
+            hashed = hash_password("123456")
+            db_admin = models.User(
+                company="Aura Tech",
+                email="hr@example.com",
+                hashed_password=hashed,
+                name="HR Manager",
+                role="SuperAdmin"
+            )
+            db.add(db_admin)
+            db.commit()
+            print("Successfully initialized default admin user (hr@example.com / 123456)")
+    except Exception as e:
+        print(f"Error initializing default user: {e}")
+    finally:
+        db.close()
+
+init_admin_user()
+
 load_dotenv()
 
 app = FastAPI(title="Aura API", description="Backend API for Aura Recruitment System")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -84,8 +162,53 @@ if api_key:
 async def health_check():
     return {"status": "ok", "message": "Aura API is running."}
 
+# --- AUTH ROUTERS ---
+
+@app.post("/api/auth/register", response_model=schemas.TokenResponse)
+def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user_data.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="该工作邮箱已被注册")
+        
+    hashed = hash_password(user_data.password)
+    new_user = models.User(
+        company=user_data.company,
+        email=user_data.email,
+        hashed_password=hashed,
+        name=user_data.name,
+        role=user_data.role or "Admin"
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    token = create_access_token({"sub": new_user.email})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": new_user
+    }
+
+@app.post("/api/auth/login", response_model=schemas.TokenResponse)
+def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == login_data.email).first()
+    if not user or not verify_password(login_data.password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="邮箱或密码错误")
+        
+    token = create_access_token({"sub": user.email})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user
+    }
+
+@app.get("/api/auth/me", response_model=schemas.UserResponse)
+def get_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
+
+
 @app.get("/api/jobs", response_model=list[schemas.JobWithFunnel])
-def get_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     jobs = db.query(models.Job).order_by(models.Job.id.desc()).offset(skip).limit(limit).all()
     result = []
     for job in jobs:
@@ -106,15 +229,22 @@ def get_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return result
 
 @app.post("/api/jobs", response_model=schemas.Job)
-def create_job(job: schemas.JobCreate, db: Session = Depends(get_db)):
+def create_job(job: schemas.JobCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_job = models.Job(**job.model_dump())
     db.add(db_job)
     db.commit()
     db.refresh(db_job)
     return db_job
 
+@app.get("/api/jobs/{job_id}", response_model=schemas.Job)
+def get_job(job_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
+    if not db_job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return db_job
+
 @app.patch("/api/jobs/{job_id}", response_model=schemas.Job)
-def update_job_status(job_id: int, job_update: schemas.JobUpdate, db: Session = Depends(get_db)):
+def update_job_status(job_id: int, job_update: schemas.JobUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
     if not db_job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -125,7 +255,7 @@ def update_job_status(job_id: int, job_update: schemas.JobUpdate, db: Session = 
     return db_job
 
 @app.get("/api/candidates", response_model=list[schemas.Candidate])
-def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     try:
         candidates = db.query(models.Candidate).order_by(models.Candidate.id.desc()).offset(skip).limit(limit).all()
         return candidates
@@ -134,14 +264,15 @@ def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail="Database error")
 
 @app.get("/api/candidates/{candidate_id}", response_model=schemas.Candidate)
-def get_candidate(candidate_id: int, db: Session = Depends(get_db)):
+def get_candidate(candidate_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
     if candidate is None:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return candidate
 
+
 @app.post("/api/parse-resume", response_model=schemas.Candidate)
-async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), operator: str = Form("系统"), db: Session = Depends(get_db)):
+async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), operator: str = Form("系统"), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
     
@@ -201,7 +332,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
                     ✅ 亮点（候选人优势）；<br>
                     ⚠️ 风险（劣势项或经验短板）；<br>
                     🎯 面试建议（结合职位描述，提示需面试官重点关注或追问的维度）。
-                    如果提供了【正在应聘的职位及JD】，请在提取信息和编写点评时，紧密结合该 JD 要求，并额外输出 match_score（0-100的整数）和 match_reason（简短的综合匹配度总结）。{job_info_text}
+                    如果提供了【正在应聘的职位及JD】，请在提取信息和编写点评时，紧密结合该 JD要求，并额外输出 match_score（0-100的整数）和 match_reason（简短的综合匹配度总结）。{job_info_text}
                     简历文本：{extracted_text[:4000]}
                     """
                     response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
@@ -266,7 +397,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
         db.commit()
         db.refresh(db_candidate)
 
-        db_log = models.CandidateLog(candidate_id=db_candidate.id, operator=operator, action="简历解析成功并入库")
+        db_log = models.CandidateLog(candidate_id=db_candidate.id, operator=current_user.name, action="简历解析成功并入库")
         db.add(db_log)
         db.commit()
 
@@ -277,7 +408,7 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.patch("/api/candidates/{candidate_id}", response_model=schemas.Candidate)
-def update_candidate_stage(candidate_id: int, candidate_update: schemas.CandidateUpdate, db: Session = Depends(get_db)):
+def update_candidate_stage(candidate_id: int, candidate_update: schemas.CandidateUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
@@ -285,7 +416,9 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
     if candidate_update.stage and candidate_update.stage != candidate.stage:
         old_stage = candidate.stage
         candidate.stage = candidate_update.stage
-        db_log = models.CandidateLog(candidate_id=candidate.id, operator=candidate_update.operator, action=f"阶段流转: {old_stage} ➔ {candidate.stage}", details=candidate_update.details)
+        # 使用当前登录的真实用户记录修改日志
+        operator_name = current_user.name if current_user else candidate_update.operator
+        db_log = models.CandidateLog(candidate_id=candidate.id, operator=operator_name, action=f"阶段流转: {old_stage} ➔ {candidate.stage}", details=candidate_update.details)
         db.add(db_log)
     
     db.commit()
@@ -293,10 +426,11 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
     return candidate
 
 @app.delete("/api/candidates/{candidate_id}")
-def delete_candidate(candidate_id: int, db: Session = Depends(get_db)):
+def delete_candidate(candidate_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
+
     
     if candidate.pdf_path:
         file_path = candidate.pdf_path.lstrip('/')
@@ -323,7 +457,6 @@ async def read_index():
 @app.get("/candidates.html")
 async def read_candidates():
     return FileResponse('candidates.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
-
 @app.get("/talent-pool.html")
 async def read_talent_pool():
     return FileResponse('talent-pool.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
@@ -363,11 +496,11 @@ async def read_settings():
 # --- System Settings APIs ---
 
 @app.get("/api/settings/departments", response_model=list[schemas.Department])
-def get_departments(db: Session = Depends(get_db)):
+def get_departments(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.Department).all()
 
 @app.post("/api/settings/departments", response_model=schemas.Department)
-def create_department(item: schemas.DepartmentCreate, db: Session = Depends(get_db)):
+def create_department(item: schemas.DepartmentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.Department(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -375,17 +508,17 @@ def create_department(item: schemas.DepartmentCreate, db: Session = Depends(get_
     return db_item
 
 @app.delete("/api/settings/departments/{item_id}")
-def delete_department(item_id: int, db: Session = Depends(get_db)):
+def delete_department(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db.query(models.Department).filter(models.Department.id == item_id).delete()
     db.commit()
     return {"ok": True}
 
 @app.get("/api/settings/interviewers", response_model=list[schemas.Interviewer])
-def get_interviewers(db: Session = Depends(get_db)):
+def get_interviewers(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.Interviewer).all()
 
 @app.post("/api/settings/interviewers", response_model=schemas.Interviewer)
-def create_interviewer(item: schemas.InterviewerCreate, db: Session = Depends(get_db)):
+def create_interviewer(item: schemas.InterviewerCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.Interviewer(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -393,17 +526,17 @@ def create_interviewer(item: schemas.InterviewerCreate, db: Session = Depends(ge
     return db_item
 
 @app.delete("/api/settings/interviewers/{item_id}")
-def delete_interviewer(item_id: int, db: Session = Depends(get_db)):
+def delete_interviewer(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db.query(models.Interviewer).filter(models.Interviewer.id == item_id).delete()
     db.commit()
     return {"ok": True}
 
 @app.get("/api/settings/locations", response_model=list[schemas.Location])
-def get_locations(db: Session = Depends(get_db)):
+def get_locations(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.Location).all()
 
 @app.post("/api/settings/locations", response_model=schemas.Location)
-def create_location(item: schemas.LocationCreate, db: Session = Depends(get_db)):
+def create_location(item: schemas.LocationCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.Location(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -411,17 +544,17 @@ def create_location(item: schemas.LocationCreate, db: Session = Depends(get_db))
     return db_item
 
 @app.delete("/api/settings/locations/{item_id}")
-def delete_location(item_id: int, db: Session = Depends(get_db)):
+def delete_location(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db.query(models.Location).filter(models.Location.id == item_id).delete()
     db.commit()
     return {"ok": True}
 
 @app.get("/api/settings/interview-processes", response_model=list[schemas.InterviewProcess])
-def get_interview_processes(db: Session = Depends(get_db)):
+def get_interview_processes(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.InterviewProcess).all()
 
 @app.post("/api/settings/interview-processes", response_model=schemas.InterviewProcess)
-def create_interview_process(item: schemas.InterviewProcessCreate, db: Session = Depends(get_db)):
+def create_interview_process(item: schemas.InterviewProcessCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.InterviewProcess(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -429,17 +562,17 @@ def create_interview_process(item: schemas.InterviewProcessCreate, db: Session =
     return db_item
 
 @app.delete("/api/settings/interview-processes/{item_id}")
-def delete_interview_process(item_id: int, db: Session = Depends(get_db)):
+def delete_interview_process(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db.query(models.InterviewProcess).filter(models.InterviewProcess.id == item_id).delete()
     db.commit()
     return {"ok": True}
 
 @app.get("/api/settings/categories", response_model=list[schemas.JobCategory])
-def get_categories(db: Session = Depends(get_db)):
+def get_categories(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.JobCategory).all()
 
 @app.post("/api/settings/categories", response_model=schemas.JobCategory)
-def create_category(item: schemas.JobCategoryCreate, db: Session = Depends(get_db)):
+def create_category(item: schemas.JobCategoryCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.JobCategory(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -447,25 +580,25 @@ def create_category(item: schemas.JobCategoryCreate, db: Session = Depends(get_d
     return db_item
 
 @app.delete("/api/settings/categories/{item_id}")
-def delete_category(item_id: int, db: Session = Depends(get_db)):
+def delete_category(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db.query(models.JobCategory).filter(models.JobCategory.id == item_id).delete()
     db.commit()
     return {"ok": True}
 
 @app.get("/api/settings/email-templates", response_model=list[schemas.EmailTemplate])
-def get_email_templates(db: Session = Depends(get_db)):
+def get_email_templates(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.EmailTemplate).all()
 
 @app.get("/api/settings/feedback-templates", response_model=list[schemas.FeedbackTemplate])
-def get_feedback_templates(db: Session = Depends(get_db)):
+def get_feedback_templates(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.FeedbackTemplate).all()
 
 @app.get("/api/calendar/freebusy")
-def get_freebusy(interviewer: str, date: str, db: Session = Depends(get_db)):
+def get_freebusy(interviewer: str, date: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return services.FeishuCalendarService.get_freebusy(interviewer, date, db)
 
 @app.post("/api/interviews", response_model=schemas.Interview)
-def create_interview(item: schemas.InterviewCreate, db: Session = Depends(get_db)):
+def create_interview(item: schemas.InterviewCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.Interview(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -488,11 +621,11 @@ def create_interview(item: schemas.InterviewCreate, db: Session = Depends(get_db
     return db_item
 
 @app.get("/api/interviews", response_model=list[schemas.Interview])
-def get_interviews(db: Session = Depends(get_db)):
+def get_interviews(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.Interview).all()
 
 @app.patch("/api/interviews/{interview_id}/feedback", response_model=schemas.Interview)
-def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback, db: Session = Depends(get_db)):
+def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
@@ -507,7 +640,10 @@ def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback
 # --- Workbench Dashboard API ---
 
 @app.get("/api/workbench/dashboard", response_model=schemas.DashboardSummary)
-def get_dashboard_data(role: str = "Admin", name: str = "Admin", db: Session = Depends(get_db)):
+def get_dashboard_data(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    role = current_user.role
+    name = current_user.name
+
     # 1. 统计数据 (Stats)
     active_jobs = db.query(models.Job).filter(models.Job.status == "热招中").count()
     
