@@ -211,3 +211,27 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+
+class UserInvitationCreate(BaseModel):
+    email: str
+    name: str
+    department: Optional[str] = None
+    role: str
+
+class UserInvitationResponse(BaseModel):
+    id: int
+    email: str
+    name: str
+    department: Optional[str] = None
+    role: str
+    token: str
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class RegisterByInvite(BaseModel):
+    token: str
+    password: str
+    name: str

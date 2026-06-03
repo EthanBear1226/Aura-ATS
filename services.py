@@ -45,3 +45,21 @@ class EmailService:
         print(f"[Email Mock] Subject: {subject}")
         print(f"[Email Mock] Content:\n{content}")
         return True
+
+    @staticmethod
+    def send_user_invitation(to_email: str, invite_link: str, inviter_name: str, company_name: str):
+        subject = f"【Aura 灵犀招聘】{inviter_name} 邀请您加入 {company_name} 企业空间"
+        content = f"""您好！
+   
+Aura 智能招聘系统超级管理员 {inviter_name} 邀请您加入 {company_name} 的企业协同空间。
+   
+请点击以下链接完成您的账户密码设置以激活您的账号：
+{invite_link}
+   
+（该链接长期有效，请妥善保管）
+"""
+        print(f"[Email Mock] Sending Invitation to: {to_email}")
+        print(f"[Email Mock] Subject: {subject}")
+        print(f"[Email Mock] Content:\n{content}")
+        return True
+

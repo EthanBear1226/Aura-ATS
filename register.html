@@ -16,7 +16,10 @@
             <div class="auth-subtitle">注册您的企业空间</div>
             
             <form class="auth-form" id="registerForm">
-                <div class="form-group">
+                <div class="form-group" id="nameGroup">
+                    <input type="text" id="name" placeholder="您的姓名" required>
+                </div>
+                <div class="form-group" id="companyGroup">
                     <input type="text" id="company" placeholder="企业名称" required>
                 </div>
                 <div class="form-group">
@@ -35,11 +38,79 @@
     </div>
     
     <script>
+        let inviteToken = null;
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            const params = new URLSearchParams(window.location.search);
+            inviteToken = params.get('invite_token');
+            
+            if (inviteToken) {
+                try {
+                    const response = await fetch(`/api/auth/invite/detail/${inviteToken}`);
+                    if (response.ok) {
+                        const invite = await response.json();
+                        
+                        // 重新设置副标题，突出已受邀信息
+                        document.querySelector('.auth-subtitle').innerHTML = `受邀加入协同空间`;
+                        
+                        // 隐藏并锁定“企业名称”
+                        const companyGroup = document.getElementById('companyGroup');
+                        companyGroup.style.display = 'none';
+                        document.getElementById('company').required = false;
+                        document.getElementById('company').value = 'Aura Tech';
+                        
+                        // 填充并只读“工作邮箱”
+                        const emailInput = document.getElementById('email');
+                        emailInput.value = invite.email;
+                        emailInput.readOnly = true;
+                        emailInput.style.background = 'rgba(0, 0, 0, 0.03)';
+                        emailInput.style.color = 'var(--text-secondary)';
+                        emailInput.style.cursor = 'not-allowed';
+                        
+                        // 填充姓名
+                        document.getElementById('name').value = invite.name || '';
+                        
+                        // 动态追加角色与部门信息卡片
+                        const form = document.getElementById('registerForm');
+                        const infoCard = document.createElement('div');
+                        infoCard.style.cssText = "font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; padding: 12px 16px; background: rgba(10,132,255,0.05); border: 1px solid rgba(10,132,255,0.12); border-radius: var(--radius-sm); line-height: 1.6;";
+                        infoCard.innerHTML = `
+                            <div>指派权限：<strong style="color:var(--text-primary)">${invite.role}</strong></div>
+                            <div>指派部门：<strong style="color:var(--text-primary)">${invite.department || '未分配'}</strong></div>
+                        `;
+                        form.insertBefore(infoCard, companyGroup);
+                        
+                        // 隐藏登录页返回链接
+                        document.querySelector('.auth-links').style.display = 'none';
+                    } else {
+                        showInvalidState('您持有的邀请激活链接可能已失效或已被接受');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showInvalidState('网络异常，无法校验邀请口令');
+                }
+            }
+        });
+
+        function showInvalidState(message) {
+            const card = document.querySelector('.auth-card');
+            card.innerHTML = `
+                <div class="auth-logo">Aura</div>
+                <div style="text-align:center; padding: 32px 0 16px;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <h3 style="margin-top:0; font-size:18px; color:var(--text-primary);">邀请链接已失效</h3>
+                    <p style="font-size:14px; color:var(--text-secondary); line-height:1.5; margin:8px 0 24px;">${message}</p>
+                    <a href="login.html" class="btn btn-primary" style="display:inline-block; text-decoration:none; padding:10px 32px;">返回登录页</a>
+                </div>
+            `;
+        }
+
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const company = document.getElementById('company').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
             
             const btn = e.target.querySelector('button');
             const originalText = btn.innerText;
@@ -47,17 +118,30 @@
             btn.disabled = true;
             
             try {
-                const response = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        company: company,
-                        email: email,
-                        password: password,
-                        name: '企业管理员',
-                        role: 'SuperAdmin'
-                    })
-                });
+                let response;
+                if (inviteToken) {
+                    response = await fetch('/api/auth/register-by-invite', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            token: inviteToken,
+                            password: password,
+                            name: name
+                        })
+                    });
+                } else {
+                    response = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            company: company,
+                            email: email,
+                            password: password,
+                            name: name,
+                            role: 'SuperAdmin'
+                        })
+                    });
+                }
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -66,7 +150,7 @@
                     window.location.href = 'index.html';
                 } else {
                     const err = await response.json();
-                    alert(err.detail || '注册失败，该工作邮箱可能已被注册');
+                    alert(err.detail || '注册激活失败，请核对信息');
                 }
             } catch (error) {
                 console.error(error);
@@ -77,6 +161,5 @@
             }
         });
     </script>
-
 </body>
 </html>

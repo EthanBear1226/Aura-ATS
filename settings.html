@@ -51,7 +51,9 @@
                     <div class="settings-nav-item" onclick="switchSetting('categories', event)">🏷️ 职位类别</div>
                     <div class="settings-nav-item" onclick="switchSetting('email-templates', event)">📧 邮件模板</div>
                     <div class="settings-nav-item" onclick="switchSetting('feedback-templates', event)">📝 评价模板</div>
+                    <div class="settings-nav-item" onclick="switchSetting('invitations', event)">👥 成员邀请</div>
                 </div>
+
                 <div class="settings-content">
                     <!-- Departments -->
                     <div id="sec-departments" class="settings-section active">
@@ -134,10 +136,67 @@
                             <tbody id="tb-feedback-templates"></tbody>
                         </table>
                     </div>
+
+                    <!-- Invitations -->
+                    <div id="sec-invitations" class="settings-section">
+                        <div class="section-header">
+                            <h2 class="section-title">企业协同邀约</h2>
+                            <button class="btn btn-primary" onclick="openInviteModal()">+ 发送协同邀请</button>
+                        </div>
+                        <table class="table-container">
+                            <thead>
+                                <tr>
+                                    <th>展示姓名</th>
+                                    <th>工作邮箱</th>
+                                    <th>所配角色</th>
+                                    <th>所属部门</th>
+                                    <th>创建时间</th>
+                                    <th style="text-align:right;">当前状态</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tb-invitations"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
+
+    <!-- 高保真成员邀请弹窗 -->
+    <div class="modal-overlay" id="inviteModal">
+        <div class="modal-card">
+            <h2>邀请新成员加入</h2>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>姓名<span class="required-mark">*</span></label>
+                <input type="text" id="inviteName" class="form-control" placeholder="如: 张三">
+            </div>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>工作邮箱<span class="required-mark">*</span></label>
+                <input type="email" id="inviteEmail" class="form-control" placeholder="如: test@example.com">
+            </div>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>角色权限<span class="required-mark">*</span></label>
+                <select id="inviteRole" class="form-control">
+                    <option value="Admin">系统管理员 (Admin)</option>
+                    <option value="Recruiter">HR/招聘官 (Recruiter)</option>
+                    <option value="HiringManager">用人经理 (HiringManager)</option>
+                    <option value="Interviewer">面试官 (Interviewer)</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>所属部门</label>
+                <select id="inviteDept" class="form-control">
+                    <option value="">请选择部门...</option>
+                </select>
+            </div>
+            
+            <div style="display:flex; gap:12px; margin-top:32px;">
+                <button class="btn" style="flex:1; justify-content:center; padding:12px;" onclick="closeInviteModal()">取消</button>
+                <button class="btn btn-primary" id="btnSubmitInvite" style="flex:1; justify-content:center; padding:12px;" onclick="submitInvitation()">发送邀约</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- 高保真字典操作弹窗 -->
     <div class="modal-overlay" id="dictModal">
@@ -228,8 +287,12 @@
                         tbody.innerHTML = d.map(item => `<tr><td>${item.name}</td></tr>`).join('');
                     }
                 }).catch(e => console.error(e));
+
+                // 获取已发出的成员协同邀请
+                fetch('/api/auth/invite').then(r=>r.json()).then(d => renderInvitations(d)).catch(e => console.error(e));
             } catch(e) { console.error('Failed to load settings', e); }
         }
+
 
         function openDictModal(type, title) {
             currentDictType = type;
@@ -312,6 +375,109 @@
                 } catch(e) { showToast('删除失败', 'error'); }
             });
         }
+
+        function renderInvitations(data) {
+            const tbody = document.getElementById('tb-invitations');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <div>当前暂无已发出的协同成员邀请</div>
+                </td></tr>`;
+                return;
+            }
+            tbody.innerHTML = data.map(d => {
+                const badgeClass = d.status === 'pending' ? 'tag-orange' : 'tag-green';
+                const statusText = d.status === 'pending' ? '等待激活' : '已接受';
+                
+                let dateStr = '未知';
+                if (d.created_at) {
+                    try {
+                        const date = new Date(d.created_at);
+                        dateStr = `${date.getMonth() + 1}-${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+                    } catch(e) {}
+                }
+                
+                return `<tr>
+                    <td style="font-weight:500; font-size:14px;">${d.name}</td>
+                    <td>${d.email}</td>
+                    <td><span class="tag tag-gray">${d.role}</span></td>
+                    <td>${d.department || '未分配'}</td>
+                    <td style="color:var(--text-secondary); font-size:13px;">${dateStr}</td>
+                    <td style="text-align:right;"><span class="tag ${badgeClass}">${statusText}</span></td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function openInviteModal() {
+            document.getElementById('inviteName').value = '';
+            document.getElementById('inviteEmail').value = '';
+            document.getElementById('inviteRole').selectedIndex = 0;
+            const deptSelect = document.getElementById('inviteDept');
+            deptSelect.innerHTML = '<option value="">请选择部门...</option>';
+            
+            try {
+                const response = await fetch('/api/settings/departments');
+                if (response.ok) {
+                    const depts = await response.json();
+                    depts.forEach(d => {
+                        const opt = new Option(d.name, d.name);
+                        deptSelect.add(opt);
+                    });
+                }
+            } catch(e) { console.error('Failed to load departments for invite', e); }
+            
+            document.getElementById('inviteModal').classList.add('active');
+        }
+
+        function closeInviteModal() {
+            document.getElementById('inviteModal').classList.remove('active');
+        }
+
+        async function submitInvitation() {
+            const name = document.getElementById('inviteName').value.trim();
+            const email = document.getElementById('inviteEmail').value.trim();
+            const role = document.getElementById('inviteRole').value;
+            const department = document.getElementById('inviteDept').value;
+            
+            if (!name || !email || !role) {
+                showToast('请填写姓名、邮箱并指派角色', 'error');
+                return;
+            }
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showToast('请输入工作邮箱地址', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('btnSubmitInvite');
+            const originalText = btn.innerText;
+            btn.innerText = '正在发送邀请...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/auth/invite', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, email, role, department })
+                });
+                
+                if (response.ok) {
+                    showToast('协同邀约已发出，链接已打印至服务器日志', 'success');
+                    closeInviteModal();
+                    fetch('/api/auth/invite').then(r=>r.json()).then(d => renderInvitations(d));
+                } else {
+                    const err = await response.json();
+                    showToast(err.detail || '邀约发送失败', 'error');
+                }
+            } catch(e) {
+                showToast('网络错误，请稍后重试', 'error');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
+
 </html>

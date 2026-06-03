@@ -134,3 +134,14 @@ class User(Base):
     name = Column(String(100))
     role = Column(String(50), default="Admin") # SuperAdmin, Admin, Recruiter, HiringManager, Interviewer
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class UserInvitation(Base):
+    __tablename__ = "user_invitations"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True)
+    name = Column(String(100))
+    department = Column(String(100), nullable=True)
+    role = Column(String(50))
+    token = Column(String(100), unique=True, index=True)
+    status = Column(String(50), default="pending")  # pending / accepted
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

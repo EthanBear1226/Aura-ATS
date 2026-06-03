@@ -9,8 +9,10 @@ import shutil
 import pdfplumber
 import google.generativeai as genai
 import json
+import secrets
 from datetime import datetime
 from dotenv import load_dotenv
+
 from typing import Optional
 
 import models
@@ -205,6 +207,101 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
 @app.get("/api/auth/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+# --- USER INVITATION ROUTERS ---
+
+@app.post("/api/auth/invite", response_model=schemas.UserInvitationResponse)
+def create_user_invitation(invite_data: schemas.UserInvitationCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role not in ["SuperAdmin", "Admin"]:
+        raise HTTPException(status_code=403, detail="没有权限执行此操作，仅限管理员")
+        
+    existing_user = db.query(models.User).filter(models.User.email == invite_data.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="该邮箱已注册为协同成员")
+        
+    existing_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == invite_data.email).first()
+    if existing_invite and existing_invite.status == "pending":
+        existing_invite.name = invite_data.name
+        existing_invite.department = invite_data.department
+        existing_invite.role = invite_data.role
+        existing_invite.token = secrets.token_hex(24)
+        existing_invite.created_at = datetime.utcnow()
+        db.commit()
+        db.refresh(existing_invite)
+        invitation = existing_invite
+    else:
+        if existing_invite:
+            db.delete(existing_invite)
+            db.commit()
+            
+        token = secrets.token_hex(24)
+        invitation = models.UserInvitation(
+            email=invite_data.email,
+            name=invite_data.name,
+            department=invite_data.department,
+            role=invite_data.role,
+            token=token,
+            status="pending"
+        )
+        db.add(invitation)
+        db.commit()
+        db.refresh(invitation)
+
+    invite_link = f"https://aura-ats.zeabur.app/register.html?invite_token={invitation.token}"
+    company_name = current_user.company or "Aura Tech"
+    
+    services.EmailService.send_user_invitation(
+        to_email=invitation.email,
+        invite_link=invite_link,
+        inviter_name=current_user.name,
+        company_name=company_name
+    )
+    
+    return invitation
+
+@app.get("/api/auth/invite", response_model=list[schemas.UserInvitationResponse])
+def get_user_invitations(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role not in ["SuperAdmin", "Admin"]:
+        raise HTTPException(status_code=403, detail="没有权限执行此操作")
+    return db.query(models.UserInvitation).order_by(models.UserInvitation.id.desc()).all()
+
+@app.get("/api/auth/invite/detail/{token}", response_model=schemas.UserInvitationResponse)
+def get_invitation_detail(token: str, db: Session = Depends(get_db)):
+    invite = db.query(models.UserInvitation).filter(models.UserInvitation.token == token).first()
+    if not invite or invite.status != "pending":
+        raise HTTPException(status_code=400, detail="邀请链接无效或已过期")
+    return invite
+
+@app.post("/api/auth/register-by-invite", response_model=schemas.TokenResponse)
+def register_by_invite(reg_data: schemas.RegisterByInvite, db: Session = Depends(get_db)):
+    invite = db.query(models.UserInvitation).filter(models.UserInvitation.token == reg_data.token).first()
+    if not invite or invite.status != "pending":
+        raise HTTPException(status_code=400, detail="激活链接失效，注册失败")
+        
+    existing_user = db.query(models.User).filter(models.User.email == invite.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="该邮箱已被注册")
+        
+    hashed = hash_password(reg_data.password)
+    new_user = models.User(
+        company="Aura Tech",
+        email=invite.email,
+        hashed_password=hashed,
+        name=reg_data.name or invite.name,
+        role=invite.role
+    )
+    db.add(new_user)
+    invite.status = "accepted"
+    db.commit()
+    db.refresh(new_user)
+    
+    token = create_access_token({"sub": new_user.email})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": new_user
+    }
+
 
 
 @app.get("/api/jobs", response_model=list[schemas.JobWithFunnel])
