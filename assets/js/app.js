@@ -5,7 +5,12 @@ window.fetch = async function (url, options = {}) {
     const token = localStorage.getItem('aura_token');
     
     // 注入 JWT 令牌
-    if (token && url.startsWith('/api/') && !url.includes('/api/auth/')) {
+    const isPublicAuth = url.includes('/api/auth/login') || 
+                         url.includes('/api/auth/register') || 
+                         url.includes('/api/auth/register-by-invite') || 
+                         url.includes('/api/auth/invite/detail/');
+                         
+    if (token && url.startsWith('/api/') && !isPublicAuth) {
         if (options.headers instanceof Headers) {
             options.headers.set('Authorization', `Bearer ${token}`);
         } else {
@@ -16,7 +21,7 @@ window.fetch = async function (url, options = {}) {
     try {
         const response = await originalFetch(url, options);
         // 若后端返回 401 凭证失效，则自动退登
-        if (response.status === 401 && url.startsWith('/api/') && !url.includes('/api/auth/')) {
+        if (response.status === 401 && url.startsWith('/api/') && !isPublicAuth) {
             localStorage.removeItem('aura_token');
             localStorage.removeItem('aura_user');
             const path = window.location.pathname;
