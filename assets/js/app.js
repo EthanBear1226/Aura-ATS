@@ -93,12 +93,6 @@ function renderSidebar(activeId) {
 
     html += `</nav>`;
     container.innerHTML = html;
-}          <span class="nav-text">${item.name}</span>
-                 </a>`;
-    });
-
-    html += `</nav>`;
-    container.innerHTML = html;
 }
 
 function renderHeader() {
