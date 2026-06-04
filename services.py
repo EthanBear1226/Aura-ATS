@@ -39,8 +39,55 @@ class FeishuCalendarService:
 
 class EmailService:
     @staticmethod
+    def _send_smtp_email(to_email: str, subject: str, content: str) -> bool:
+        import os
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.header import Header
+
+        smtp_server = os.getenv("SMTP_SERVER")
+        smtp_port = os.getenv("SMTP_PORT")
+        smtp_user = os.getenv("SMTP_USER")
+        smtp_password = os.getenv("SMTP_PASSWORD")
+        
+        # 如果没有配置完整的 SMTP 环境变量，则返回 False，回退到 Mock 打印模式
+        if not all([smtp_server, smtp_port, smtp_user, smtp_password]):
+            print("[Email SMTP] 缺少必要的环境变量，无法发送真实邮件。将回退到 Mock 打印。")
+            return False
+            
+        try:
+            # 创建邮件内容
+            message = MIMEText(content, 'plain', 'utf-8')
+            message['From'] = Header(f"Aura 招聘系统 <{smtp_user}>", 'utf-8')
+            message['To'] = Header(to_email, 'utf-8')
+            message['Subject'] = Header(subject, 'utf-8')
+            
+            # 判断端口类型
+            port = int(smtp_port)
+            if port == 465:
+                # SSL 加密连接
+                server = smtplib.SMTP_SSL(smtp_server, port, timeout=10)
+            else:
+                # 普通或 STARTTLS 连接
+                server = smtplib.SMTP(smtp_server, port, timeout=10)
+                if port == 587:
+                    server.starttls()
+            
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, [to_email], message.as_string())
+            server.quit()
+            print(f"[Email SMTP] 成功发送真实邮件至: {to_email}")
+            return True
+        except Exception as e:
+            print(f"[Email SMTP] 发送真实邮件失败，错误信息: {e}")
+            return False
+
+    @staticmethod
     def send_interview_invitation(to_email: str, subject: str, content: str):
-        # TODO: 使用 smtplib 或第三方服务真实发送邮件
+        # 尝试使用真实发送
+        if EmailService._send_smtp_email(to_email, subject, content):
+            return True
+        # 回退到 Mock 打印
         print(f"[Email Mock] Sending to: {to_email}")
         print(f"[Email Mock] Subject: {subject}")
         print(f"[Email Mock] Content:\n{content}")
@@ -58,6 +105,10 @@ Aura 智能招聘系统超级管理员 {inviter_name} 邀请您加入 {company_n
    
 （该链接长期有效，请妥善保管）
 """
+        # 尝试使用真实发送
+        if EmailService._send_smtp_email(to_email, subject, content):
+            return True
+        # 回退到 Mock 打印
         print(f"[Email Mock] Sending Invitation to: {to_email}")
         print(f"[Email Mock] Subject: {subject}")
         print(f"[Email Mock] Content:\n{content}")
