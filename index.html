@@ -84,7 +84,7 @@
                     <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">${stat.label}</div>
                     <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 8px;">
                         <span style="font-size: 28px; font-weight: 700; line-height: 1;">${stat.value}</span>
-                        <span style="font-size: 11px; color: ${stat.trend && stat.trend.includes('预警') ? 'var(--danger-color)' : 'var(--primary-color)'}; font-weight: 500;">${stat.trend || ''}</span>
+                        <span style="font-size: 11px; color: var(--primary-color); font-weight: 500;">${stat.change || ''}</span>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -97,10 +97,19 @@
             todoCard.style.gridColumn = 'span 3';
             todoCard.style.overflowY = 'auto'; // 允许内部滚动
             
-            let todoItems = data.todos.map(todo => `
-                <div class="task-item" onclick="window.location.href='candidate-detail.html?id=${todo.candidate_id}'" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
+            let todoItems = data.todos.map(todo => {
+                let clickAction = `window.location.href='candidate-detail.html?id=${todo.candidate_id}'`;
+                if (todo.type === 'schedule_task') {
+                    clickAction = `window.location.href='candidates.html?open_schedule=1&candidate_id=${todo.candidate_id}'`;
+                }
+                let dotColor = '#007AFF'; // resume_alert
+                if (todo.type === 'schedule_task') dotColor = '#FF9500';
+                else if (todo.type === 'interview') dotColor = '#34C759';
+
+                return `
+                <div class="task-item" onclick="${clickAction}" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <div style="width:8px; height:8px; border-radius:4px; background:${todo.priority === 'high' ? '#FF3B30' : '#007AFF'}; flex-shrink: 0;"></div>
+                        <div style="width:8px; height:8px; border-radius:4px; background:${dotColor}; flex-shrink: 0;"></div>
                         <div>
                             <div style="font-weight:600; font-size: 14px; color: var(--text-primary);">${todo.title}</div>
                             <div style="font-size:12px; color:var(--text-secondary); margin-top: 2px;">${todo.subtitle || ''}</div>
@@ -111,7 +120,8 @@
                         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${todo.status || '待处理'}</div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
 
             todoCard.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -141,7 +151,7 @@
                              onmouseover="this.style.background='rgba(0,0,0,0.03)'" 
                              onmouseout="this.style.background='transparent'">
                             <div style="width: 32px; height: 32px; border-radius: 10px; background: ${a.color}15; color: ${a.color}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <i data-lucide="${a.icon}" style="width: 16px; height: 16px;"></i>
+                                <i data-lucide="${a.icon || 'activity'}" style="width: 16px; height: 16px;"></i>
                             </div>
                             <div style="flex: 1;">
                                 <div style="color:var(--text-primary); font-size: 13px; line-height: 1.5;">${a.content}</div>

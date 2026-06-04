@@ -145,3 +145,15 @@ class UserInvitation(Base):
     token = Column(String(100), unique=True, index=True)
     status = Column(String(50), default="pending")  # pending / accepted
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class SystemTask(Base):
+    __tablename__ = "system_tasks"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255))
+    content = Column(Text, nullable=True)
+    status = Column(String(50), default="pending")  # pending / resolved
+    task_type = Column(String(50))  # e.g., "schedule_interview"
+    candidate_id = Column(Integer, ForeignKey("candidates.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    candidate = relationship("Candidate")

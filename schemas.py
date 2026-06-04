@@ -235,3 +235,19 @@ class RegisterByInvite(BaseModel):
     token: str
     password: str
     name: str
+
+class SystemTaskResponse(BaseModel):
+    id: int
+    title: str
+    content: Optional[str] = None
+    status: str
+    task_type: str
+    candidate_id: Optional[int] = None
+    created_at: datetime
+    candidate: Optional[CandidateBase] = None
+
+    class Config:
+        from_attributes = True
+
+class CandidateScreenRequest(BaseModel):
+    action: str  # "pass" / "fail"

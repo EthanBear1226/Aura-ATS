@@ -354,6 +354,26 @@ def update_job_status(job_id: int, job_update: schemas.JobUpdate, db: Session = 
 @app.get("/api/candidates", response_model=list[schemas.Candidate])
 def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     try:
+        role = current_user.role
+        name = current_user.name
+        email = current_user.email
+        
+        if role == "Interviewer":
+            my_candidate_ids = db.query(models.Interview.candidate_id).filter(models.Interview.interviewer_name == name).distinct().all()
+            candidate_id_list = [c[0] for c in my_candidate_ids]
+            if not candidate_id_list:
+                return []
+            return db.query(models.Candidate).filter(models.Candidate.id.in_(candidate_id_list)).order_by(models.Candidate.id.desc()).offset(skip).limit(limit).all()
+        elif role == "HiringManager":
+            user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first()
+            dept_name = user_invite.department if user_invite else None
+            if dept_name:
+                dept_jobs = db.query(models.Job).filter(models.Job.department == dept_name).all()
+                job_titles = [j.title for j in dept_jobs]
+                if job_titles:
+                    return db.query(models.Candidate).filter(models.Candidate.job.in_(job_titles)).order_by(models.Candidate.id.desc()).offset(skip).limit(limit).all()
+            return []
+            
         candidates = db.query(models.Candidate).order_by(models.Candidate.id.desc()).offset(skip).limit(limit).all()
         return candidates
     except Exception as e:
@@ -365,6 +385,49 @@ def get_candidate(candidate_id: int, db: Session = Depends(get_db), current_user
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
     if candidate is None:
         raise HTTPException(status_code=404, detail="Candidate not found")
+    return candidate
+
+@app.post("/api/candidates/{candidate_id}/screen", response_model=schemas.Candidate)
+def screen_candidate(candidate_id: int, request: schemas.CandidateScreenRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role not in ["SuperAdmin", "Admin", "HiringManager"]:
+        raise HTTPException(status_code=403, detail="没有权限执行此操作，仅限用人经理或管理员")
+        
+    candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+        
+    old_stage = candidate.stage
+    if request.action == "pass":
+        candidate.stage = "复筛通过"
+        action_name = "用人经理复筛通过"
+        details_text = f"复筛评估通过，已指派 HR 发起面试安排"
+        
+        # 自动生成 SystemTask 通知 HR 排期
+        job_info = candidate.job or "未知职位"
+        task = models.SystemTask(
+            title=f"安排面试：请为 {candidate.name} 协调排期",
+            content=f"候选人 {candidate.name} 投递了职位 【{job_info}】，已通过用人经理 {current_user.name} 的复筛，请 HR 协助安排面试排期。",
+            task_type="schedule_interview",
+            candidate_id=candidate.id,
+            status="pending"
+        )
+        db.add(task)
+    elif request.action == "fail":
+        candidate.stage = "已淘汰"
+        action_name = "用人经理复筛淘汰"
+        details_text = f"复筛评估为不合适，直接归档淘汰"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")
+        
+    db_log = models.CandidateLog(
+        candidate_id=candidate.id,
+        operator=current_user.name,
+        action=action_name,
+        details=details_text
+    )
+    db.add(db_log)
+    db.commit()
+    db.refresh(candidate)
     return candidate
 
 
@@ -704,6 +767,19 @@ def create_interview(item: schemas.InterviewCreate, db: Session = Depends(get_db
     # Send email and create event
     candidate = db.query(models.Candidate).filter(models.Candidate.id == item.candidate_id).first()
     if candidate:
+        # 联动将候选人状态推进至“面试中”
+        old_stage = candidate.stage
+        candidate.stage = "面试中"
+        
+        # 记录操作日志
+        db_log = models.CandidateLog(
+            candidate_id=candidate.id,
+            operator=current_user.name,
+            action=f"安排面试并流转至: 面试中",
+            details=f"安排了与 {item.interviewer_name} 的面试，时间: {item.start_time.strftime('%Y-%m-%d %H:%M')}"
+        )
+        db.add(db_log)
+        
         template = db.query(models.EmailTemplate).first() # Simplify: get first template
         if template:
             content = template.content.replace("{candidate_name}", candidate.name) \
@@ -713,12 +789,39 @@ def create_interview(item: schemas.InterviewCreate, db: Session = Depends(get_db
             subject = template.subject.replace("{job_title}", item.job_title)
             services.EmailService.send_interview_invitation(candidate.email or "demo@example.com", subject, content)
             
+    # 自动将该候选人关联的待安排面试任务标记为已解决 (resolved)
+    pending_tasks = db.query(models.SystemTask).filter(
+        models.SystemTask.candidate_id == item.candidate_id,
+        models.SystemTask.status == "pending",
+        models.SystemTask.task_type == "schedule_interview"
+    ).all()
+    for task in pending_tasks:
+        task.status = "resolved"
+        
+    db.commit()
+    
     services.FeishuCalendarService.create_event(item.interviewer_name, item.start_time, item.end_time, "面试安排", "...")
     
     return db_item
 
 @app.get("/api/interviews", response_model=list[schemas.Interview])
 def get_interviews(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    role = current_user.role
+    name = current_user.name
+    email = current_user.email
+    
+    if role == "Interviewer":
+        return db.query(models.Interview).filter(models.Interview.interviewer_name == name).all()
+    elif role == "HiringManager":
+        user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first()
+        dept_name = user_invite.department if user_invite else None
+        if dept_name:
+            dept_jobs = db.query(models.Job).filter(models.Job.department == dept_name).all()
+            job_titles = [j.title for j in dept_jobs]
+            if job_titles:
+                return db.query(models.Interview).filter(models.Interview.job_title.in_(job_titles)).all()
+        return []
+        
     return db.query(models.Interview).all()
 
 @app.patch("/api/interviews/{interview_id}/feedback", response_model=schemas.Interview)
@@ -730,6 +833,20 @@ def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback
     interview.feedback_result = feedback.feedback_result
     interview.feedback_text = feedback.feedback_text
     interview.status = "已完成" # Automatically set status to completed
+    
+    # 联动如果评价为不满意，则候选人自动淘汰归档
+    if feedback.feedback_result == "不满意":
+        candidate = db.query(models.Candidate).filter(models.Candidate.id == interview.candidate_id).first()
+        if candidate:
+            candidate.stage = "已淘汰"
+            db_log = models.CandidateLog(
+                candidate_id=candidate.id,
+                operator=current_user.name,
+                action="面试判定淘汰",
+                details=f"面试官 {interview.interviewer_name} 提交了不满意评价，候选人已自动淘汰归档。"
+            )
+            db.add(db_log)
+            
     db.commit()
     db.refresh(interview)
     return interview
@@ -740,123 +857,264 @@ def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback
 def get_dashboard_data(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     role = current_user.role
     name = current_user.name
+    email = current_user.email
 
-    # 1. 统计数据 (Stats)
-    active_jobs = db.query(models.Job).filter(models.Job.status == "热招中").count()
-    
     from datetime import datetime, timedelta
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    week_candidates = db.query(models.Candidate).filter(models.Candidate.created_at >= seven_days_ago).count()
     
-    pending_interviews = db.query(models.Interview).filter(models.Interview.status == "已安排").count()
-    
-    high_score_alerts = db.query(models.Candidate).filter(models.Candidate.match_score > 85).count()
-    
-    stats = [
-        {"label": "活跃职位", "value": active_jobs, "change": "+2", "icon": "briefcase"},
-        {"label": "本周候选人", "value": week_candidates, "change": "+15%", "icon": "users"},
-        {"label": "待安排面试", "value": pending_interviews, "change": "今日 4 场", "icon": "calendar"},
-        {"label": "待处理预警", "value": high_score_alerts, "change": "高分简历", "icon": "alert-circle"}
-    ]
-    
-    # 2. 待办事项 (Todos)
+    # 辅助获取当前协同角色的所属部门
+    user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first()
+    dept_name = user_invite.department if user_invite else None
+
+    stats = []
     todos = []
-    
-    # 面试官视角：仅看自己的面试
+    activities = []
+
+    # ==================== 1. 面试官 (Interviewer) 视角 ====================
     if role == "Interviewer":
+        # 活跃职位：我参与过面试的在招职位
+        my_jobs = db.query(models.Interview.job_title).filter(models.Interview.interviewer_name == name).distinct().all()
+        my_job_list = [j[0] for j in my_jobs]
+        my_active_jobs_count = db.query(models.Job).filter(models.Job.title.in_(my_job_list), models.Job.status == "热招中").count() if my_job_list else 0
+
+        # 我评估的候选人：去重总数
+        evaluated_candidates = db.query(models.Interview.candidate_id).filter(models.Interview.interviewer_name == name).distinct().count()
+
+        # 我的待面试日程：状态为“已安排”的面试数
+        my_pending_count = db.query(models.Interview).filter(
+            models.Interview.interviewer_name == name,
+            models.Interview.status == "已安排"
+        ).count()
+
+        # 我的待提交评价：当前时间已过但未填写 feedback_result 并且状态为已安排
+        my_todo_feedback = db.query(models.Interview).filter(
+            models.Interview.interviewer_name == name,
+            models.Interview.status == "已安排",
+            models.Interview.start_time <= datetime.utcnow()
+        ).count()
+
+        stats = [
+            {"label": "参与职位", "value": my_active_jobs_count, "change": "正在协同", "icon": "briefcase"},
+            {"label": "累计评估", "value": evaluated_candidates, "change": "去重人数", "icon": "users"},
+            {"label": "我的待面试", "value": my_pending_count, "change": f"待沟通", "icon": "calendar"},
+            {"label": "待写反馈", "value": my_todo_feedback, "change": "急需填写", "icon": "alert-circle"}
+        ]
+
+        # 待办事项：列出面试官未开始的待面试排期
         my_interviews = db.query(models.Interview).filter(
             models.Interview.interviewer_name == name,
             models.Interview.status == "已安排"
         ).order_by(models.Interview.start_time.asc()).limit(5).all()
-        
+
         for idx, itv in enumerate(my_interviews):
             todos.append({
                 "id": itv.id,
                 "type": "interview",
-                "title": f"面试: {itv.job_title}",
+                "title": f"面试评估: {itv.job_title}",
                 "time": itv.start_time.strftime("%m-%d %H:%M"),
-                "status": "已预约",
+                "status": "去评估" if itv.start_time <= datetime.utcnow() else "待开始",
                 "candidate_id": itv.candidate_id
             })
-    else:
-        # HR/管理员视角：看高分预警
-        alerts = db.query(models.Candidate).filter(
-            models.Candidate.match_score > 85
-        ).order_by(models.Candidate.match_score.desc()).limit(5).all()
-        
-        for c in alerts:
-            todos.append({
-                "id": c.id,
-                "type": "resume_alert",
-                "title": f"高分预警: {c.name} ({c.match_score}分)",
-                "time": "刚刚",
-                "status": "待查看",
-                "candidate_id": c.id
-            })
-            
-    # 3. 最近动态 (Activities)
-    activities = []
-    
-    if role == "Interviewer":
+
+        # 最近动态
         activities = [
             {
                 "id": 1,
-                "content": "HR <strong style='color:var(--text-primary)'>Ethan</strong> 将你添加为 <strong>林慕风</strong> 的初面面试官。",
-                "time": "10 分钟前",
-                "icon": "user-plus",
-                "color": "#007AFF",
-                "candidate_id": 1
-            },
-            {
-                "id": 2,
-                "content": "HR 更新了你明天下午的面试日程：<strong>赵雷</strong> (前端开发)。",
-                "time": "2 小时前",
+                "content": f"系统已自动同步您名下在飞书日历关联的 {my_pending_count} 场协同面试安排。",
+                "time": "刚刚",
                 "icon": "calendar",
-                "color": "#FF9500",
-                "candidate_id": 2
-            }
-        ]
-    else: # HR/Admin
-        activities = [
-            {
-                "id": 3,
-                "content": "AI 已成功解析 <strong>林慕风</strong> 的简历，并提取了核心亮点。",
-                "time": "10 分钟前",
-                "icon": "sparkles",
-                "color": "#AF52DE",
-                "candidate_id": 1
-            },
-            {
-                "id": 4,
-                "content": "<strong>李思齐</strong> (面试官) 刚刚提交了 <strong>赵雷</strong> 的面试反馈：<span style='color:#34C759;font-weight:600'>通过</span>。",
-                "time": "1 小时前",
-                "icon": "check-circle",
-                "color": "#34C759",
-                "candidate_id": 2
-            },
-            {
-                "id": 5,
-                "content": "候选人 <strong>王浩然</strong> 已被标记为淘汰。",
-                "time": "3 小时前",
-                "icon": "x-circle",
-                "color": "#FF3B30",
-                "candidate_id": 3
-            },
-            {
-                "id": 6,
-                "content": "新职位 <strong>[高级算法工程师]</strong> 已成功发布并上线。",
-                "time": "昨天",
-                "icon": "briefcase",
                 "color": "#007AFF",
                 "candidate_id": None
             }
         ]
+        # 追加最近评估的动态
+        recent_itvs = db.query(models.Interview).filter(
+            models.Interview.interviewer_name == name,
+            models.Interview.status == "已完成"
+        ).order_by(models.Interview.start_time.desc()).limit(3).all()
+        for idx, ritv in enumerate(recent_itvs):
+            candidate = db.query(models.Candidate).filter(models.Candidate.id == ritv.candidate_id).first()
+            c_name = candidate.name if candidate else "未知"
+            res_color = "#34C759" if ritv.feedback_result == "满意" else ("#FF9500" if ritv.feedback_result == "待定" else "#FF3B30")
+            activities.append({
+                "id": 10 + idx,
+                "content": f"您已完成对候选人 <strong>{c_name}</strong> 的面试评估，评价结果为：<span style='color:{res_color};font-weight:600'>{ritv.feedback_result}</span>。",
+                "time": ritv.start_time.strftime("%m-%d"),
+                "icon": "check-circle" if ritv.feedback_result == "满意" else "alert-circle",
+                "color": res_color,
+                "candidate_id": ritv.candidate_id
+            })
+
+    # ==================== 2. 用人经理 (HiringManager) 视角 ====================
+    elif role == "HiringManager":
+        # 部门在招职位
+        dept_jobs = db.query(models.Job).filter(models.Job.department == dept_name, models.Job.status == "热招中").all() if dept_name else []
+        dept_job_titles = [j.title for j in dept_jobs]
+        dept_active_jobs_count = len(dept_jobs)
+
+        # 待我初筛简历 (阶段为“初筛”且投递的是本部门职位的候选人)
+        dept_screening_count = db.query(models.Candidate).filter(
+            models.Candidate.stage == "初筛",
+            models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
+        ).count() if dept_name else 0
+
+        # 部门面试中
+        dept_interviewing_count = db.query(models.Candidate).filter(
+            models.Candidate.stage == "面试中",
+            models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
+        ).count() if dept_name else 0
+
+        # 部门已录用 (Offer)
+        dept_offered_count = db.query(models.Candidate).filter(
+            models.Candidate.stage.in_(["Offer", "入职"]),
+            models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
+        ).count() if dept_name else 0
+
+        stats = [
+            {"label": "部门在招职位", "value": dept_active_jobs_count, "change": f"所属部门: {dept_name or '未指派'}", "icon": "briefcase"},
+            {"label": "待我初筛", "value": dept_screening_count, "change": "急需处理", "icon": "users"},
+            {"label": "部门面试中", "value": dept_interviewing_count, "change": "正在沟通", "icon": "calendar"},
+            {"label": "部门已录用", "value": dept_offered_count, "change": "已发Offer", "icon": "check-circle"}
+        ]
+
+        # 待办事项：列出部门下待初筛的候选人
+        screening_candidates = db.query(models.Candidate).filter(
+            models.Candidate.stage == "初筛",
+            models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
+        ).order_by(models.Candidate.created_at.desc()).limit(5).all() if dept_name and dept_job_titles else []
+
+        for c in screening_candidates:
+            todos.append({
+                "id": c.id,
+                "type": "resume_alert",
+                "title": f"待初筛: {c.name} ({c.job})",
+                "time": "待评估",
+                "status": "去初筛",
+                "candidate_id": c.id
+            })
+
+        # 最近动态：本部门候选人状态更新
+        activities = [
+            {
+                "id": 1,
+                "content": f"您目前以 <strong>{dept_name or '未指派'}</strong> 部门负责人身份管理招聘协同大盘。",
+                "time": "刚刚",
+                "icon": "shield",
+                "color": "#AF52DE",
+                "candidate_id": None
+            }
+        ]
+        recent_candidates = db.query(models.Candidate).filter(
+            models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
+        ).order_by(models.Candidate.updated_at.desc()).limit(3).all() if dept_name and dept_job_titles else []
+        for idx, rc in enumerate(recent_candidates):
+            activities.append({
+                "id": 20 + idx,
+                "content": f"部门候选人 <strong>{rc.name}</strong> 阶段流转为：<span style='color:var(--primary-color);font-weight:600'>{rc.stage}</span>。",
+                "time": rc.updated_at.strftime("%m-%d"),
+                "icon": "refresh-cw",
+                "color": "#007AFF",
+                "candidate_id": rc.id
+            })
+
+    # ==================== 3. 管理员 / HR (SuperAdmin / Admin / Recruiter) 视角 ====================
+    else:
+        active_jobs = db.query(models.Job).filter(models.Job.status == "热招中").count()
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        week_candidates = db.query(models.Candidate).filter(models.Candidate.created_at >= seven_days_ago).count()
+        
+        # 待安排面试：SystemTask 中状态为 pending 且类型为 schedule_interview 的任务总数
+        pending_tasks_count = db.query(models.SystemTask).filter(
+            models.SystemTask.status == "pending",
+            models.SystemTask.task_type == "schedule_interview"
+        ).count()
+        
+        high_score_alerts = db.query(models.Candidate).filter(models.Candidate.match_score > 85).count()
+        
+        stats = [
+            {"label": "活跃职位", "value": active_jobs, "change": "热招中", "icon": "briefcase"},
+            {"label": "本周候选人", "value": week_candidates, "change": "新增简历", "icon": "users"},
+            {"label": "待安排面试", "value": pending_tasks_count, "change": "用人经理已推", "icon": "calendar"},
+            {"label": "待处理预警", "value": high_score_alerts, "change": "高分简历", "icon": "alert-circle"}
+        ]
+
+        # 待办事项：优先显示待安排面试任务
+        tasks = db.query(models.SystemTask).filter(
+            models.SystemTask.status == "pending",
+            models.SystemTask.task_type == "schedule_interview"
+        ).order_by(models.SystemTask.created_at.desc()).limit(5).all()
+
+        for t in tasks:
+            todos.append({
+                "id": t.id,
+                "type": "schedule_task",  # 前端识别：点击去排期
+                "title": t.title,
+                "time": "待安排",
+                "status": "去排期",
+                "candidate_id": t.candidate_id
+            })
+
+        # 如果没有待办排期任务，则显示高分简历预警作为兜底
+        if not todos:
+            alerts = db.query(models.Candidate).filter(
+                models.Candidate.match_score > 85
+            ).order_by(models.Candidate.match_score.desc()).limit(5).all()
+            for c in alerts:
+                todos.append({
+                    "id": c.id,
+                    "type": "resume_alert",
+                    "title": f"高分预警: {c.name} ({c.match_score}分)",
+                    "time": "刚刚",
+                    "status": "待查看",
+                    "candidate_id": c.id
+                })
+
+        # 全局动态
+        activities = [
+            {
+                "id": 1,
+                "content": "AI 简历分析服务运行正常，智能匹配引擎已就绪。",
+                "time": "10 分钟前",
+                "icon": "sparkles",
+                "color": "#AF52DE",
+                "candidate_id": None
+            }
+        ]
+        # 获取最近入库和修改记录作为大盘动态
+        recent_logs = db.query(models.CandidateLog).order_by(models.CandidateLog.created_at.desc()).limit(3).all()
+        for idx, log in enumerate(recent_logs):
+            activities.append({
+                "id": 30 + idx,
+                "content": f"<strong>{log.operator}</strong> 进行了操作：{log.action}，详情：{log.details or ''}",
+                "time": log.created_at.strftime("%m-%d %H:%M"),
+                "icon": "activity",
+                "color": "#007AFF",
+                "candidate_id": log.candidate_id
+            })
         
     return {
         "stats": stats,
         "todos": todos,
         "activities": activities
     }
+
+@app.get("/api/tasks", response_model=list[schemas.SystemTaskResponse])
+def get_system_tasks(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role not in ["SuperAdmin", "Admin", "Recruiter"]:
+        raise HTTPException(status_code=403, detail="没有权限查看任务列表")
+    tasks = db.query(models.SystemTask).filter(models.SystemTask.status == "pending").all()
+    return tasks
+
+@app.post("/api/tasks/{task_id}/resolve", response_model=schemas.SystemTaskResponse)
+def resolve_system_task(task_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role not in ["SuperAdmin", "Admin", "Recruiter"]:
+        raise HTTPException(status_code=403, detail="没有权限执行此操作")
+    task = db.query(models.SystemTask).filter(models.SystemTask.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    task.status = "resolved"
+    db.commit()
+    db.refresh(task)
+    return task
 
 if __name__ == "__main__":
     # In Zeabur, use the PORT environment variable
