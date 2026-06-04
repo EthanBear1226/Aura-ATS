@@ -95,15 +95,20 @@ class EmailService:
 
     @staticmethod
     def send_user_invitation(to_email: str, invite_link: str, inviter_name: str, company_name: str):
-        subject = f"【Aura 灵犀招聘】{inviter_name} 邀请您加入 {company_name} 企业空间"
+        subject = f"【Aura 协同招聘】{company_name} 诚邀您加入企业招聘协作平台"
         content = f"""您好！
    
-Aura 智能招聘系统超级管理员 {inviter_name} 邀请您加入 {company_name} 的企业协同空间。
+我是管理员 {inviter_name}。为了提升我们团队的招聘效率，方便后续在岗位招聘、简历评估及面试日程上进行高效协同，我们已经开通了 {company_name} 专属的 Aura 智能招聘协作平台。
    
-请点击以下链接完成您的账户密码设置以激活您的账号：
+现诚意邀请您加入，共同协作管理相关候选人的面试及评估工作。您的专属协同部门与系统角色已由管理员配置完成。
+   
+请点击下方专属链接，设置您的登录密码并激活协同账号：
 {invite_link}
    
-（该链接长期有效，请妥善保管）
+*(注：为了保障企业招聘数据的安全，请在收到邮件后尽快点击激活。如有任何疑问，请随时联系管理员 {inviter_name}。)*
+   
+祝工作顺利！
+{company_name} 招聘协同团队
 """
         # 尝试使用真实发送
         if EmailService._send_smtp_email(to_email, subject, content):
