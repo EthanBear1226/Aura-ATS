@@ -137,7 +137,11 @@
 
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
                                 <h3 style="margin:0;">📄 原始简历预览</h3>
-                                <a id="pdf-download-btn" href="#" target="_blank" class="btn" style="text-decoration:none; display:none; font-size:13px;">在新标签页打开 / 下载</a>
+                                <div style="display:flex; gap:8px;">
+                                    <button id="reupload-btn" class="btn" style="font-size:13px; display:none;" onclick="triggerReupload()">重新上传简历</button>
+                                    <a id="pdf-download-btn" href="#" target="_blank" class="btn" style="text-decoration:none; display:none; font-size:13px;">在新标签页打开 / 下载</a>
+                                </div>
+                                <input type="file" id="reupload-input" accept=".pdf" style="display:none;" onchange="handleReupload(event)">
                             </div>
                             <div style="height: 600px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-bottom: 24px; background: #fafafa; display: flex; align-items: center; justify-content: center; position: relative;">
                                 <div id="pdf-loading-fallback" style="position: absolute; color: var(--text-secondary); font-size: 14px; text-align: center; padding: 20px;">
@@ -195,6 +199,52 @@
             }).catch(err => {
                 console.error('Copy failed', err);
             });
+        }
+
+        function triggerReupload() {
+            document.getElementById('reupload-input').click();
+        }
+
+        async function handleReupload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                alert('只支持上传 PDF 格式的简历文件');
+                return;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const candidateId = urlParams.get('id');
+            if (!candidateId) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const reuploadBtn = document.getElementById('reupload-btn');
+            const originalText = reuploadBtn.innerText;
+            reuploadBtn.innerText = '正在上传...';
+            reuploadBtn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/candidates/${candidateId}/reupload-resume`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert('简历文件已重新上传成功！');
+                    window.location.reload();
+                } else {
+                    const data = await response.json();
+                    alert(`重新上传失败: ${data.detail || '未知错误'}`);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('网络错误，上传失败。');
+            } finally {
+                reuploadBtn.innerText = originalText;
+                reuploadBtn.disabled = false;
+            }
         }
 
         function openRecommendModal(id) {
@@ -394,6 +444,7 @@
                         } else {
                             document.getElementById('pdf-loading-fallback').style.display = 'none';
                             document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>文件已过期或丢失</h4><p>系统运行在无状态容器中，您之前上传的 PDF 文件可能已被清理。<br>请重新上传以查看。</p></div>";
+                            document.getElementById('reupload-btn').style.display = 'inline-flex';
                         }
                     } catch(e) {
                         document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
@@ -401,6 +452,7 @@
                 } else {
                     document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif'>暂无附件</div>";
                     document.getElementById('pdf-loading-fallback').style.display = 'none';
+                    document.getElementById('reupload-btn').style.display = 'inline-flex';
                 }
 
             } catch (e) {
@@ -513,6 +565,7 @@
                         } else {
                             document.getElementById('pdf-loading-fallback').style.display = 'none';
                             document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>文件已过期或丢失</h4><p>系统运行在无状态容器中，您之前上传的 PDF 文件可能已被清理。<br>请重新上传以查看。</p></div>";
+                            document.getElementById('reupload-btn').style.display = 'inline-flex';
                         }
                     } catch(e) {
                         document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
@@ -520,6 +573,7 @@
                 } else {
                     document.getElementById('pdf-loading-fallback').style.display = 'none';
                     document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>演示模式 (脱机状态)</h4><p>当前运行在静态演示模式，无法加载本地 PDF 附件。</p></div>";
+                    document.getElementById('reupload-btn').style.display = 'inline-flex';
                 }
             }
         }

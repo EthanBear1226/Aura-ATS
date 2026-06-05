@@ -431,6 +431,35 @@ def screen_candidate(candidate_id: int, request: schemas.CandidateScreenRequest,
     return candidate
 
 
+@app.post("/api/candidates/{candidate_id}/reupload-resume", response_model=schemas.Candidate)
+async def reupload_resume(candidate_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+    
+    candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+        
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    safe_filename = f"{timestamp}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, safe_filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    candidate.pdf_path = f"/uploads/{safe_filename}"
+    
+    db_log = models.CandidateLog(
+        candidate_id=candidate.id,
+        operator=current_user.name,
+        action="重新上传并补全了原始简历文件"
+    )
+    db.add(db_log)
+    db.commit()
+    db.refresh(candidate)
+    return candidate
+
+
 @app.post("/api/parse-resume", response_model=schemas.Candidate)
 async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), operator: str = Form("系统"), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if not file.filename.lower().endswith('.pdf'):
