@@ -272,6 +272,28 @@ def get_invitation_detail(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="邀请链接无效或已过期")
     return invite
 
+@app.delete("/api/auth/invite/{invite_id}")
+def delete_user_invitation(invite_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role not in ["SuperAdmin", "Admin"]:
+        raise HTTPException(status_code=403, detail="没有权限执行此操作，仅限管理员")
+        
+    invite = db.query(models.UserInvitation).filter(models.UserInvitation.id == invite_id).first()
+    if not invite:
+        raise HTTPException(status_code=404, detail="未找到该邀请记录")
+        
+    if current_user.email == invite.email:
+        raise HTTPException(status_code=400, detail="禁止删除当前登录的账号")
+        
+    # 如果该成员已经接受邀请，需要同时清理 users 表中的账号
+    if invite.status == "accepted":
+        associated_user = db.query(models.User).filter(models.User.email == invite.email).first()
+        if associated_user:
+            db.delete(associated_user)
+            
+    db.delete(invite)
+    db.commit()
+    return {"detail": "已成功删除并注销该协同成员"}
+
 @app.post("/api/auth/register-by-invite", response_model=schemas.TokenResponse)
 def register_by_invite(reg_data: schemas.RegisterByInvite, db: Session = Depends(get_db)):
     invite = db.query(models.UserInvitation).filter(models.UserInvitation.token == reg_data.token).first()

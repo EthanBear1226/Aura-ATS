@@ -151,7 +151,8 @@
                                     <th>所配角色</th>
                                     <th>所属部门</th>
                                     <th>创建时间</th>
-                                    <th style="text-align:right;">当前状态</th>
+                                    <th>当前状态</th>
+                                    <th style="text-align:right;">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="tb-invitations"></tbody>
@@ -379,7 +380,7 @@
         function renderInvitations(data) {
             const tbody = document.getElementById('tb-invitations');
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="empty-state">
+                tbody.innerHTML = `<tr><td colspan="7" class="empty-state">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                     <div>当前暂无已发出的协同成员邀请</div>
                 </td></tr>`;
@@ -403,9 +404,29 @@
                     <td><span class="tag tag-gray">${d.role}</span></td>
                     <td>${d.department || '未分配'}</td>
                     <td style="color:var(--text-secondary); font-size:13px;">${dateStr}</td>
-                    <td style="text-align:right;"><span class="tag ${badgeClass}">${statusText}</span></td>
+                    <td><span class="tag ${badgeClass}">${statusText}</span></td>
+                    <td style="text-align:right;">
+                        <button class="btn" style="color:#FF3B30; padding:6px 12px; font-size:13px;" onclick="deleteInvitation(${d.id})">删除</button>
+                    </td>
                 </tr>`;
             }).join('');
+        }
+
+        async function deleteInvitation(id) {
+            showConfirm("确认要删除并注销该协同成员吗？此操作将永久注销该账户且不可逆。", async () => {
+                try {
+                    const response = await fetch(`/api/auth/invite/${id}`, { method: 'DELETE' });
+                    if(response.ok) {
+                        showToast('成员已成功注销并删除', 'success');
+                        fetch('/api/auth/invite').then(r=>r.json()).then(d => renderInvitations(d));
+                    } else {
+                        const data = await response.json();
+                        showToast(`注销失败: ${data.detail || '未知错误'}`, 'error');
+                    }
+                } catch(e) { 
+                    showToast('注销失败，请检查网络', 'error'); 
+                }
+            });
         }
 
         async function openInviteModal() {
