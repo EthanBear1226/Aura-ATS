@@ -739,6 +739,10 @@ async def read_register():
 async def read_settings():
     return FileResponse('settings.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
+@app.get("/portal.html")
+async def read_portal():
+    return FileResponse('portal.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+
 # --- System Settings APIs ---
 
 @app.get("/api/settings/departments", response_model=list[schemas.Department])
