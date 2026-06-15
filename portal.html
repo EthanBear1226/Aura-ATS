@@ -442,8 +442,8 @@
             formData.append('operator', 'Candidate (Self-Submitted)');
 
             try {
-                // Post to the existing parse endpoint
-                const response = await fetch('/api/parse-resume', {
+                // Post to the public submit endpoint
+                const response = await fetch('/api/public/submit-resume', {
                     method: 'POST',
                     body: formData
                 });

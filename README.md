@@ -58,6 +58,16 @@ python main.py
 
 ---
 
+---
+
+## 🌐 求职者外网自主投递工作流 (Public Apply Portal)
+系统为每个职位提供公共投递入口，允许外部求职者免登录自助投递：
+1. **外网投递链接**：格式为 `http://localhost:8000/portal.html?job_id={job_id}`，可在未登录状态下直接访问。
+2. **免鉴权公开投递**：投递表单调用免鉴权公开 API 端点 `/api/public/submit-resume`，支持直接上传 PDF 简历。
+3. **AI 自动解析与入库**：求职者投递后，后台通过 Gemini 对简历进行深度解析与评分，自动将候选人归入“初筛”阶段，并在系统管理员/HRBP 工作台的“最近动态”中推送提醒，实现投递到初筛的完整自动化闭环。
+
+---
+
 ## 🗺️ 项目演进历史与蓝图
 *   详细的日常开发决策与版本里程碑见：[Progress_Newton-(牛顿).md](file:///Users/caoyixiong/AI%20Project/Aura/Progress_Newton-%28%E7%89%9B%E9%A1%BF%29.md)。
 *   V2.6 -> V3.0 的生产化迁移蓝图见：[Aura_V2.6_至_V3.0_生产化演进蓝图.md](file:///Users/caoyixiong/AI%20Project/Aura/%E8%BF%9B%E5%BA%A6%E6%B1%87%E6%8A%A5/Aura_V2.6_%E8%87%B3_V3.0_%E7%94%9F%E4%BA%A7%E5%8C%96%E6%BC%94%E8%BF%9B%E8%93%9D%E5%9B%BE.md)。
