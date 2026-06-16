@@ -362,6 +362,14 @@ def get_job(job_id: int, db: Session = Depends(get_db), current_user: models.Use
         raise HTTPException(status_code=404, detail="Job not found")
     return db_job
 
+@app.get("/api/public/jobs/{job_id}", response_model=schemas.Job)
+def get_public_job(job_id: int, db: Session = Depends(get_db)):
+    db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
+    if not db_job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return db_job
+
+
 @app.patch("/api/jobs/{job_id}", response_model=schemas.Job)
 def update_job_status(job_id: int, job_update: schemas.JobUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
