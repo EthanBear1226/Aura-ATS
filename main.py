@@ -113,6 +113,19 @@ async def get_current_user(db: Session = Depends(get_db), token: Optional[str] =
         raise HTTPException(status_code=401, detail="用户不存在")
     return user
 
+async def get_current_user_optional(db: Session = Depends(get_db), token: Optional[str] = Depends(oauth2_scheme)):
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            return None
+        user = db.query(models.User).filter(models.User.email == email).first()
+        return user
+    except Exception:
+        return None
+
 def init_admin_user():
     db = next(get_db())
     try:
@@ -356,7 +369,7 @@ def create_job(job: schemas.JobCreate, db: Session = Depends(get_db), current_us
     return db_job
 
 @app.get("/api/jobs/{job_id}", response_model=schemas.Job)
-def get_job(job_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def get_job(job_id: int, db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_optional)):
     db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
     if not db_job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -368,7 +381,6 @@ def get_public_job(job_id: int, db: Session = Depends(get_db)):
     if not db_job:
         raise HTTPException(status_code=404, detail="Job not found")
     return db_job
-
 
 @app.patch("/api/jobs/{job_id}", response_model=schemas.Job)
 def update_job_status(job_id: int, job_update: schemas.JobUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -490,7 +502,8 @@ async def reupload_resume(candidate_id: int, file: UploadFile = File(...), db: S
     return candidate
 
 
-async def process_and_save_resume(file: UploadFile, job_title: str, operator: str, db: Session):
+@app.post("/api/parse-resume", response_model=schemas.Candidate)
+async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), operator: str = Form("系统"), db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_optional)):
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
     
@@ -615,24 +628,28 @@ async def process_and_save_resume(file: UploadFile, job_title: str, operator: st
         db.commit()
         db.refresh(db_candidate)
 
-        db_log = models.CandidateLog(candidate_id=db_candidate.id, operator=operator, action="简历解析成功并入库")
+        operator_name = current_user.name if current_user else operator
+        db_log = models.CandidateLog(candidate_id=db_candidate.id, operator=operator_name, action="简历解析成功并入库")
         db.add(db_log)
         db.commit()
+
+        # 如果是求职者前台自主投递，则在后端生成 SystemTask 待办任务通知 HR
+        if operator == "Candidate (Self-Submitted)":
+            task = models.SystemTask(
+                title=f"新投递：{db_candidate.name} 自主投递了 {db_candidate.job}",
+                content=f"候选人 {db_candidate.name} 投递了职位 【{db_candidate.job}】，简历已由 AI 自动解析完毕，请 HR 尽快完成初筛。",
+                task_type="new_application",
+                candidate_id=db_candidate.id,
+                status="pending"
+            )
+            db.add(task)
+            db.commit()
 
         return db_candidate
 
     except Exception as e:
         print(f"Server Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/parse-resume", response_model=schemas.Candidate)
-async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), operator: str = Form("系统"), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    op = current_user.name if current_user else operator
-    return await process_and_save_resume(file, job_title, op, db)
-
-@app.post("/api/public/submit-resume", response_model=schemas.Candidate)
-async def public_submit_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), db: Session = Depends(get_db)):
-    return await process_and_save_resume(file, job_title, "求职者自主投递", db)
 
 @app.patch("/api/candidates/{candidate_id}", response_model=schemas.Candidate)
 def update_candidate_stage(candidate_id: int, candidate_update: schemas.CandidateUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -647,6 +664,15 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
         operator_name = current_user.name if current_user else candidate_update.operator
         db_log = models.CandidateLog(candidate_id=candidate.id, operator=operator_name, action=f"阶段流转: {old_stage} ➔ {candidate.stage}", details=candidate_update.details)
         db.add(db_log)
+        
+        # 自动消解 new_application 待办任务
+        pending_app_tasks = db.query(models.SystemTask).filter(
+            models.SystemTask.candidate_id == candidate.id,
+            models.SystemTask.status == "pending",
+            models.SystemTask.task_type == "new_application"
+        ).all()
+        for task in pending_app_tasks:
+            task.status = "resolved"
     
     db.commit()
     db.refresh(candidate)
@@ -719,6 +745,10 @@ async def read_register():
 @app.get("/settings.html")
 async def read_settings():
     return FileResponse('settings.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+
+@app.get("/portal.html")
+async def read_portal():
+    return FileResponse('portal.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 # --- System Settings APIs ---
 
@@ -1089,10 +1119,10 @@ def get_dashboard_data(db: Session = Depends(get_db), current_user: models.User 
         seven_days_ago = datetime.utcnow() - timedelta(days=7)
         week_candidates = db.query(models.Candidate).filter(models.Candidate.created_at >= seven_days_ago).count()
         
-        # 待安排面试：SystemTask 中状态为 pending 且类型为 schedule_interview 的任务总数
+        # 待安排面试与新简历处理任务：SystemTask 中状态为 pending 且类型为 schedule_interview 或 new_application 的任务总数
         pending_tasks_count = db.query(models.SystemTask).filter(
             models.SystemTask.status == "pending",
-            models.SystemTask.task_type == "schedule_interview"
+            models.SystemTask.task_type.in_(["schedule_interview", "new_application"])
         ).count()
         
         high_score_alerts = db.query(models.Candidate).filter(models.Candidate.match_score > 85).count()
@@ -1100,25 +1130,35 @@ def get_dashboard_data(db: Session = Depends(get_db), current_user: models.User 
         stats = [
             {"label": "活跃职位", "value": active_jobs, "change": "热招中", "icon": "briefcase"},
             {"label": "本周候选人", "value": week_candidates, "change": "新增简历", "icon": "users"},
-            {"label": "待安排面试", "value": pending_tasks_count, "change": "用人经理已推", "icon": "calendar"},
+            {"label": "待处理任务", "value": pending_tasks_count, "change": "协同处理待办", "icon": "calendar"},
             {"label": "待处理预警", "value": high_score_alerts, "change": "高分简历", "icon": "alert-circle"}
         ]
 
-        # 待办事项：优先显示待安排面试任务
+        # 待办事项：优先显示协同待办任务
         tasks = db.query(models.SystemTask).filter(
             models.SystemTask.status == "pending",
-            models.SystemTask.task_type == "schedule_interview"
+            models.SystemTask.task_type.in_(["schedule_interview", "new_application"])
         ).order_by(models.SystemTask.created_at.desc()).limit(5).all()
 
         for t in tasks:
-            todos.append({
-                "id": t.id,
-                "type": "schedule_task",  # 前端识别：点击去排期
-                "title": t.title,
-                "time": "待安排",
-                "status": "去排期",
-                "candidate_id": t.candidate_id
-            })
+            if t.task_type == "schedule_interview":
+                todos.append({
+                    "id": t.id,
+                    "type": "schedule_task",  # 前端识别：点击去排期
+                    "title": t.title,
+                    "time": "待安排",
+                    "status": "去排期",
+                    "candidate_id": t.candidate_id
+                })
+            elif t.task_type == "new_application":
+                todos.append({
+                    "id": t.id,
+                    "type": "new_application_task",
+                    "title": t.title,
+                    "time": "新投递",
+                    "status": "去初筛",
+                    "candidate_id": t.candidate_id
+                })
 
         # 如果没有待办排期任务，则显示高分简历预警作为兜底
         if not todos:
