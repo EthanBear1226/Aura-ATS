@@ -91,6 +91,16 @@
             font-family: inherit;
             font-size: 14px;
         }
+        
+        /* 隐藏未初始化的原生 select 以防页面加载瞬间闪烁 */
+        .form-group select:not(.hidden-select) {
+            opacity: 0;
+            position: absolute;
+            height: 0;
+            width: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
