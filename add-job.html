@@ -129,7 +129,7 @@
                                 </select>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group full-width">
                                 <label>职位类别<span class="required-mark">*</span></label>
                                 <input type="hidden" id="jobCategory" required>
                                 <div class="segmented-control" data-target="jobCategory">
@@ -150,7 +150,7 @@
                                 </div>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group full-width">
                                 <label>工作经验</label>
                                 <input type="hidden" id="jobExperience" required value="不限">
                                 <div class="segmented-control" data-target="jobExperience">
@@ -292,15 +292,32 @@
                 hrSelect.innerHTML = '<option value="" disabled selected>请选择负责人</option>' + hrs.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
 
                 // 职位类别 (Segmented Control)
-                const cats = await fetch('/api/settings/categories').then(r=>r.json());
-                const catContainer = document.querySelector('.segmented-control[data-target="jobCategory"]');
-                catContainer.innerHTML = cats.map(c => `<div class="segmented-item" data-value="${c.name}">${c.name}</div>`).join('');
-                
-                // Add active class to first item in segmented controls dynamically loaded to ensure some selection if needed
-                const firstCat = catContainer.querySelector('.segmented-item');
-                if (firstCat) {
-                    firstCat.classList.add('active');
-                    document.getElementById('jobCategory').value = firstCat.dataset.value;
+                try {
+                    const cats = await fetch('/api/settings/categories').then(r=>r.json());
+                    const catContainer = document.querySelector('.segmented-control[data-target="jobCategory"]');
+                    if (cats && cats.length > 0) {
+                        catContainer.innerHTML = cats.map(c => `<div class="segmented-item" data-value="${c.name}">${c.name}</div>`).join('');
+                        const firstCat = catContainer.querySelector('.segmented-item');
+                        if (firstCat) {
+                            firstCat.classList.add('active');
+                            document.getElementById('jobCategory').value = firstCat.dataset.value;
+                        }
+                    } else {
+                        // 兜底：若后端为空，高亮选中HTML自带的第一个分类
+                        const firstCat = catContainer.querySelector('.segmented-item');
+                        if (firstCat) {
+                            firstCat.classList.add('active');
+                            document.getElementById('jobCategory').value = firstCat.dataset.value;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to load job categories dictionary", e);
+                    const catContainer = document.querySelector('.segmented-control[data-target="jobCategory"]');
+                    const firstCat = catContainer.querySelector('.segmented-item');
+                    if (firstCat) {
+                        firstCat.classList.add('active');
+                        document.getElementById('jobCategory').value = firstCat.dataset.value;
+                    }
                 }
             } catch(e) {
                 console.error("Failed to load dictionaries", e);
