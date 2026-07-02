@@ -154,7 +154,9 @@
                 }
             } catch (error) {
                 console.error(error);
-                alert('网络异常，请检查后端服务是否正常启动');
+                if (!localStorage.getItem('aura_token')) {
+                    alert('网络异常，请检查后端服务是否正常启动');
+                }
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
