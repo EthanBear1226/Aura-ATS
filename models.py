@@ -25,6 +25,7 @@ class Candidate(Base):
 
     # Relationships
     logs = relationship("CandidateLog", back_populates="candidate", cascade="all, delete-orphan", order_by="desc(CandidateLog.created_at)")
+    applications = relationship("JobApplication", back_populates="candidate", cascade="all, delete-orphan", order_by="desc(JobApplication.created_at)")
 
 class CandidateLog(Base):
     __tablename__ = "candidate_logs"
@@ -157,3 +158,15 @@ class SystemTask(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     candidate = relationship("Candidate")
+
+class JobApplication(Base):
+    __tablename__ = "job_applications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidates.id", ondelete="CASCADE"), index=True)
+    job_title = Column(String(100))
+    stage = Column(String(50), default="初筛")
+    pdf_path = Column(String(255))
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    candidate = relationship("Candidate", back_populates="applications")

@@ -36,11 +36,23 @@ class CandidateLog(BaseModel):
     class Config:
         from_attributes = True
 
+class JobApplicationBase(BaseModel):
+    id: int
+    candidate_id: int
+    job_title: str
+    stage: str
+    pdf_path: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class Candidate(CandidateBase):
     id: int
     created_at: datetime
     updated_at: datetime
     logs: List[CandidateLog] = []
+    applications: List[JobApplicationBase] = []
 
     class Config:
         from_attributes = True

@@ -608,29 +608,89 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
         else:
             skills_val = []
 
-        db_candidate = models.Candidate(
-            name=str(parsed_data.get("name") or "未知"),
-            job=str(final_job or "未知"),
-            stage="初筛",
-            exp=str(parsed_data.get("exp") or "未知"),
-            phone=str(parsed_data.get("phone") or "暂无"),
-            email=str(parsed_data.get("email") or "暂无"),
-            skills=skills_val,
-            ai_summary=str(parsed_data.get("ai_summary") or ""),
-            ai_analysis=str(parsed_data.get("ai_analysis") or ""),
-            match_score=parsed_data.get("match_score"),
-            match_reason=str(parsed_data.get("match_reason") or "") if parsed_data.get("match_reason") else None,
-            raw_text=extracted_text,
-            pdf_path=f"/uploads/{safe_filename}"
-        )
+        # 查重逻辑与投递历史合并（合卷）
+        phone_val = str(parsed_data.get("phone") or "").strip()
+        email_val = str(parsed_data.get("email") or "").strip()
         
-        db.add(db_candidate)
-        db.commit()
-        db.refresh(db_candidate)
+        if not phone_val or phone_val == "None":
+            phone_val = "暂无"
+        if not email_val or email_val == "None":
+            email_val = "暂无"
+            
+        existing_candidate = None
+        if phone_val and phone_val != "暂无" and len(phone_val) > 4:
+            existing_candidate = db.query(models.Candidate).filter(models.Candidate.phone == phone_val).first()
+        if not existing_candidate and email_val and email_val != "暂无" and "@" in email_val:
+            existing_candidate = db.query(models.Candidate).filter(models.Candidate.email == email_val).first()
 
         operator_name = current_user.name if current_user else operator
-        db_log = models.CandidateLog(candidate_id=db_candidate.id, operator=operator_name, action="简历解析成功并入库")
-        db.add(db_log)
+
+        if existing_candidate:
+            # 1. 更新已存在的候选人主表字段为最新解析数据
+            existing_candidate.job = str(final_job or "未知")
+            existing_candidate.stage = "初筛"
+            existing_candidate.exp = str(parsed_data.get("exp") or existing_candidate.exp)
+            existing_candidate.skills = skills_val
+            existing_candidate.ai_summary = str(parsed_data.get("ai_summary") or "")
+            existing_candidate.ai_analysis = str(parsed_data.get("ai_analysis") or "")
+            existing_candidate.match_score = parsed_data.get("match_score")
+            existing_candidate.match_reason = str(parsed_data.get("match_reason") or "") if parsed_data.get("match_reason") else None
+            existing_candidate.raw_text = extracted_text
+            existing_candidate.pdf_path = f"/uploads/{safe_filename}"
+            existing_candidate.updated_at = datetime.utcnow()
+            
+            db.commit()
+            db.refresh(existing_candidate)
+            db_candidate = existing_candidate
+            
+            # 2. 插入合并日志
+            details_str = f"检测到手机号[{phone_val}]或邮箱[{email_val}]已存在。本次新投递职位【{final_job}】，已更新该候选人的主表属性及简历原件。"
+            db_log = models.CandidateLog(
+                candidate_id=db_candidate.id,
+                operator=operator_name,
+                action="重复投递自动合并",
+                details=details_str
+            )
+            db.add(db_log)
+            db.commit()
+        else:
+            # 2. 全新候选人创建
+            db_candidate = models.Candidate(
+                name=str(parsed_data.get("name") or "未知"),
+                job=str(final_job or "未知"),
+                stage="初筛",
+                exp=str(parsed_data.get("exp") or "未知"),
+                phone=phone_val,
+                email=email_val,
+                skills=skills_val,
+                ai_summary=str(parsed_data.get("ai_summary") or ""),
+                ai_analysis=str(parsed_data.get("ai_analysis") or ""),
+                match_score=parsed_data.get("match_score"),
+                match_reason=str(parsed_data.get("match_reason") or "") if parsed_data.get("match_reason") else None,
+                raw_text=extracted_text,
+                pdf_path=f"/uploads/{safe_filename}"
+            )
+            db.add(db_candidate)
+            db.commit()
+            db.refresh(db_candidate)
+            
+            # 3. 记录日志
+            db_log = models.CandidateLog(
+                candidate_id=db_candidate.id,
+                operator=operator_name,
+                action="简历解析成功并入库"
+            )
+            db.add(db_log)
+            db.commit()
+
+        # 无论新旧，均插入一笔投递历史 JobApplication 记录
+        db_app = models.JobApplication(
+            candidate_id=db_candidate.id,
+            job_title=str(final_job or "未知"),
+            stage="初筛",
+            pdf_path=f"/uploads/{safe_filename}"
+        )
+        db.add(db_app)
         db.commit()
 
         # 如果是求职者前台自主投递，则在后端生成 SystemTask 待办任务通知 HR
@@ -673,6 +733,11 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
         ).all()
         for task in pending_app_tasks:
             task.status = "resolved"
+
+        # 同步更新最新的投递记录状态
+        latest_app = db.query(models.JobApplication).filter(models.JobApplication.candidate_id == candidate.id).order_by(models.JobApplication.created_at.desc()).first()
+        if latest_app:
+            latest_app.stage = candidate.stage
     
     db.commit()
     db.refresh(candidate)
