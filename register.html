@@ -144,6 +144,7 @@
                 }
                 
                 if (response.ok) {
+                    window.registerSuccessful = true;
                     const data = await response.json();
                     localStorage.setItem('aura_token', data.access_token);
                     localStorage.setItem('aura_user', JSON.stringify(data.user));
@@ -154,7 +155,7 @@
                 }
             } catch (error) {
                 console.error(error);
-                if (!localStorage.getItem('aura_token')) {
+                if (!localStorage.getItem('aura_token') && !window.registerSuccessful) {
                     alert('网络异常，请检查后端服务是否正常启动');
                 }
             } finally {
