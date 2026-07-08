@@ -84,7 +84,10 @@
                         </div>
                         
                         <div class="card">
-                            <h3 style="font-size:16px; margin-top:0;">基本信息</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <h3 style="font-size:16px; margin:0;">基本信息</h3>
+                                <a href="#" onclick="event.preventDefault(); openEditModal()" style="font-size:13px; color:var(--primary-color); text-decoration:none; font-weight:500;">✏️ 编辑</a>
+                            </div>
                             <div style="font-size:14px; color:var(--text-secondary); line-height:2;">
                                 <div id="cand-job-info">投递职位: --</div>
                                 <div id="cand-exp">学历: --</div>
@@ -168,6 +171,43 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Edit Candidate Info Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-card" style="max-width: 480px;">
+            <h2 style="margin-top:0; font-size:18px;">编辑候选人信息</h2>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">姓名<span style="color:#ff4d4f;">*</span></label>
+                <input type="text" id="edit-name" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box;">
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">投递职位<span style="color:#ff4d4f;">*</span></label>
+                <input type="text" id="edit-job" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box;">
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">学历/工作年限<span style="color:#ff4d4f;">*</span></label>
+                <input type="text" id="edit-exp" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box;">
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">电话</label>
+                <input type="text" id="edit-phone" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box;">
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">邮箱</label>
+                <input type="email" id="edit-email" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box;">
+            </div>
+            
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button class="btn" onclick="closeEditModal()">取消</button>
+                <button class="btn btn-primary" onclick="submitEdit()">保存</button>
+            </div>
+        </div>
     </div>
 
     <!-- Recommend Modal -->
@@ -357,6 +397,78 @@
             const clickedDot = element.closest('div').parentElement.querySelector('div[style*="position:absolute"]');
             if (clickedDot) {
                 clickedDot.style.background = 'var(--primary-color)';
+            }
+        }
+
+        function openEditModal() {
+            if (!currentCandidate) return;
+            document.getElementById('edit-name').value = currentCandidate.name || '';
+            document.getElementById('edit-job').value = currentCandidate.job || '';
+            document.getElementById('edit-exp').value = currentCandidate.exp || '';
+            document.getElementById('edit-phone').value = currentCandidate.phone || '';
+            document.getElementById('edit-email').value = currentCandidate.email || '';
+            
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        async function submitEdit() {
+            if (!currentCandidate) return;
+            const name = document.getElementById('edit-name').value.trim();
+            const job = document.getElementById('edit-job').value.trim();
+            const exp = document.getElementById('edit-exp').value.trim();
+            const phone = document.getElementById('edit-phone').value.trim();
+            const email = document.getElementById('edit-email').value.trim();
+            
+            if (!name || !job || !exp) {
+                if (window.showToast) {
+                    showToast('姓名、投递职位和学历不能为空', 'error');
+                } else {
+                    alert('姓名、投递职位和学历不能为空');
+                }
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/candidates/${currentCandidate.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        job,
+                        exp,
+                        phone: phone || '暂无',
+                        email: email || '暂无',
+                        operator: localStorage.getItem('aura_user') ? JSON.parse(localStorage.getItem('aura_user')).name : 'HR'
+                    })
+                });
+                
+                if (response.ok) {
+                    closeEditModal();
+                    await loadDetail();
+                    if (window.showToast) {
+                        showToast('修改成功', 'success');
+                    } else {
+                        alert('基本信息修改成功');
+                    }
+                } else {
+                    const err = await response.json();
+                    if (window.showToast) {
+                        showToast(err.detail || '修改失败', 'error');
+                    } else {
+                        alert(err.detail || '修改失败');
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                if (window.showToast) {
+                    showToast('网络异常，修改失败', 'error');
+                } else {
+                    alert('网络异常，修改失败');
+                }
             }
         }
 

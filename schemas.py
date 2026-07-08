@@ -24,6 +24,11 @@ class CandidateUpdate(BaseModel):
     stage: Optional[str] = None
     operator: Optional[str] = "系统" # Default operator
     details: Optional[str] = None
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    exp: Optional[str] = None
+    job: Optional[str] = None
 
 class CandidateLog(BaseModel):
     id: int

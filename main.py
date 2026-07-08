@@ -738,6 +738,41 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
         latest_app = db.query(models.JobApplication).filter(models.JobApplication.candidate_id == candidate.id).order_by(models.JobApplication.created_at.desc()).first()
         if latest_app:
             latest_app.stage = candidate.stage
+
+    # 检查是否修改了基本信息
+    has_basic_update = False
+    changes = []
+    operator_name = current_user.name if current_user else candidate_update.operator
+    
+    if candidate_update.name is not None and candidate_update.name != candidate.name:
+        changes.append(f"姓名: {candidate.name} ➔ {candidate_update.name}")
+        candidate.name = candidate_update.name
+        has_basic_update = True
+    if candidate_update.phone is not None and candidate_update.phone != candidate.phone:
+        changes.append(f"电话: {candidate.phone} ➔ {candidate_update.phone}")
+        candidate.phone = candidate_update.phone
+        has_basic_update = True
+    if candidate_update.email is not None and candidate_update.email != candidate.email:
+        changes.append(f"邮箱: {candidate.email} ➔ {candidate_update.email}")
+        candidate.email = candidate_update.email
+        has_basic_update = True
+    if candidate_update.exp is not None and candidate_update.exp != candidate.exp:
+        changes.append(f"学历: {candidate.exp} ➔ {candidate_update.exp}")
+        candidate.exp = candidate_update.exp
+        has_basic_update = True
+    if candidate_update.job is not None and candidate_update.job != candidate.job:
+        changes.append(f"职位: {candidate.job} ➔ {candidate_update.job}")
+        candidate.job = candidate_update.job
+        has_basic_update = True
+        
+    if has_basic_update:
+        db_log = models.CandidateLog(
+            candidate_id=candidate.id,
+            operator=operator_name,
+            action="修改基本信息",
+            details="修改项：\n" + "\n".join(changes)
+        )
+        db.add(db_log)
     
     db.commit()
     db.refresh(candidate)
