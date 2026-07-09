@@ -185,12 +185,23 @@
             
             <div style="margin-bottom: 16px;">
                 <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">投递职位<span style="color:#ff4d4f;">*</span></label>
-                <input type="text" id="edit-job" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box;">
+                <select id="edit-job" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box; background: white; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 fill=%22%23666%22 viewBox=%220 0 24 24%22><path d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;">
+                    <option value="" disabled selected>请选择投递职位</option>
+                </select>
             </div>
             
             <div style="margin-bottom: 16px;">
                 <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">学历/工作年限<span style="color:#ff4d4f;">*</span></label>
-                <input type="text" id="edit-exp" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box;">
+                <select id="edit-exp" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box; background: white; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 fill=%22%23666%22 viewBox=%220 0 24 24%22><path d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;">
+                    <option value="" disabled selected>请选择学历</option>
+                    <option value="大专以下">大专以下</option>
+                    <option value="大专">大专</option>
+                    <option value="本科">本科</option>
+                    <option value="硕士">硕士</option>
+                    <option value="博士">博士</option>
+                    <option value="MBA/EMBA">MBA/EMBA</option>
+                    <option value="其他">其他</option>
+                </select>
             </div>
             
             <div style="margin-bottom: 16px;">
@@ -400,8 +411,45 @@
             }
         }
 
-        function openEditModal() {
+        async function openEditModal() {
             if (!currentCandidate) return;
+            
+            // 1. 动态加载所有投递职位选项，进行去重和历史值保底
+            try {
+                const res = await fetch('/api/jobs');
+                const jobSelect = document.getElementById('edit-job');
+                if (res.ok) {
+                    const jobs = await res.json();
+                    const jobTitles = jobs.map(j => j.title);
+                    if (currentCandidate.job && !jobTitles.includes(currentCandidate.job)) {
+                        jobTitles.push(currentCandidate.job);
+                    }
+                    jobSelect.innerHTML = '<option value="" disabled>请选择投递职位</option>' + 
+                        jobTitles.map(t => `<option value="${t}">${t}</option>`).join('');
+                } else {
+                    // 降级兜底：若API故障，至少写入当前值选项
+                    if (currentCandidate.job) {
+                        jobSelect.innerHTML = `<option value="" disabled>请选择投递职位</option><option value="${currentCandidate.job}">${currentCandidate.job}</option>`;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load jobs list for editing', e);
+            }
+            
+            // 2. 学历选项边界情况保底
+            const expSelect = document.getElementById('edit-exp');
+            const expValues = Array.from(expSelect.options).map(o => o.value);
+            const tempOption = expSelect.querySelector('.temp-exp-option');
+            if (tempOption) tempOption.remove();
+            
+            if (currentCandidate.exp && !expValues.includes(currentCandidate.exp)) {
+                const opt = document.createElement('option');
+                opt.value = currentCandidate.exp;
+                opt.innerText = currentCandidate.exp;
+                opt.className = 'temp-exp-option';
+                expSelect.appendChild(opt);
+            }
+            
             document.getElementById('edit-name').value = currentCandidate.name || '';
             document.getElementById('edit-job').value = currentCandidate.job || '';
             document.getElementById('edit-exp').value = currentCandidate.exp || '';
