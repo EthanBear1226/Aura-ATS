@@ -120,6 +120,7 @@
         .tree-select-node-item { display: flex; align-items: center; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background 0.15s; user-select: none; }
         .tree-select-node-item:hover { background: #f5f9ff; }
         .tree-select-node-item.selected { background: #e6f7ff; color: var(--primary-color); font-weight: 500; }
+        .tree-select-node-item.selected::after { content: '✓'; margin-left: auto; color: var(--primary-color); font-size: 14px; font-weight: bold; }
         .tree-select-node-toggle { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; font-size: 8px; color: var(--text-secondary); margin-right: 4px; transition: transform 0.15s; }
         .tree-select-node-toggle.collapsed { transform: rotate(-90deg); }
         .tree-select-node-text { font-size: 13px; }
@@ -185,16 +186,21 @@
                                 </select>
                             </div>
 
-                            <div class="form-group full-width">
-                                <label>职位类别<span class="required-mark">*</span></label>
-                                <input type="hidden" id="jobCategory" required>
-                                <div class="segmented-control" data-target="jobCategory">
-                                    <div class="segmented-item" data-value="技术/研发">技术/研发</div>
-                                    <div class="segmented-item" data-value="产品/设计">产品/设计</div>
-                                    <div class="segmented-item" data-value="运营/市场">运营/市场</div>
-                                    <div class="segmented-item" data-value="职能/支持">职能/支持</div>
-                                </div>
-                            </div>
+                             <div class="form-group" style="position:relative;">
+                                 <label>职位类别<span class="required-mark">*</span></label>
+                                 <div class="tree-select-container" id="jobCategoryContainer">
+                                     <div class="tree-select-display" onclick="toggleCategorySelectDropdown(event)">
+                                         <span id="category-select-val-text">请选择职位类别...</span>
+                                         <span class="tree-select-arrow">▼</span>
+                                     </div>
+                                     <div class="tree-select-dropdown" id="categorySelectDropdown">
+                                         <div class="tree-select-search-box">
+                                             <input type="text" id="categorySelectSearchInput" placeholder="输入类别名称检索..." oninput="filterCategorySelectNodes(event)" onclick="event.stopPropagation()">
+                                         </div>
+                                         <div class="tree-select-nodes-root" id="categorySelectNodesRoot"></div>
+                                     </div>
+                                 </div>
+                             </div>
                             <div class="form-group">
                                 <label>职位性质</label>
                                 <input type="hidden" id="jobType" required value="全职">
@@ -288,6 +294,68 @@
         // --- 树状选择器 (TreeSelect) 原生核心引擎 ---
         let selectedJobDept = '';
         let cachedDepts = [];
+
+        // --- 职位类别检索选择器 (CategorySelect) 原生核心引擎 ---
+        let selectedJobCategory = '';
+        const standardCategories = ["BI类", "技术类", "产品类", "设计类", "运营类", "市场类", "职能类", "销售类", "管理类", "金融类", "战略投资类"];
+
+        function toggleCategorySelectDropdown(event) {
+            event.stopPropagation();
+            document.getElementById('jobCategoryContainer').classList.toggle('active');
+        }
+
+        function selectCategorySelectNode(catName) {
+            selectedJobCategory = catName;
+            document.getElementById('category-select-val-text').innerText = catName || '请选择职位类别...';
+            
+            const displayEl = document.getElementById('jobCategoryContainer') ? document.getElementById('jobCategoryContainer').querySelector('.tree-select-display') : null;
+            if (displayEl) displayEl.classList.remove('has-error');
+            
+            document.querySelectorAll('#categorySelectNodesRoot .tree-select-node-item').forEach(el => {
+                if (el.getAttribute('data-name') === catName) {
+                    el.classList.add('selected');
+                } else {
+                    el.classList.remove('selected');
+                }
+            });
+            document.getElementById('jobCategoryContainer').classList.remove('active');
+        }
+
+        function filterCategorySelectNodes(event) {
+            const keyword = event.target.value.trim().toLowerCase();
+            document.querySelectorAll('#categorySelectNodesRoot .tree-select-node').forEach(el => {
+                const textEl = el.querySelector('.tree-select-node-text');
+                const name = textEl ? textEl.innerText.toLowerCase() : '';
+                if (!keyword || name.includes(keyword)) {
+                    el.style.display = 'block';
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+        }
+
+        function initCategoryTreeSelect(cats = []) {
+            const list = (cats && cats.length > 0) ? cats.map(c => c.name) : [...standardCategories];
+            
+            // 确保 11 大核心类别始终完整展现（将后端列表和标准列表去重合并）
+            standardCategories.forEach(s => {
+                if (!list.includes(s)) list.push(s);
+            });
+
+            const root = document.getElementById('categorySelectNodesRoot');
+            if (root) {
+                root.innerHTML = list.map(name => {
+                    const isSelected = selectedJobCategory === name ? 'selected' : '';
+                    return `
+                        <div class="tree-select-node">
+                            <div class="tree-select-node-item ${isSelected}" data-name="${name}" onclick="selectCategorySelectNode('${name}')">
+                                <span class="tree-select-node-text">${name}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
 
         function buildTree(depts) {
             const idMap = {};
@@ -468,6 +536,10 @@
             if (container && !container.contains(e.target)) {
                 container.classList.remove('active');
             }
+            const catContainer = document.getElementById('jobCategoryContainer');
+            if (catContainer && !catContainer.contains(e.target)) {
+                catContainer.classList.remove('active');
+            }
         });
         
         document.addEventListener("DOMContentLoaded", async () => {
@@ -530,33 +602,13 @@
                 const hrSelect = document.getElementById('jobHrName');
                 hrSelect.innerHTML = '<option value="" disabled selected>请选择负责人</option>' + hrs.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
 
-                // 职位类别 (Segmented Control)
+                // 职位类别 (自定义搜索下拉树)
                 try {
                     const cats = await fetch('/api/settings/categories').then(r=>r.json());
-                    const catContainer = document.querySelector('.segmented-control[data-target="jobCategory"]');
-                    if (cats && cats.length > 0) {
-                        catContainer.innerHTML = cats.map(c => `<div class="segmented-item" data-value="${c.name}">${c.name}</div>`).join('');
-                        const firstCat = catContainer.querySelector('.segmented-item');
-                        if (firstCat) {
-                            firstCat.classList.add('active');
-                            document.getElementById('jobCategory').value = firstCat.dataset.value;
-                        }
-                    } else {
-                        // 兜底：若后端为空，高亮选中HTML自带的第一个分类
-                        const firstCat = catContainer.querySelector('.segmented-item');
-                        if (firstCat) {
-                            firstCat.classList.add('active');
-                            document.getElementById('jobCategory').value = firstCat.dataset.value;
-                        }
-                    }
+                    initCategoryTreeSelect(cats);
                 } catch (e) {
                     console.error("Failed to load job categories dictionary", e);
-                    const catContainer = document.querySelector('.segmented-control[data-target="jobCategory"]');
-                    const firstCat = catContainer.querySelector('.segmented-item');
-                    if (firstCat) {
-                        firstCat.classList.add('active');
-                        document.getElementById('jobCategory').value = firstCat.dataset.value;
-                    }
+                    initCategoryTreeSelect([]); // 异常时使用 standardCategories 兜底
                 }
             } catch(e) {
                 console.error("Failed to load dictionaries", e);

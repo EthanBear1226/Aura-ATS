@@ -73,7 +73,7 @@ def seed_dicts():
         db.commit()
 
     if db.query(models.JobCategory).count() == 0:
-        for c in ["技术/研发", "产品/设计", "运营/市场", "职能/支持"]:
+        for c in ["BI类", "技术类", "产品类", "设计类", "运营类", "市场类", "职能类", "销售类", "管理类", "金融类", "战略投资类"]:
             db.add(models.JobCategory(name=c))
         db.commit()
         
