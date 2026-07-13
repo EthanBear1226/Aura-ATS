@@ -35,6 +35,19 @@ except Exception:
 # Database Migration for new Job columns (Safe for SQLite)
 def upgrade_db():
     from sqlalchemy import text
+    
+    # 1. 独立自愈 departments 树状 parent_id 字段（防范 MySQL/SQLite 下因其他表的 PRAGMA 抛错而被打断）
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE departments ADD COLUMN parent_id INTEGER NULL"))
+    except Exception:
+        pass
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE departments ADD CONSTRAINT fk_dept_parent FOREIGN KEY (parent_id) REFERENCES departments(id) ON DELETE CASCADE"))
+    except Exception:
+        pass
+
     try:
         with engine.begin() as conn:
             # Check if one of the new columns exists
@@ -56,15 +69,6 @@ def upgrade_db():
                 conn.execute(text("ALTER TABLE candidates ADD COLUMN match_score INTEGER"))
                 conn.execute(text("ALTER TABLE candidates ADD COLUMN match_reason TEXT"))
 
-            # 自动迁移：为 departments 表增补树状 parent_id 列与自引外键
-            try:
-                conn.execute(text("ALTER TABLE departments ADD COLUMN parent_id INTEGER NULL"))
-            except Exception:
-                pass
-            try:
-                conn.execute(text("ALTER TABLE departments ADD CONSTRAINT fk_dept_parent FOREIGN KEY (parent_id) REFERENCES departments(id) ON DELETE CASCADE"))
-            except Exception:
-                pass
     except Exception as e:
         print(f"Migration error (ignoring if tables just created): {e}")
 
