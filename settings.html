@@ -58,6 +58,10 @@
         .tree-select-node-text { font-size: 13px; }
         .tree-select-children { padding-left: 20px; border-left: 1px dashed #e8e8e8; margin-left: 8px; }
         .tree-select-children.collapsed { display: none; }
+        
+        /* 补齐人员卡片角色的圆角Badge样式定义 */
+        .tag-red { background-color: #FDE8E8; color: #E02424; }
+        .tag-gray { background-color: #F3F4F6; color: #4B5563; }
     </style>
 </head>
 <body>
@@ -137,7 +141,7 @@
                         <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:24px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
                             <div class="section-header" style="margin-top:0;">
                                 <h2 class="section-title" style="font-size:18px; display:flex; align-items:center; gap:8px;">
-                                    <span>👤</span>面试官字典库 (排程指定)
+                                    <span>👤</span>面试官人员库 (排程指定)
                                 </h2>
                                 <button class="btn btn-primary" onclick="openDictModal('interviewers', '新增面试官')">+ 新增面试官</button>
                             </div>
