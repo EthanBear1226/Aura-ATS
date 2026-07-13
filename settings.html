@@ -228,7 +228,7 @@
             <h2>邀请新成员加入</h2>
             <div class="form-group" style="margin-bottom:16px;">
                 <label>姓名<span class="required-mark">*</span></label>
-                <input type="text" id="inviteName" class="form-control" placeholder="如: 张三">
+                <input type="text" id="inviteName" class="form-control" placeholder="如: 张三" autocomplete="off">
             </div>
             <div class="form-group" style="margin-bottom:16px;">
                 <label>工作邮箱<span class="required-mark">*</span></label>
@@ -252,7 +252,7 @@
                     </div>
                     <div class="tree-select-dropdown" id="treeSelectDropdown">
                         <div class="tree-select-search-box">
-                            <input type="text" id="treeSelectSearchInput" placeholder="输入部门名称检索..." oninput="filterTreeSelectNodes(event)" onclick="event.stopPropagation()">
+                            <input type="text" id="treeSelectSearchInput" placeholder="输入部门名称检索..." oninput="filterTreeSelectNodes(event)" onclick="event.stopPropagation()" autocomplete="off">
                         </div>
                         <div class="tree-select-nodes-root" id="treeSelectNodesRoot"></div>
                     </div>
@@ -273,7 +273,7 @@
             <h2 id="dictModalTitle">新增条目</h2>
             <div class="form-group">
                 <label>名称<span class="required-mark">*</span></label>
-                <input type="text" id="dictItemName" class="form-control" placeholder="请输入名称">
+                <input type="text" id="dictItemName" class="form-control" placeholder="请输入名称" autocomplete="off">
             </div>
             <!-- 动态注入额外字段 -->
             <div id="dictExtraFields"></div>
@@ -512,14 +512,14 @@
                 extraFields.innerHTML = `
                     <div class="form-group" style="margin-top: 20px;">
                         <label>流转节点 (英文逗号分隔)</label>
-                        <input type="text" id="dictItemStages" class="form-control" placeholder="如: 初筛,一面,二面,HR面" value="初筛,一面,HR面">
+                        <input type="text" id="dictItemStages" class="form-control" placeholder="如: 初筛,一面,二面,HR面" value="初筛,一面,HR面" autocomplete="off">
                     </div>
                 `;
             } else if (type === 'email-templates') {
                 extraFields.innerHTML = `
                     <div class="form-group" style="margin-top: 20px; margin-bottom: 16px;">
                         <label>邮件标题<span class="required-mark">*</span></label>
-                        <input type="text" id="dictItemSubject" class="form-control" placeholder="请输入邮件标题">
+                        <input type="text" id="dictItemSubject" class="form-control" placeholder="请输入邮件标题" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label>邮件正文内容<span class="required-mark">*</span></label>

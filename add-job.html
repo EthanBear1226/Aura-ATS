@@ -151,7 +151,7 @@
                         <div class="form-grid">
                             <div class="form-group full-width">
                                 <label>职位名称<span class="required-mark">*</span></label>
-                                <input type="text" id="jobTitle" required placeholder="如：高级前端工程师">
+                                <input type="text" id="jobTitle" required placeholder="如：高级前端工程师" autocomplete="off">
                             </div>
                             
                              <div class="form-group" style="position:relative;">
@@ -163,7 +163,7 @@
                                      </div>
                                      <div class="tree-select-dropdown" id="treeSelectDropdown">
                                          <div class="tree-select-search-box">
-                                             <input type="text" id="treeSelectSearchInput" placeholder="输入部门名称检索..." oninput="filterTreeSelectNodes(event)" onclick="event.stopPropagation()">
+                                             <input type="text" id="treeSelectSearchInput" placeholder="输入部门名称检索..." oninput="filterTreeSelectNodes(event)" onclick="event.stopPropagation()" autocomplete="off">
                                          </div>
                                          <div class="tree-select-nodes-root" id="treeSelectNodesRoot"></div>
                                          <div class="tree-select-footer" onclick="openMiniDeptModal(event)">
@@ -195,7 +195,7 @@
                                      </div>
                                      <div class="tree-select-dropdown" id="categorySelectDropdown">
                                          <div class="tree-select-search-box">
-                                             <input type="text" id="categorySelectSearchInput" placeholder="输入类别名称检索..." oninput="filterCategorySelectNodes(event)" onclick="event.stopPropagation()">
+                                             <input type="text" id="categorySelectSearchInput" placeholder="输入类别名称检索..." oninput="filterCategorySelectNodes(event)" onclick="event.stopPropagation()" autocomplete="off">
                                          </div>
                                          <div class="tree-select-nodes-root" id="categorySelectNodesRoot"></div>
                                      </div>
@@ -237,18 +237,18 @@
 
                             <div class="form-group">
                                 <label>招聘人数</label>
-                                <input type="number" id="jobHeadcount" required min="1" value="1">
+                                <input type="number" id="jobHeadcount" required min="1" value="1" autocomplete="off">
                             </div>
                             <div class="form-group">
                                 <label>薪资范围<span class="required-mark">*</span></label>
                                 <div class="salary-group">
-                                    <input type="number" id="jobSalaryMin" placeholder="下限" min="0">
+                                    <input type="number" id="jobSalaryMin" placeholder="下限" min="0" autocomplete="off">
                                     <span class="salary-unit">k</span>
                                     <span class="salary-sep">-</span>
-                                    <input type="number" id="jobSalaryMax" placeholder="上限" min="0">
+                                    <input type="number" id="jobSalaryMax" placeholder="上限" min="0" autocomplete="off">
                                     <span class="salary-unit">k</span>
                                     <span class="salary-sep">×</span>
-                                    <input type="number" id="jobSalaryMonths" required min="12" max="24" value="12" title="薪资发放月数">
+                                    <input type="number" id="jobSalaryMonths" required min="12" max="24" value="12" title="薪资发放月数" autocomplete="off">
                                     <span class="salary-unit">薪</span>
                                 </div>
                             </div>
@@ -831,7 +831,7 @@
             <h3>新增部门</h3>
             <div class="form-group">
                 <label>部门名称<span class="required-mark">*</span></label>
-                <input type="text" id="miniDeptName" class="form-control" placeholder="请输入部门名称..." style="width:100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; outline:none;">
+                <input type="text" id="miniDeptName" class="form-control" placeholder="请输入部门名称..." style="width:100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; outline:none;" autocomplete="off">
             </div>
             <div class="form-group" style="margin-top: 16px;">
                 <label>上级部门</label>
