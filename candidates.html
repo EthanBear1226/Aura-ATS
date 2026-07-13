@@ -237,7 +237,7 @@
                     drawSelect.innerHTML = '<option value="" disabled selected>请选择面试官</option>' + interviewers.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
                 }
                 
-                const managers = interviewers.filter(i => i.role_type === 'Manager');
+                const managers = interviewers.filter(i => i.role_type === 'HiringManager' || i.role_type === 'Manager');
                 const recSelect = document.getElementById('recommend-manager-select');
                 if (recSelect) {
                     recSelect.innerHTML = managers.map(m => `<option value="${m.name}">${m.name}</option>`).join('');

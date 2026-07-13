@@ -349,7 +349,7 @@
         async function loadDictionariesForDetail() {
             try {
                 const interviewers = await fetch('/api/settings/interviewers').then(r=>r.json());
-                const managers = interviewers.filter(i => i.role_type === 'Manager');
+                const managers = interviewers.filter(i => i.role_type === 'HiringManager' || i.role_type === 'Manager');
                 
                 const recSelect = document.getElementById('recommend-manager-select');
                 if (recSelect) {

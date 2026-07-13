@@ -51,7 +51,6 @@
                     <div class="settings-nav-item" onclick="switchSetting('categories', event)">🏷️ 职位类别</div>
                     <div class="settings-nav-item" onclick="switchSetting('email-templates', event)">📧 邮件模板</div>
                     <div class="settings-nav-item" onclick="switchSetting('feedback-templates', event)">📝 评价模板</div>
-                    <div class="settings-nav-item" onclick="switchSetting('invitations', event)">👥 成员邀请</div>
                 </div>
 
                 <div class="settings-content">
@@ -84,16 +83,51 @@
                         <div class="dept-tree-root" id="dept-tree-root"></div>
                     </div>
 
-                    <!-- Interviewers -->
+                    <!-- Interviewers & Accounts Combined -->
                     <div id="sec-interviewers" class="settings-section">
-                        <div class="section-header">
-                            <h2 class="section-title">人员库管理</h2>
-                            <button class="btn btn-primary" onclick="openDictModal('interviewers', '新增人员')">+ 新增人员</button>
+                        <!-- 子板块 1：系统协同账户 -->
+                        <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:24px; margin-bottom:32px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
+                            <div class="section-header" style="margin-top:0;">
+                                <h2 class="section-title" style="font-size:18px; display:flex; align-items:center; gap:8px;">
+                                    <span>👥</span>系统协同账户 (可登录后台)
+                                </h2>
+                                <button class="btn btn-primary" onclick="openInviteModal()">+ 发送协同邀请</button>
+                            </div>
+                            <table class="table-container">
+                                <thead>
+                                    <tr>
+                                        <th>展示姓名</th>
+                                        <th>工作邮箱</th>
+                                        <th>所配角色</th>
+                                        <th>所属部门</th>
+                                        <th>创建时间</th>
+                                        <th>当前状态</th>
+                                        <th style="text-align:right;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tb-invitations"></tbody>
+                            </table>
                         </div>
-                        <table class="table-container">
-                            <thead><tr><th>姓名</th><th>角色</th><th style="text-align:right;">操作</th></tr></thead>
-                            <tbody id="tb-interviewers"></tbody>
-                        </table>
+
+                        <!-- 子板块 2：面试官字典库 -->
+                        <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:24px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
+                            <div class="section-header" style="margin-top:0;">
+                                <h2 class="section-title" style="font-size:18px; display:flex; align-items:center; gap:8px;">
+                                    <span>👤</span>面试官字典库 (排程指定)
+                                </h2>
+                                <button class="btn btn-primary" onclick="openDictModal('interviewers', '新增面试官')">+ 新增面试官</button>
+                            </div>
+                            <table class="table-container">
+                                <thead>
+                                    <tr>
+                                        <th>姓名</th>
+                                        <th>角色</th>
+                                        <th style="text-align:right;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tb-interviewers"></tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <!-- Locations -->
@@ -153,28 +187,6 @@
                         <table class="table-container">
                             <thead><tr><th>模板名称</th><th style="text-align:right;">操作</th></tr></thead>
                             <tbody id="tb-feedback-templates"></tbody>
-                        </table>
-                    </div>
-
-                    <!-- Invitations -->
-                    <div id="sec-invitations" class="settings-section">
-                        <div class="section-header">
-                            <h2 class="section-title">企业协同邀约</h2>
-                            <button class="btn btn-primary" onclick="openInviteModal()">+ 发送协同邀请</button>
-                        </div>
-                        <table class="table-container">
-                            <thead>
-                                <tr>
-                                    <th>展示姓名</th>
-                                    <th>工作邮箱</th>
-                                    <th>所配角色</th>
-                                    <th>所属部门</th>
-                                    <th>创建时间</th>
-                                    <th>当前状态</th>
-                                    <th style="text-align:right;">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tb-invitations"></tbody>
                         </table>
                     </div>
                 </div>
@@ -270,8 +282,13 @@
             tbody.innerHTML = data.map(d => {
                 let extra = '';
                 if (type === 'interviewers') {
-                    let badgeClass = d.role_type === 'Manager' ? 'tag-blue' : 'tag-gray';
-                    extra = `<td><span class="tag ${badgeClass}">${d.role_type}</span></td>`;
+                    let badgeClass = 'tag-gray';
+                    let roleChinese = d.role_type;
+                    if (d.role_type === 'Admin') { badgeClass = 'tag-red'; roleChinese = '系统管理员'; }
+                    else if (d.role_type === 'Recruiter' || d.role_type === 'HR') { badgeClass = 'tag-green'; roleChinese = 'HR/招聘官'; }
+                    else if (d.role_type === 'HiringManager' || d.role_type === 'Manager') { badgeClass = 'tag-blue'; roleChinese = '用人经理'; }
+                    else if (d.role_type === 'Interviewer') { badgeClass = 'tag-gray'; roleChinese = '面试官'; }
+                    extra = `<td><span class="tag ${badgeClass}">${roleChinese}</span></td>`;
                 }
                 if (type === 'locations') extra = `<td><span class="tag tag-gray">${d.type}</span></td>`;
                 if (type === 'interview-processes') extra = `<td><code style="background:#f4f4f4; padding:2px 6px; border-radius:4px; font-size:12px;">${d.stages}</code></td>`;
@@ -437,9 +454,10 @@
                     <div class="form-group" style="margin-top: 20px;">
                         <label>角色分配</label>
                         <select id="dictItemRole" class="form-control" style="background:white;">
-                            <option value="Manager">用人经理</option>
+                            <option value="Admin">系统管理员</option>
+                            <option value="Recruiter">HR/招聘官</option>
+                            <option value="HiringManager">用人经理</option>
                             <option value="Interviewer">面试官</option>
-                            <option value="HR">人事</option>
                         </select>
                     </div>
                 `;
@@ -601,10 +619,17 @@
                     } catch(e) {}
                 }
                 
+                let roleClass = 'tag-gray';
+                let roleChinese = d.role;
+                if (d.role === 'Admin') { roleClass = 'tag-red'; roleChinese = '系统管理员'; }
+                else if (d.role === 'Recruiter') { roleClass = 'tag-green'; roleChinese = 'HR/招聘官'; }
+                else if (d.role === 'HiringManager') { roleClass = 'tag-blue'; roleChinese = '用人经理'; }
+                else if (d.role === 'Interviewer') { roleClass = 'tag-gray'; roleChinese = '面试官'; }
+
                 return `<tr>
                     <td style="font-weight:500; font-size:14px;">${d.name}</td>
                     <td>${d.email}</td>
-                    <td><span class="tag tag-gray">${d.role}</span></td>
+                    <td><span class="tag ${roleClass}">${roleChinese}</span></td>
                     <td>${d.department || '未分配'}</td>
                     <td style="color:var(--text-secondary); font-size:13px;">${dateStr}</td>
                     <td><span class="tag ${badgeClass}">${statusText}</span></td>

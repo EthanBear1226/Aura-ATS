@@ -83,9 +83,9 @@ def seed_dicts():
         db.commit()
 
     if db.query(models.Interviewer).count() == 0:
-        db.add(models.Interviewer(name="研发总监", role_type="Manager"))
-        db.add(models.Interviewer(name="产品总监", role_type="Manager"))
-        db.add(models.Interviewer(name="HR 李", role_type="HR"))
+        db.add(models.Interviewer(name="研发总监", role_type="HiringManager"))
+        db.add(models.Interviewer(name="产品总监", role_type="HiringManager"))
+        db.add(models.Interviewer(name="HR 李", role_type="Recruiter"))
         db.commit()
 
     if db.query(models.EmailTemplate).count() == 0:
