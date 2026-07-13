@@ -34,6 +34,30 @@
         .form-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: var(--text-primary); }
         .form-control { width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 14px; outline: none; transition: var(--transition); box-sizing: border-box; }
         .form-control:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(10,132,255,0.1); }
+
+        /* 树形检索选择器专属样式 */
+        .tree-select-container { position: relative; width: 100%; }
+        .tree-select-display { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 14px; background: white; cursor: pointer; transition: all 0.2s ease; user-select: none; box-sizing: border-box; }
+        .tree-select-display:hover { border-color: var(--primary-color); }
+        .tree-select-container.active .tree-select-display { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(10,132,255,0.1); }
+        .tree-select-arrow { font-size: 10px; color: var(--text-secondary); transition: transform 0.2s ease; }
+        .tree-select-container.active .tree-select-arrow { transform: rotate(180deg); }
+        .tree-select-dropdown { display: none; position: absolute; top: 100%; left: 0; width: 100%; margin-top: 6px; background: white; border: 1px solid var(--border-color); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); z-index: 1050; max-height: 260px; overflow-y: auto; box-sizing: border-box; padding: 8px; }
+        .tree-select-container.active .tree-select-dropdown { display: block; animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .tree-select-search-box { padding: 4px; margin-bottom: 8px; }
+        .tree-select-search-box input { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 13px; outline: none; box-sizing: border-box; }
+        .tree-select-search-box input:focus { border-color: var(--primary-color); }
+        .tree-select-nodes-root { padding: 2px; }
+        .tree-select-node { margin: 2px 0; }
+        .tree-select-node-item { display: flex; align-items: center; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background 0.15s; user-select: none; }
+        .tree-select-node-item:hover { background: #f5f9ff; }
+        .tree-select-node-item.selected { background: #e6f7ff; color: var(--primary-color); font-weight: 500; }
+        .tree-select-node-toggle { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; font-size: 8px; color: var(--text-secondary); margin-right: 4px; transition: transform 0.15s; }
+        .tree-select-node-toggle.collapsed { transform: rotate(-90deg); }
+        .tree-select-node-text { font-size: 13px; }
+        .tree-select-children { padding-left: 20px; border-left: 1px dashed #e8e8e8; margin-left: 8px; }
+        .tree-select-children.collapsed { display: none; }
     </style>
 </head>
 <body>
@@ -215,11 +239,20 @@
                     <option value="Interviewer">面试官</option>
                 </select>
             </div>
-            <div class="form-group" style="margin-bottom:16px;">
+            <div class="form-group" style="margin-bottom:16px; position:relative;">
                 <label>所属部门</label>
-                <select id="inviteDept" class="form-control">
-                    <option value="">请选择部门...</option>
-                </select>
+                <div class="tree-select-container" id="inviteDeptContainer">
+                    <div class="tree-select-display" onclick="toggleTreeSelectDropdown(event)">
+                        <span id="tree-select-val-text">请选择所属部门...</span>
+                        <span class="tree-select-arrow">▼</span>
+                    </div>
+                    <div class="tree-select-dropdown" id="treeSelectDropdown">
+                        <div class="tree-select-search-box">
+                            <input type="text" id="treeSelectSearchInput" placeholder="输入部门名称检索..." oninput="filterTreeSelectNodes(event)" onclick="event.stopPropagation()">
+                        </div>
+                        <div class="tree-select-nodes-root" id="treeSelectNodesRoot"></div>
+                    </div>
+                </div>
             </div>
             
             <div style="display:flex; gap:12px; margin-top:32px;">
@@ -692,23 +725,140 @@
             });
         }
 
+        // --- 树状选择器 (TreeSelect) 原生核心引擎 ---
+        let selectedInviteDept = '';
+
+        function toggleTreeSelectDropdown(event) {
+            event.stopPropagation();
+            document.getElementById('inviteDeptContainer').classList.toggle('active');
+        }
+
+        // 递归渲染下拉树节点
+        function renderTreeSelectNode(node) {
+            const hasChildren = node.children && node.children.length > 0;
+            const toggleHtml = hasChildren 
+                ? `<span class="tree-select-node-toggle" onclick="toggleTreeSelectNodeCollapse(${node.id}, event)">▼</span>` 
+                : `<span class="tree-select-node-toggle" style="visibility:hidden;">▼</span>`;
+            
+            let childrenHtml = '';
+            if (hasChildren) {
+                childrenHtml = `
+                    <div class="tree-select-children" id="tree-select-children-${node.id}">
+                        ${node.children.map(c => renderTreeSelectNode(c)).join('')}
+                    </div>
+                `;
+            }
+
+            const isSelected = selectedInviteDept === node.name ? 'selected' : '';
+
+            return `
+                <div class="tree-select-node" id="tree-select-node-${node.id}">
+                    <div class="tree-select-node-item ${isSelected}" data-name="${node.name}" onclick="selectTreeSelectNode('${node.name}')">
+                        ${toggleHtml}
+                        <span class="tree-select-node-text">🏢 ${node.name}</span>
+                    </div>
+                    ${childrenHtml}
+                </div>
+            `;
+        }
+
+        function toggleTreeSelectNodeCollapse(id, event) {
+            event.stopPropagation();
+            const container = document.getElementById(`tree-select-children-${id}`);
+            const toggle = event.currentTarget;
+            if (container) {
+                container.classList.toggle('collapsed');
+                toggle.classList.toggle('collapsed');
+            }
+        }
+
+        function selectTreeSelectNode(deptName) {
+            selectedInviteDept = deptName;
+            document.getElementById('tree-select-val-text').innerText = deptName || '请选择所属部门...';
+            document.querySelectorAll('.tree-select-node-item').forEach(el => {
+                if (el.getAttribute('data-name') === deptName) {
+                    el.classList.add('selected');
+                } else {
+                    el.classList.remove('selected');
+                }
+            });
+            document.getElementById('inviteDeptContainer').classList.remove('active');
+        }
+
+        // 树状递归搜索与自动路径展开
+        function filterTreeSelectNodes(event) {
+            const keyword = event.target.value.trim().toLowerCase();
+            const depts = cachedDicts['departments'] || [];
+            
+            if (!keyword) {
+                // 恢复显示
+                document.querySelectorAll('.tree-select-node').forEach(el => el.style.display = 'block');
+                return;
+            }
+            
+            // 深度优先查找命中情况
+            function hasMatchingDescendant(dept) {
+                if (dept.name.toLowerCase().includes(keyword)) return true;
+                const children = depts.filter(d => d.parent_id === dept.id);
+                return children.some(c => hasMatchingDescendant(c));
+            }
+            
+            depts.forEach(d => {
+                const nodeEl = document.getElementById(`tree-select-node-${d.id}`);
+                if (nodeEl) {
+                    if (hasMatchingDescendant(d)) {
+                        nodeEl.style.display = 'block';
+                        // 命中的话，强行把其父辈路径在视觉上展开
+                        if (d.parent_id) {
+                            const parentContainer = document.getElementById(`tree-select-children-${d.parent_id}`);
+                            const parentToggle = parentContainer ? parentContainer.previousElementSibling.querySelector('.tree-select-node-toggle') : null;
+                            if (parentContainer) parentContainer.classList.remove('collapsed');
+                            if (parentToggle) parentToggle.classList.remove('collapsed');
+                        }
+                    } else {
+                        nodeEl.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        // 全局点击拦截以隐藏下拉面板
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('inviteDeptContainer');
+            if (container && !container.contains(e.target)) {
+                container.classList.remove('active');
+            }
+        });
+
         async function openInviteModal() {
             document.getElementById('inviteName').value = '';
             document.getElementById('inviteEmail').value = '';
             document.getElementById('inviteRole').selectedIndex = 0;
-            const deptSelect = document.getElementById('inviteDept');
-            deptSelect.innerHTML = '<option value="">请选择部门...</option>';
+            document.getElementById('treeSelectSearchInput').value = '';
+            
+            // 重置选中项
+            selectedInviteDept = '';
+            document.getElementById('tree-select-val-text').innerText = '请选择所属部门...';
+            
+            const root = document.getElementById('treeSelectNodesRoot');
+            root.innerHTML = '<div style="text-align:center; padding:12px; color:var(--text-secondary); font-size:13px;">加载部门列表中...</div>';
             
             try {
                 const response = await fetch('/api/settings/departments');
                 if (response.ok) {
                     const depts = await response.json();
-                    depts.forEach(d => {
-                        const opt = new Option(d.name, d.name);
-                        deptSelect.add(opt);
-                    });
+                    cachedDicts['departments'] = depts;
+                    const tree = buildTree(depts);
+                    if (tree.length === 0) {
+                        root.innerHTML = '<div style="text-align:center; padding:12px; color:var(--text-secondary); font-size:13px;">暂无可用部门</div>';
+                    } else {
+                        root.innerHTML = tree.map(node => renderTreeSelectNode(node)).join('');
+                    }
                 }
-            } catch(e) { console.error('Failed to load departments for invite', e); }
+            } catch(e) { 
+                console.error('Failed to load departments for invite', e); 
+                root.innerHTML = '<div style="text-align:center; padding:12px; color:#ff3b30; font-size:13px;">加载部门失败</div>';
+            }
             
             document.getElementById('inviteModal').classList.add('active');
         }
@@ -721,7 +871,7 @@
             const name = document.getElementById('inviteName').value.trim();
             const email = document.getElementById('inviteEmail').value.trim();
             const role = document.getElementById('inviteRole').value;
-            const department = document.getElementById('inviteDept').value;
+            const department = selectedInviteDept;
             
             if (!name || !email || !role) {
                 showToast('请填写姓名、邮箱并指派角色', 'error');
