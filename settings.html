@@ -113,13 +113,13 @@
 
                     <!-- Interviewers & Accounts Combined -->
                     <div id="sec-interviewers" class="settings-section">
-                        <!-- 子板块 1：系统协同账户 -->
+                        <!-- 子板块 1：系统管理员账号 -->
                         <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:36px; margin-bottom:36px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
                             <div class="section-header" style="margin-top:0;">
                                 <h2 class="section-title" style="font-size:18px; display:flex; align-items:center; gap:8px;">
-                                    <span>👥</span>系统协同账户 (可登录后台)
+                                    <span>👥</span>系统管理员账号
                                 </h2>
-                                <button class="btn btn-primary" onclick="openInviteModal()">+ 发送协同邀请</button>
+                                <button class="btn btn-primary" onclick="openInviteModal('Admin', true)">+ 邀请系统管理员</button>
                             </div>
                             <table class="table-container">
                                 <thead>
@@ -133,27 +133,31 @@
                                         <th style="text-align:right;">操作</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tb-invitations"></tbody>
+                                <tbody id="tb-invitations-admin"></tbody>
                             </table>
                         </div>
 
-                        <!-- 子板块 2：面试官字典库 -->
+                        <!-- 子板块 2：协作人账号 -->
                         <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:36px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
                             <div class="section-header" style="margin-top:0;">
                                 <h2 class="section-title" style="font-size:18px; display:flex; align-items:center; gap:8px;">
-                                    <span>👤</span>面试官人员库 (排程指定)
+                                    <span>👥</span>协作人账号
                                 </h2>
-                                <button class="btn btn-primary" onclick="openInviteModal('Interviewer')">+ 邀请面试官</button>
+                                <button class="btn btn-primary" onclick="openInviteModal('Interviewer', false)">+ 邀请协作人</button>
                             </div>
                             <table class="table-container">
                                 <thead>
                                     <tr>
-                                        <th>姓名</th>
-                                        <th>角色</th>
+                                        <th>展示姓名</th>
+                                        <th>工作邮箱</th>
+                                        <th>所配角色</th>
+                                        <th>所属部门</th>
+                                        <th>创建时间</th>
+                                        <th>当前状态</th>
                                         <th style="text-align:right;">操作</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tb-interviewers"></tbody>
+                                <tbody id="tb-invitations-collaborator"></tbody>
                             </table>
                         </div>
                     </div>
@@ -225,22 +229,19 @@
     <!-- 高保真成员邀请弹窗 -->
     <div class="modal-overlay" id="inviteModal">
         <div class="modal-card">
-            <h2>邀请新成员加入</h2>
+            <h2 id="inviteModalTitle">邀请新成员</h2>
             <div class="form-group" style="margin-bottom:16px;">
                 <label>姓名<span class="required-mark">*</span></label>
                 <input type="text" id="inviteName" class="form-control" placeholder="如: 张三" autocomplete="off">
             </div>
             <div class="form-group" style="margin-bottom:16px;">
                 <label>工作邮箱<span class="required-mark">*</span></label>
-                <input type="email" id="inviteEmail" class="form-control" placeholder="如: test@example.com">
+                <input type="email" id="inviteEmail" class="form-control" placeholder="如: test@example.com" autocomplete="off">
             </div>
             <div class="form-group" style="margin-bottom:16px;">
                 <label>角色权限<span class="required-mark">*</span></label>
                 <select id="inviteRole" class="form-control">
-                    <option value="Admin">系统管理员</option>
-                    <option value="Recruiter">HR/招聘官</option>
-                    <option value="HiringManager">用人经理</option>
-                    <option value="Interviewer">面试官</option>
+                    <!-- 动态注入 options -->
                 </select>
             </div>
             <div class="form-group" style="margin-bottom:16px; position:relative;">
@@ -426,7 +427,7 @@
                 }
 
                 // 2. 获取并渲染其余四大基础配置字典
-                fetch('/api/settings/interviewers').then(r=>r.json()).then(d => { cachedDicts['interviewers'] = d; renderTableRows('tb-interviewers', d, 3, 'interviewers'); });
+                fetch('/api/settings/interviewers').then(r=>r.json()).then(d => { cachedDicts['interviewers'] = d; });
                 fetch('/api/settings/locations').then(r=>r.json()).then(d => { cachedDicts['locations'] = d; renderTableRows('tb-locations', d, 3, 'locations'); });
                 fetch('/api/settings/interview-processes').then(r=>r.json()).then(d => { cachedDicts['interview-processes'] = d; renderTableRows('tb-processes', d, 3, 'interview-processes'); });
                 fetch('/api/settings/categories').then(r=>r.json()).then(d => { cachedDicts['categories'] = d; renderTableRows('tb-categories', d, 2, 'categories'); });
@@ -671,15 +672,35 @@
         }
 
         function renderInvitations(data) {
-            const tbody = document.getElementById('tb-invitations');
-            if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="empty-state">
+            const adminTbody = document.getElementById('tb-invitations-admin');
+            const collabTbody = document.getElementById('tb-invitations-collaborator');
+            
+            const admins = (data || []).filter(d => d.role === 'Admin');
+            const collabs = (data || []).filter(d => d.role !== 'Admin');
+            
+            // 渲染系统管理员
+            if (admins.length === 0) {
+                adminTbody.innerHTML = `<tr><td colspan="7" class="empty-state">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                    <div>当前暂无已发出的协同成员邀请</div>
+                    <div>当前暂无已发出的系统管理员邀请</div>
                 </td></tr>`;
-                return;
+            } else {
+                adminTbody.innerHTML = renderInvitationRows(admins);
             }
-            tbody.innerHTML = data.map(d => {
+            
+            // 渲染协作人
+            if (collabs.length === 0) {
+                collabTbody.innerHTML = `<tr><td colspan="7" class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <div>当前暂无已发出的协作人邀请</div>
+                </td></tr>`;
+            } else {
+                collabTbody.innerHTML = renderInvitationRows(collabs);
+            }
+        }
+        
+        function renderInvitationRows(list) {
+            return list.map(d => {
                 const badgeClass = d.status === 'pending' ? 'tag-orange' : 'tag-green';
                 const statusText = d.status === 'pending' ? '等待激活' : '已接受';
                 
@@ -834,14 +855,30 @@
             }
         });
 
-        async function openInviteModal(defaultRole = null) {
+        async function openInviteModal(defaultRole = null, isAdminOnly = false) {
             document.getElementById('inviteName').value = '';
             document.getElementById('inviteEmail').value = '';
-            if (defaultRole) {
-                document.getElementById('inviteRole').value = defaultRole;
+            
+            const titleEl = document.getElementById('inviteModalTitle');
+            const roleSelect = document.getElementById('inviteRole');
+            
+            if (isAdminOnly) {
+                if (titleEl) titleEl.innerText = '邀请系统管理员';
+                roleSelect.innerHTML = `<option value="Admin" selected>系统管理员</option>`;
             } else {
-                document.getElementById('inviteRole').selectedIndex = 0;
+                if (titleEl) titleEl.innerText = '邀请协作人';
+                roleSelect.innerHTML = `
+                    <option value="Interviewer">面试官</option>
+                    <option value="HiringManager">用人经理</option>
+                    <option value="Recruiter">HR/招聘官</option>
+                `;
+                if (defaultRole && defaultRole !== 'Admin') {
+                    roleSelect.value = defaultRole;
+                } else {
+                    roleSelect.selectedIndex = 0;
+                }
             }
+            
             document.getElementById('treeSelectSearchInput').value = '';
             
             // 重置选中项
