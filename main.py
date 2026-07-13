@@ -868,15 +868,22 @@ def get_departments(db: Session = Depends(get_db), current_user: models.User = D
 
 @app.post("/api/settings/departments", response_model=schemas.Department)
 def create_department(item: schemas.DepartmentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    existing = db.query(models.Department).filter(models.Department.name == item.name).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="该部门名称已存在，请勿重复添加")
-        
-    db_item = models.Department(**item.model_dump())
-    db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
-    return db_item
+    try:
+        existing = db.query(models.Department).filter(models.Department.name == item.name).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="该部门名称已存在，请勿重复添加")
+            
+        db_item = models.Department(**item.model_dump())
+        db.add(db_item)
+        db.commit()
+        db.refresh(db_item)
+        return db_item
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"数据库异常: {str(e)}")
 
 @app.delete("/api/settings/departments/{item_id}")
 def delete_department(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -958,24 +965,31 @@ def delete_category(item_id: int, db: Session = Depends(get_db), current_user: m
 
 @app.patch("/api/settings/departments/{item_id}", response_model=schemas.Department)
 def update_department(item_id: int, item: schemas.DepartmentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    db_item = db.query(models.Department).filter(models.Department.id == item_id).first()
-    if not db_item:
-        raise HTTPException(status_code=404, detail="Department not found")
-    
-    # 检查重名（排查自身）
-    existing = db.query(models.Department).filter(models.Department.name == item.name, models.Department.id != item_id).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="该部门名称已存在，请勿重复添加")
-    
-    # 环路指派防御逻辑：在树形配置中，不能把上级部门设为自己
-    if item.parent_id == item_id:
-        raise HTTPException(status_code=400, detail="Cannot set parent department to itself")
+    try:
+        db_item = db.query(models.Department).filter(models.Department.id == item_id).first()
+        if not db_item:
+            raise HTTPException(status_code=404, detail="Department not found")
         
-    for key, val in item.model_dump().items():
-        setattr(db_item, key, val)
-    db.commit()
-    db.refresh(db_item)
-    return db_item
+        # 检查重名（排查自身）
+        existing = db.query(models.Department).filter(models.Department.name == item.name, models.Department.id != item_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="该部门名称已存在，请勿重复添加")
+        
+        # 环路指派防御逻辑：在树形配置中，不能把上级部门设为自己
+        if item.parent_id == item_id:
+            raise HTTPException(status_code=400, detail="Cannot set parent department to itself")
+            
+        for key, val in item.model_dump().items():
+            setattr(db_item, key, val)
+        db.commit()
+        db.refresh(db_item)
+        return db_item
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"数据库异常: {str(e)}")
 
 @app.patch("/api/settings/interviewers/{item_id}", response_model=schemas.Interviewer)
 def update_interviewer(item_id: int, item: schemas.InterviewerCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
