@@ -67,18 +67,13 @@
                         emailInput.style.color = 'var(--text-secondary)';
                         emailInput.style.cursor = 'not-allowed';
                         
-                        // 填充姓名
-                        document.getElementById('name').value = invite.name || '';
-                        
-                        // 动态追加角色与部门信息卡片
-                        const form = document.getElementById('registerForm');
-                        const infoCard = document.createElement('div');
-                        infoCard.style.cssText = "font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; padding: 12px 16px; background: rgba(10,132,255,0.05); border: 1px solid rgba(10,132,255,0.12); border-radius: var(--radius-sm); line-height: 1.6;";
-                        infoCard.innerHTML = `
-                            <div>指派权限：<strong style="color:var(--text-primary)">${invite.role}</strong></div>
-                            <div>指派部门：<strong style="color:var(--text-primary)">${invite.department || '未分配'}</strong></div>
-                        `;
-                        form.insertBefore(infoCard, companyGroup);
+                        // 填充姓名并设为只读 (无权更改，以邀请填写的为主)
+                        const nameInput = document.getElementById('name');
+                        nameInput.value = invite.name || '';
+                        nameInput.readOnly = true;
+                        nameInput.style.background = 'rgba(0, 0, 0, 0.03)';
+                        nameInput.style.color = 'var(--text-secondary)';
+                        nameInput.style.cursor = 'not-allowed';
                         
                         // 隐藏登录页返回链接
                         document.querySelector('.auth-links').style.display = 'none';
