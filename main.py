@@ -868,6 +868,10 @@ def get_departments(db: Session = Depends(get_db), current_user: models.User = D
 
 @app.post("/api/settings/departments", response_model=schemas.Department)
 def create_department(item: schemas.DepartmentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    existing = db.query(models.Department).filter(models.Department.name == item.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="该部门名称已存在，请勿重复添加")
+        
     db_item = models.Department(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -957,6 +961,11 @@ def update_department(item_id: int, item: schemas.DepartmentCreate, db: Session 
     db_item = db.query(models.Department).filter(models.Department.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Department not found")
+    
+    # 检查重名（排查自身）
+    existing = db.query(models.Department).filter(models.Department.name == item.name, models.Department.id != item_id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="该部门名称已存在，请勿重复添加")
     
     # 环路指派防御逻辑：在树形配置中，不能把上级部门设为自己
     if item.parent_id == item_id:

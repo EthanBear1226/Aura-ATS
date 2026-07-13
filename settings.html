@@ -545,10 +545,18 @@
                     closeDictModal();
                     loadAllDicts();
                 } else {
-                    const err = await response.json();
-                    showToast(err.detail || '保存失败', 'error');
+                    let errMsg = '保存失败';
+                    try {
+                        const err = await response.json();
+                        errMsg = err.detail || errMsg;
+                    } catch(jsonErr) {
+                        errMsg = `保存失败 (状态码: ${response.status})`;
+                    }
+                    showToast(errMsg, 'error');
                 }
-            } catch (e) { showToast('网络错误', 'error'); }
+            } catch (e) { 
+                showToast('保存失败，请检查网络或参数格式', 'error'); 
+            }
         }
 
         async function deleteDict(type, id) {
@@ -558,8 +566,17 @@
                     if(response.ok) {
                         showToast('已删除', 'success');
                         loadAllDicts();
+                    } else {
+                        let errMsg = '删除失败';
+                        try {
+                            const err = await response.json();
+                            errMsg = err.detail || errMsg;
+                        } catch(jsonErr) {
+                            errMsg = `删除失败 (状态码: ${response.status})`;
+                        }
+                        showToast(errMsg, 'error');
                     }
-                } catch(e) { showToast('删除失败', 'error'); }
+                } catch(e) { showToast('删除失败，请检查网络', 'error'); }
             });
         }
 
