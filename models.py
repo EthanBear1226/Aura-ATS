@@ -64,8 +64,11 @@ class Department(Base):
     __tablename__ = "departments"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, index=True)
+    parent_id = Column(Integer, ForeignKey("departments.id", ondelete="CASCADE"), nullable=True)
     status = Column(String(50), default="active")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    parent = relationship("Department", remote_side=[id], backref="children")
 
 class Interviewer(Base):
     __tablename__ = "interviewers"

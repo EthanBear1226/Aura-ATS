@@ -105,9 +105,11 @@ class DictItemBase(BaseModel):
     name: str
 
 class DepartmentCreate(DictItemBase):
-    pass
+    parent_id: Optional[int] = None
+
 class Department(DictItemBase):
     id: int
+    parent_id: Optional[int] = None
     status: str
     class Config: from_attributes = True
 

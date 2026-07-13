@@ -61,10 +61,27 @@
                             <h2 class="section-title">部门架构管理</h2>
                             <button class="btn btn-primary" onclick="openDictModal('departments', '新增部门')">+ 新增部门</button>
                         </div>
-                        <table class="table-container">
-                            <thead><tr><th>部门名称</th><th style="text-align:right;">操作</th></tr></thead>
-                            <tbody id="tb-departments"></tbody>
-                        </table>
+                        <style>
+                            .dept-tree-root { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+                            .dept-tree-node { position: relative; margin-top: 8px; margin-bottom: 8px; }
+                            .dept-node-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 8px; border: 1px solid transparent; background: #fdfdfd; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 4px rgba(0,0,0,0.01); }
+                            .dept-node-item:hover { background: #f5f9ff; border-color: #d0e4ff; box-shadow: 0 4px 8px rgba(10,132,255,0.05); }
+                            .dept-node-info { display: flex; align-items: center; gap: 8px; }
+                            .dept-node-toggle { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; color: var(--text-secondary); transition: transform 0.2s ease; }
+                            .dept-node-toggle.collapsed { transform: rotate(-90deg); }
+                            .dept-node-actions { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; display: flex; gap: 6px; }
+                            .dept-node-item:hover .dept-node-actions { opacity: 1; pointer-events: auto; }
+                            .dept-node-btn { border: none; background: none; cursor: pointer; padding: 4px 8px; font-size: 13px; font-weight: 500; border-radius: 4px; transition: background 0.2s; }
+                            .dept-node-btn.add { color: var(--primary-color); }
+                            .dept-node-btn.add:hover { background: #e6f7ff; }
+                            .dept-node-btn.edit { color: var(--text-primary); }
+                            .dept-node-btn.edit:hover { background: #f0f0f0; }
+                            .dept-node-btn.delete { color: #ff3b30; }
+                            .dept-node-btn.delete:hover { background: #fff1f0; }
+                            .dept-children-container { padding-left: 28px; border-left: 1px dashed var(--border-color); margin-left: 10px; transition: max-height 0.3s ease-out, opacity 0.2s; overflow: hidden; }
+                            .dept-children-container.collapsed { max-height: 0 !important; opacity: 0; pointer-events: none; }
+                        </style>
+                        <div class="dept-tree-root" id="dept-tree-root"></div>
                     </div>
 
                     <!-- Interviewers -->
@@ -119,9 +136,10 @@
                     <div id="sec-email-templates" class="settings-section">
                         <div class="section-header">
                             <h2 class="section-title">邮件模板配置</h2>
+                            <button class="btn btn-primary" onclick="openDictModal('email-templates', '新增邮件模板')">+ 新增模板</button>
                         </div>
                         <table class="table-container">
-                            <thead><tr><th>模板名称</th><th>邮件标题</th></tr></thead>
+                            <thead><tr><th>模板名称</th><th>邮件标题</th><th style="text-align:right;">操作</th></tr></thead>
                             <tbody id="tb-email-templates"></tbody>
                         </table>
                     </div>
@@ -130,9 +148,10 @@
                     <div id="sec-feedback-templates" class="settings-section">
                         <div class="section-header">
                             <h2 class="section-title">面试评价表配置</h2>
+                            <button class="btn btn-primary" onclick="openDictModal('feedback-templates', '新增评价模板')">+ 新增模板</button>
                         </div>
                         <table class="table-container">
-                            <thead><tr><th>模板名称</th></tr></thead>
+                            <thead><tr><th>模板名称</th><th style="text-align:right;">操作</th></tr></thead>
                             <tbody id="tb-feedback-templates"></tbody>
                         </table>
                     </div>
@@ -234,6 +253,10 @@
             document.getElementById('sec-' + type).classList.add('active');
         }
 
+        let cachedDicts = {}; // 7大基础配置字典及模板数据的全局缓存
+        let isEditMode = false;
+        let editItemId = null;
+
         function renderTableRows(tbodyId, data, cols, type) {
             const tbody = document.getElementById(tbodyId);
             if (!data || data.length === 0) {
@@ -252,62 +275,168 @@
                 }
                 if (type === 'locations') extra = `<td><span class="tag tag-gray">${d.type}</span></td>`;
                 if (type === 'interview-processes') extra = `<td><code style="background:#f4f4f4; padding:2px 6px; border-radius:4px; font-size:12px;">${d.stages}</code></td>`;
+                if (type === 'email-templates') extra = `<td>${d.subject}</td>`;
                 
                 return `<tr>
                     <td style="font-weight:500; font-size:14px;">${d.name}</td>
                     ${extra}
                     <td style="text-align:right;">
+                        <button class="btn" style="color:var(--primary-color); padding:6px 12px; font-size:13px; margin-right:8px;" onclick="editDict('${type}', ${d.id})">编辑</button>
                         <button class="btn" style="color:#FF3B30; padding:6px 12px; font-size:13px;" onclick="deleteDict('${type}', ${d.id})">删除</button>
                     </td>
                 </tr>`;
             }).join('');
         }
 
+        // --- 部门树状架构深度优先 (DFS) 递归渲染算法 ---
+        function buildTree(depts) {
+            const idMap = {};
+            depts.forEach(d => { idMap[d.id] = { ...d, children: [] }; });
+            const tree = [];
+            depts.forEach(d => {
+                const mapped = idMap[d.id];
+                if (d.parent_id && idMap[d.parent_id]) {
+                    idMap[d.parent_id].children.push(mapped);
+                } else {
+                    tree.push(mapped);
+                }
+            });
+            return tree;
+        }
+
+        function renderDeptNode(node) {
+            const hasChildren = node.children && node.children.length > 0;
+            const toggleHtml = hasChildren 
+                ? `<span class="dept-node-toggle" onclick="toggleDeptCollapse(${node.id}, event)">▼</span>` 
+                : `<span class="dept-node-toggle" style="visibility:hidden;">▼</span>`;
+            
+            let childrenHtml = '';
+            if (hasChildren) {
+                childrenHtml = `
+                    <div class="dept-children-container" id="dept-children-${node.id}">
+                        ${node.children.map(c => renderDeptNode(c)).join('')}
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="dept-tree-node" id="dept-node-${node.id}">
+                    <div class="dept-node-item">
+                        <div class="dept-node-info">
+                            ${toggleHtml}
+                            <span style="font-size:18px;">🏢</span>
+                            <span style="font-weight:600; font-size:14px; color:var(--text-primary);">${node.name}</span>
+                        </div>
+                        <div class="dept-node-actions">
+                            <button class="dept-node-btn add" onclick="openDictModal('departments', '新增子部门', null, ${node.id})">➕ 子部门</button>
+                            <button class="dept-node-btn edit" onclick="editDict('departments', ${node.id})">✏️ 编辑</button>
+                            <button class="dept-node-btn delete" onclick="deleteDict('departments', ${node.id})">❌ 删除</button>
+                        </div>
+                    </div>
+                    ${childrenHtml}
+                </div>
+            `;
+        }
+
+        function toggleDeptCollapse(id, event) {
+            event.stopPropagation();
+            const container = document.getElementById(`dept-children-${id}`);
+            const toggle = event.currentTarget;
+            if (container) {
+                container.classList.toggle('collapsed');
+                toggle.classList.toggle('collapsed');
+            }
+        }
+
+        function renderDeptTree(depts) {
+            const root = document.getElementById('dept-tree-root');
+            if (!depts || depts.length === 0) {
+                root.innerHTML = `<div class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <div>当前暂无部门数据，请点击上方按钮新增</div>
+                </div>`;
+                return;
+            }
+            const tree = buildTree(depts);
+            root.innerHTML = tree.map(node => renderDeptNode(node)).join('');
+        }
+
         async function loadAllDicts() {
             try {
-                fetch('/api/settings/departments').then(r=>r.json()).then(d => renderTableRows('tb-departments', d, 2, 'departments'));
-                fetch('/api/settings/interviewers').then(r=>r.json()).then(d => renderTableRows('tb-interviewers', d, 3, 'interviewers'));
-                fetch('/api/settings/locations').then(r=>r.json()).then(d => renderTableRows('tb-locations', d, 3, 'locations'));
-                fetch('/api/settings/interview-processes').then(r=>r.json()).then(d => renderTableRows('tb-processes', d, 3, 'interview-processes'));
-                fetch('/api/settings/categories').then(r=>r.json()).then(d => renderTableRows('tb-categories', d, 2, 'categories'));
+                // 1. 获取并渲染部门树
+                const deptsRes = await fetch('/api/settings/departments');
+                if (deptsRes.ok) {
+                    const depts = await deptsRes.json();
+                    cachedDicts['departments'] = depts;
+                    renderDeptTree(depts);
+                }
 
-                fetch('/api/settings/email-templates').then(r=>r.json()).then(d => {
-                    const tbody = document.getElementById('tb-email-templates');
-                    if (!d || d.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="2" class="empty-state">暂无数据</td></tr>`;
-                    } else {
-                        tbody.innerHTML = d.map(item => `<tr><td>${item.name}</td><td>${item.subject}</td></tr>`).join('');
-                    }
-                }).catch(e => console.error(e));
+                // 2. 获取并渲染其余四大基础配置字典
+                fetch('/api/settings/interviewers').then(r=>r.json()).then(d => { cachedDicts['interviewers'] = d; renderTableRows('tb-interviewers', d, 3, 'interviewers'); });
+                fetch('/api/settings/locations').then(r=>r.json()).then(d => { cachedDicts['locations'] = d; renderTableRows('tb-locations', d, 3, 'locations'); });
+                fetch('/api/settings/interview-processes').then(r=>r.json()).then(d => { cachedDicts['interview-processes'] = d; renderTableRows('tb-processes', d, 3, 'interview-processes'); });
+                fetch('/api/settings/categories').then(r=>r.json()).then(d => { cachedDicts['categories'] = d; renderTableRows('tb-categories', d, 2, 'categories'); });
 
-                fetch('/api/settings/feedback-templates').then(r=>r.json()).then(d => {
-                    const tbody = document.getElementById('tb-feedback-templates');
-                    if (!d || d.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="1" class="empty-state">暂无数据</td></tr>`;
-                    } else {
-                        tbody.innerHTML = d.map(item => `<tr><td>${item.name}</td></tr>`).join('');
-                    }
-                }).catch(e => console.error(e));
+                // 3. 邮件与评价表模板渲染
+                fetch('/api/settings/email-templates').then(r=>r.json()).then(d => { cachedDicts['email-templates'] = d; renderTableRows('tb-email-templates', d, 3, 'email-templates'); }).catch(e => console.error(e));
+                fetch('/api/settings/feedback-templates').then(r=>r.json()).then(d => { cachedDicts['feedback-templates'] = d; renderTableRows('tb-feedback-templates', d, 2, 'feedback-templates'); }).catch(e => console.error(e));
 
-                // 获取已发出的成员协同邀请
+                // 4. 获取已发出的成员协同邀请
                 fetch('/api/auth/invite').then(r=>r.json()).then(d => renderInvitations(d)).catch(e => console.error(e));
             } catch(e) { console.error('Failed to load settings', e); }
         }
 
+        // --- 循环指向防御机制：找出指定部门的所有子孙部门ID ---
+        function getDescendantIds(deptId, depts) {
+            let ids = [deptId];
+            let children = depts.filter(d => d.parent_id === deptId);
+            children.forEach(c => {
+                ids = ids.concat(getDescendantIds(c.id, depts));
+            });
+            return ids;
+        }
 
-        function openDictModal(type, title) {
+        function openDictModal(type, title, editId = null, parentId = null) {
             currentDictType = type;
+            isEditMode = editId !== null;
+            editItemId = editId;
             document.getElementById('dictModalTitle').innerText = title;
             document.getElementById('dictItemName').value = '';
             
             const extraFields = document.getElementById('dictExtraFields');
             extraFields.innerHTML = '';
             
-            if (type === 'interviewers') {
+            // 根据不同字典类别动态生成对应的附加表单字段
+            if (type === 'departments') {
+                const depts = cachedDicts['departments'] || [];
+                let forbiddenIds = [];
+                if (isEditMode) {
+                    forbiddenIds = getDescendantIds(Number(editId), depts);
+                }
+                const availableDepts = depts.filter(d => !forbiddenIds.includes(d.id));
+                extraFields.innerHTML = `
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>上级部门</label>
+                        <select id="dictItemParent" class="form-control" style="background:white;">
+                            <option value="">(无上级部门 - 作为一级部门)</option>
+                            ${availableDepts.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+                
+                if (isEditMode) {
+                    const item = depts.find(d => d.id === Number(editId));
+                    if (item && item.parent_id) {
+                        document.getElementById('dictItemParent').value = item.parent_id;
+                    }
+                } else if (parentId) {
+                    document.getElementById('dictItemParent').value = parentId;
+                }
+            } else if (type === 'interviewers') {
                 extraFields.innerHTML = `
                     <div class="form-group" style="margin-top: 20px;">
                         <label>角色分配</label>
-                        <select id="dictItemRole" class="form-control">
+                        <select id="dictItemRole" class="form-control" style="background:white;">
                             <option value="Manager">用人经理</option>
                             <option value="Interviewer">面试官</option>
                             <option value="HR">人事</option>
@@ -318,7 +447,7 @@
                 extraFields.innerHTML = `
                     <div class="form-group" style="margin-top: 20px;">
                         <label>地点类型</label>
-                        <select id="dictItemType" class="form-control">
+                        <select id="dictItemType" class="form-control" style="background:white;">
                             <option value="线下">线下实体办公区</option>
                             <option value="线上">线上/虚拟会议</option>
                         </select>
@@ -331,9 +460,47 @@
                         <input type="text" id="dictItemStages" class="form-control" placeholder="如: 初筛,一面,二面,HR面" value="初筛,一面,HR面">
                     </div>
                 `;
+            } else if (type === 'email-templates') {
+                extraFields.innerHTML = `
+                    <div class="form-group" style="margin-top: 20px; margin-bottom: 16px;">
+                        <label>邮件标题<span class="required-mark">*</span></label>
+                        <input type="text" id="dictItemSubject" class="form-control" placeholder="请输入邮件标题">
+                    </div>
+                    <div class="form-group">
+                        <label>邮件正文内容<span class="required-mark">*</span></label>
+                        <textarea id="dictItemContent" class="form-control" rows="8" placeholder="请输入正文..." style="resize:vertical; line-height:1.6; font-family:inherit;"></textarea>
+                    </div>
+                `;
+            } else if (type === 'feedback-templates') {
+                extraFields.innerHTML = `
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>评价表详细指标/评定大纲<span class="required-mark">*</span></label>
+                        <textarea id="dictItemContent" class="form-control" rows="8" placeholder="请输入打分项目大纲..." style="resize:vertical; line-height:1.6; font-family:inherit;"></textarea>
+                    </div>
+                `;
             }
             
             document.getElementById('dictModal').classList.add('active');
+        }
+
+        function editDict(type, id) {
+            const list = cachedDicts[type] || [];
+            const item = list.find(x => x.id === id);
+            if (!item) return;
+            
+            openDictModal(type, '编辑配置条目', id);
+            
+            // 延迟填充表单数据以确保动态注入的 DOM 结构已被渲染
+            document.getElementById('dictItemName').value = item.name || '';
+            if (type === 'interviewers') document.getElementById('dictItemRole').value = item.role_type || 'Interviewer';
+            else if (type === 'locations') document.getElementById('dictItemType').value = item.type || '线下';
+            else if (type === 'interview-processes') document.getElementById('dictItemStages').value = item.stages || '';
+            else if (type === 'email-templates') {
+                document.getElementById('dictItemSubject').value = item.subject || '';
+                document.getElementById('dictItemContent').value = item.content || '';
+            } else if (type === 'feedback-templates') {
+                document.getElementById('dictItemContent').value = item.content || '';
+            }
         }
 
         function closeDictModal() {
@@ -345,13 +512,31 @@
             if (!name) { showToast('请输入名称', 'error'); return; }
             
             let payload = { name };
-            if (currentDictType === 'interviewers') payload.role_type = document.getElementById('dictItemRole').value;
+            if (currentDictType === 'departments') {
+                const parentVal = document.getElementById('dictItemParent').value;
+                payload.parent_id = parentVal ? Number(parentVal) : null;
+            }
+            else if (currentDictType === 'interviewers') payload.role_type = document.getElementById('dictItemRole').value;
             else if (currentDictType === 'locations') payload.type = document.getElementById('dictItemType').value;
             else if (currentDictType === 'interview-processes') payload.stages = document.getElementById('dictItemStages').value;
+            else if (currentDictType === 'email-templates') {
+                const subject = document.getElementById('dictItemSubject').value.trim();
+                const content = document.getElementById('dictItemContent').value.trim();
+                if (!subject || !content) { showToast('请输入标题和内容', 'error'); return; }
+                payload.subject = subject;
+                payload.content = content;
+            } else if (currentDictType === 'feedback-templates') {
+                const content = document.getElementById('dictItemContent').value.trim();
+                if (!content) { showToast('请输入大纲内容', 'error'); return; }
+                payload.content = content;
+            }
+            
+            const method = isEditMode ? 'PATCH' : 'POST';
+            const url = isEditMode ? `/api/settings/${currentDictType}/${editItemId}` : `/api/settings/${currentDictType}`;
             
             try {
-                const response = await fetch(`/api/settings/${currentDictType}`, {
-                    method: 'POST',
+                const response = await fetch(url, {
+                    method: method,
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
@@ -360,7 +545,8 @@
                     closeDictModal();
                     loadAllDicts();
                 } else {
-                    showToast('保存失败', 'error');
+                    const err = await response.json();
+                    showToast(err.detail || '保存失败', 'error');
                 }
             } catch (e) { showToast('网络错误', 'error'); }
         }

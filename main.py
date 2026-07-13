@@ -55,6 +55,16 @@ def upgrade_db():
             if "match_score" not in c_columns:
                 conn.execute(text("ALTER TABLE candidates ADD COLUMN match_score INTEGER"))
                 conn.execute(text("ALTER TABLE candidates ADD COLUMN match_reason TEXT"))
+
+            # 自动迁移：为 departments 表增补树状 parent_id 列与自引外键
+            try:
+                conn.execute(text("ALTER TABLE departments ADD COLUMN parent_id INTEGER NULL"))
+            except Exception:
+                pass
+            try:
+                conn.execute(text("ALTER TABLE departments ADD CONSTRAINT fk_dept_parent FOREIGN KEY (parent_id) REFERENCES departments(id) ON DELETE CASCADE"))
+            except Exception:
+                pass
     except Exception as e:
         print(f"Migration error (ignoring if tables just created): {e}")
 
@@ -942,13 +952,123 @@ def delete_category(item_id: int, db: Session = Depends(get_db), current_user: m
     db.commit()
     return {"ok": True}
 
+@app.patch("/api/settings/departments/{item_id}", response_model=schemas.Department)
+def update_department(item_id: int, item: schemas.DepartmentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.Department).filter(models.Department.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Department not found")
+    
+    # 环路指派防御逻辑：在树形配置中，不能把上级部门设为自己
+    if item.parent_id == item_id:
+        raise HTTPException(status_code=400, detail="Cannot set parent department to itself")
+        
+    for key, val in item.model_dump().items():
+        setattr(db_item, key, val)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.patch("/api/settings/interviewers/{item_id}", response_model=schemas.Interviewer)
+def update_interviewer(item_id: int, item: schemas.InterviewerCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.Interviewer).filter(models.Interviewer.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Interviewer not found")
+    for key, val in item.model_dump().items():
+        setattr(db_item, key, val)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.patch("/api/settings/locations/{item_id}", response_model=schemas.Location)
+def update_location(item_id: int, item: schemas.LocationCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.Location).filter(models.Location.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Location not found")
+    for key, val in item.model_dump().items():
+        setattr(db_item, key, val)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.patch("/api/settings/interview-processes/{item_id}", response_model=schemas.InterviewProcess)
+def update_interview_process(item_id: int, item: schemas.InterviewProcessCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.InterviewProcess).filter(models.InterviewProcess.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="InterviewProcess not found")
+    for key, val in item.model_dump().items():
+        setattr(db_item, key, val)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.patch("/api/settings/categories/{item_id}", response_model=schemas.JobCategory)
+def update_category(item_id: int, item: schemas.JobCategoryCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.JobCategory).filter(models.JobCategory.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="JobCategory not found")
+    for key, val in item.model_dump().items():
+        setattr(db_item, key, val)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
 @app.get("/api/settings/email-templates", response_model=list[schemas.EmailTemplate])
 def get_email_templates(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.EmailTemplate).all()
 
+@app.post("/api/settings/email-templates", response_model=schemas.EmailTemplate)
+def create_email_template(item: schemas.EmailTemplateCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = models.EmailTemplate(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.patch("/api/settings/email-templates/{item_id}", response_model=schemas.EmailTemplate)
+def update_email_template(item_id: int, item: schemas.EmailTemplateCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.EmailTemplate).filter(models.EmailTemplate.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="EmailTemplate not found")
+    for key, val in item.model_dump().items():
+        setattr(db_item, key, val)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/api/settings/email-templates/{item_id}")
+def delete_email_template(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db.query(models.EmailTemplate).filter(models.EmailTemplate.id == item_id).delete()
+    db.commit()
+    return {"ok": True}
+
 @app.get("/api/settings/feedback-templates", response_model=list[schemas.FeedbackTemplate])
 def get_feedback_templates(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.FeedbackTemplate).all()
+
+@app.post("/api/settings/feedback-templates", response_model=schemas.FeedbackTemplate)
+def create_feedback_template(item: schemas.FeedbackTemplateCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = models.FeedbackTemplate(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.patch("/api/settings/feedback-templates/{item_id}", response_model=schemas.FeedbackTemplate)
+def update_feedback_template(item_id: int, item: schemas.FeedbackTemplateCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.FeedbackTemplate).filter(models.FeedbackTemplate.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="FeedbackTemplate not found")
+    for key, val in item.model_dump().items():
+        setattr(db_item, key, val)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/api/settings/feedback-templates/{item_id}")
+def delete_feedback_template(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db.query(models.FeedbackTemplate).filter(models.FeedbackTemplate.id == item_id).delete()
+    db.commit()
+    return {"ok": True}
 
 @app.get("/api/calendar/freebusy")
 def get_freebusy(interviewer: str, date: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
