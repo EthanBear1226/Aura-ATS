@@ -114,7 +114,7 @@
                     <!-- Interviewers & Accounts Combined -->
                     <div id="sec-interviewers" class="settings-section">
                         <!-- 子板块 1：系统协同账户 -->
-                        <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:24px; margin-bottom:32px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
+                        <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:36px; margin-bottom:36px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
                             <div class="section-header" style="margin-top:0;">
                                 <h2 class="section-title" style="font-size:18px; display:flex; align-items:center; gap:8px;">
                                     <span>👥</span>系统协同账户 (可登录后台)
@@ -138,7 +138,7 @@
                         </div>
 
                         <!-- 子板块 2：面试官字典库 -->
-                        <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:24px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
+                        <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:36px; box-shadow:0 4px 12px rgba(0,0,0,0.02);">
                             <div class="section-header" style="margin-top:0;">
                                 <h2 class="section-title" style="font-size:18px; display:flex; align-items:center; gap:8px;">
                                     <span>👤</span>面试官人员库 (排程指定)
@@ -319,12 +319,12 @@
             tbody.innerHTML = data.map(d => {
                 let extra = '';
                 if (type === 'interviewers') {
-                    let badgeClass = 'tag-gray';
+                    const badgeClass = 'tag-blue';
                     let roleChinese = d.role_type;
-                    if (d.role_type === 'Admin') { badgeClass = 'tag-red'; roleChinese = '系统管理员'; }
-                    else if (d.role_type === 'Recruiter' || d.role_type === 'HR') { badgeClass = 'tag-green'; roleChinese = 'HR/招聘官'; }
-                    else if (d.role_type === 'HiringManager' || d.role_type === 'Manager') { badgeClass = 'tag-blue'; roleChinese = '用人经理'; }
-                    else if (d.role_type === 'Interviewer') { badgeClass = 'tag-gray'; roleChinese = '面试官'; }
+                    if (d.role_type === 'Admin') { roleChinese = '系统管理员'; }
+                    else if (d.role_type === 'Recruiter' || d.role_type === 'HR') { roleChinese = 'HR/招聘官'; }
+                    else if (d.role_type === 'HiringManager' || d.role_type === 'Manager') { roleChinese = '用人经理'; }
+                    else if (d.role_type === 'Interviewer') { roleChinese = '面试官'; }
                     extra = `<td><span class="tag ${badgeClass}">${roleChinese}</span></td>`;
                 }
                 if (type === 'locations') extra = `<td><span class="tag tag-gray">${d.type}</span></td>`;
@@ -691,12 +691,12 @@
                     } catch(e) {}
                 }
                 
-                let roleClass = 'tag-gray';
+                const roleClass = 'tag-blue';
                 let roleChinese = d.role;
-                if (d.role === 'Admin') { roleClass = 'tag-red'; roleChinese = '系统管理员'; }
-                else if (d.role === 'Recruiter') { roleClass = 'tag-green'; roleChinese = 'HR/招聘官'; }
-                else if (d.role === 'HiringManager') { roleClass = 'tag-blue'; roleChinese = '用人经理'; }
-                else if (d.role === 'Interviewer') { roleClass = 'tag-gray'; roleChinese = '面试官'; }
+                if (d.role === 'Admin') { roleChinese = '系统管理员'; }
+                else if (d.role === 'Recruiter') { roleChinese = 'HR/招聘官'; }
+                else if (d.role === 'HiringManager') { roleChinese = '用人经理'; }
+                else if (d.role === 'Interviewer') { roleChinese = '面试官'; }
 
                 return `<tr>
                     <td style="font-weight:500; font-size:14px;">${d.name}</td>
