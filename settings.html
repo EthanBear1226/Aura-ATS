@@ -508,17 +508,37 @@
             
             openDictModal(type, '编辑配置条目', id);
             
-            // 延迟填充表单数据以确保动态注入的 DOM 结构已被渲染
-            document.getElementById('dictItemName').value = item.name || '';
-            if (type === 'interviewers') document.getElementById('dictItemRole').value = item.role_type || 'Interviewer';
-            else if (type === 'locations') document.getElementById('dictItemType').value = item.type || '线下';
-            else if (type === 'interview-processes') document.getElementById('dictItemStages').value = item.stages || '';
-            else if (type === 'email-templates') {
-                document.getElementById('dictItemSubject').value = item.subject || '';
-                document.getElementById('dictItemContent').value = item.content || '';
-            } else if (type === 'feedback-templates') {
-                document.getElementById('dictItemContent').value = item.content || '';
-            }
+            // 使用 setTimeout 保证动态 DOM 完全渲染挂载，防范偶发 null 报错
+            setTimeout(() => {
+                try {
+                    const nameEl = document.getElementById('dictItemName');
+                    if (nameEl) nameEl.value = item.name || '';
+                    
+                    if (type === 'interviewers') {
+                        const el = document.getElementById('dictItemRole');
+                        if (el) el.value = item.role_type || 'Interviewer';
+                    }
+                    else if (type === 'locations') {
+                        const el = document.getElementById('dictItemType');
+                        if (el) el.value = item.type || '线下';
+                    }
+                    else if (type === 'interview-processes') {
+                        const el = document.getElementById('dictItemStages');
+                        if (el) el.value = item.stages || '';
+                    }
+                    else if (type === 'email-templates') {
+                        const subEl = document.getElementById('dictItemSubject');
+                        const conEl = document.getElementById('dictItemContent');
+                        if (subEl) subEl.value = item.subject || '';
+                        if (conEl) conEl.value = item.content || '';
+                    } else if (type === 'feedback-templates') {
+                        const conEl = document.getElementById('dictItemContent');
+                        if (conEl) conEl.value = item.content || '';
+                    }
+                } catch(err) {
+                    console.error('Fill form error:', err);
+                }
+            }, 50);
         }
 
         function closeDictModal() {
@@ -526,33 +546,47 @@
         }
 
         async function submitDictItem() {
-            const name = document.getElementById('dictItemName').value.trim();
-            if (!name) { showToast('请输入名称', 'error'); return; }
-            
-            let payload = { name };
-            if (currentDictType === 'departments') {
-                const parentVal = document.getElementById('dictItemParent').value;
-                payload.parent_id = parentVal ? Number(parentVal) : null;
-            }
-            else if (currentDictType === 'interviewers') payload.role_type = document.getElementById('dictItemRole').value;
-            else if (currentDictType === 'locations') payload.type = document.getElementById('dictItemType').value;
-            else if (currentDictType === 'interview-processes') payload.stages = document.getElementById('dictItemStages').value;
-            else if (currentDictType === 'email-templates') {
-                const subject = document.getElementById('dictItemSubject').value.trim();
-                const content = document.getElementById('dictItemContent').value.trim();
-                if (!subject || !content) { showToast('请输入标题和内容', 'error'); return; }
-                payload.subject = subject;
-                payload.content = content;
-            } else if (currentDictType === 'feedback-templates') {
-                const content = document.getElementById('dictItemContent').value.trim();
-                if (!content) { showToast('请输入大纲内容', 'error'); return; }
-                payload.content = content;
-            }
-            
-            const method = isEditMode ? 'PATCH' : 'POST';
-            const url = isEditMode ? `/api/settings/${currentDictType}/${editItemId}` : `/api/settings/${currentDictType}`;
-            
             try {
+                const nameEl = document.getElementById('dictItemName');
+                const name = nameEl ? nameEl.value.trim() : '';
+                if (!name) { showToast('请输入名称', 'error'); return; }
+                
+                let payload = { name };
+                if (currentDictType === 'departments') {
+                    const el = document.getElementById('dictItemParent');
+                    const parentVal = el ? el.value : '';
+                    payload.parent_id = parentVal ? Number(parentVal) : null;
+                }
+                else if (currentDictType === 'interviewers') {
+                    const el = document.getElementById('dictItemRole');
+                    payload.role_type = el ? el.value : 'Interviewer';
+                }
+                else if (currentDictType === 'locations') {
+                    const el = document.getElementById('dictItemType');
+                    payload.type = el ? el.value : '线下';
+                }
+                else if (currentDictType === 'interview-processes') {
+                    const el = document.getElementById('dictItemStages');
+                    payload.stages = el ? el.value : '';
+                }
+                else if (currentDictType === 'email-templates') {
+                    const subEl = document.getElementById('dictItemSubject');
+                    const conEl = document.getElementById('dictItemContent');
+                    const subject = subEl ? subEl.value.trim() : '';
+                    const content = conEl ? conEl.value.trim() : '';
+                    if (!subject || !content) { showToast('请输入标题和内容', 'error'); return; }
+                    payload.subject = subject;
+                    payload.content = content;
+                } else if (currentDictType === 'feedback-templates') {
+                    const conEl = document.getElementById('dictItemContent');
+                    const content = conEl ? conEl.value.trim() : '';
+                    if (!content) { showToast('请输入大纲内容', 'error'); return; }
+                    payload.content = content;
+                }
+                
+                const method = isEditMode ? 'PATCH' : 'POST';
+                const url = isEditMode ? `/api/settings/${currentDictType}/${editItemId}` : `/api/settings/${currentDictType}`;
+                
                 const response = await fetch(url, {
                     method: method,
                     headers: {'Content-Type': 'application/json'},
@@ -573,7 +607,8 @@
                     showToast(errMsg, 'error');
                 }
             } catch (e) { 
-                showToast('保存失败，请检查网络或参数格式', 'error'); 
+                console.error('Submit error:', e);
+                showToast(`保存失败: ${e.message || '网络或格式异常'}`, 'error'); 
             }
         }
 
