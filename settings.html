@@ -143,7 +143,7 @@
                                 <h2 class="section-title" style="font-size:18px; display:flex; align-items:center; gap:8px;">
                                     <span>👤</span>面试官人员库 (排程指定)
                                 </h2>
-                                <button class="btn btn-primary" onclick="openDictModal('interviewers', '新增面试官')">+ 新增面试官</button>
+                                <button class="btn btn-primary" onclick="openInviteModal('Interviewer')">+ 邀请面试官</button>
                             </div>
                             <table class="table-container">
                                 <thead>
@@ -834,10 +834,14 @@
             }
         });
 
-        async function openInviteModal() {
+        async function openInviteModal(defaultRole = null) {
             document.getElementById('inviteName').value = '';
             document.getElementById('inviteEmail').value = '';
-            document.getElementById('inviteRole').selectedIndex = 0;
+            if (defaultRole) {
+                document.getElementById('inviteRole').value = defaultRole;
+            } else {
+                document.getElementById('inviteRole').selectedIndex = 0;
+            }
             document.getElementById('treeSelectSearchInput').value = '';
             
             // 重置选中项

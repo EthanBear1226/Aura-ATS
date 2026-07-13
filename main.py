@@ -127,6 +127,10 @@ async def get_current_user(db: Session = Depends(get_db), token: Optional[str] =
         raise HTTPException(status_code=401, detail="用户不存在")
     return user
 
+def check_admin_permission(current_user: models.User):
+    if current_user.role not in ["SuperAdmin", "Admin"]:
+        raise HTTPException(status_code=403, detail="无权操作系统设置，仅限管理员角色操作")
+
 async def get_current_user_optional(db: Session = Depends(get_db), token: Optional[str] = Depends(oauth2_scheme)):
     if not token:
         return None
@@ -343,6 +347,24 @@ def register_by_invite(reg_data: schemas.RegisterByInvite, db: Session = Depends
     invite.status = "accepted"
     db.commit()
     db.refresh(new_user)
+
+    # 同步加入面试官人员库
+    if invite.role in ["Interviewer", "HiringManager", "Recruiter", "Admin"]:
+        dept_id = None
+        if invite.department:
+            dept = db.query(models.Department).filter(models.Department.name == invite.department).first()
+            if dept:
+                dept_id = dept.id
+        
+        existing_interviewer = db.query(models.Interviewer).filter(models.Interviewer.name == new_user.name).first()
+        if not existing_interviewer:
+            db_interviewer = models.Interviewer(
+                name=new_user.name,
+                role_type=invite.role,
+                department_id=dept_id
+            )
+            db.add(db_interviewer)
+            db.commit()
     
     token = create_access_token({"sub": new_user.email})
     return {
@@ -872,6 +894,7 @@ def get_departments(db: Session = Depends(get_db), current_user: models.User = D
 
 @app.post("/api/settings/departments", response_model=schemas.Department)
 def create_department(item: schemas.DepartmentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     try:
         existing = db.query(models.Department).filter(models.Department.name == item.name).first()
         if existing:
@@ -891,6 +914,7 @@ def create_department(item: schemas.DepartmentCreate, db: Session = Depends(get_
 
 @app.delete("/api/settings/departments/{item_id}")
 def delete_department(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db.query(models.Department).filter(models.Department.id == item_id).delete()
     db.commit()
     return {"ok": True}
@@ -901,6 +925,7 @@ def get_interviewers(db: Session = Depends(get_db), current_user: models.User = 
 
 @app.post("/api/settings/interviewers", response_model=schemas.Interviewer)
 def create_interviewer(item: schemas.InterviewerCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = models.Interviewer(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -909,6 +934,7 @@ def create_interviewer(item: schemas.InterviewerCreate, db: Session = Depends(ge
 
 @app.delete("/api/settings/interviewers/{item_id}")
 def delete_interviewer(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db.query(models.Interviewer).filter(models.Interviewer.id == item_id).delete()
     db.commit()
     return {"ok": True}
@@ -919,6 +945,7 @@ def get_locations(db: Session = Depends(get_db), current_user: models.User = Dep
 
 @app.post("/api/settings/locations", response_model=schemas.Location)
 def create_location(item: schemas.LocationCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = models.Location(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -927,6 +954,7 @@ def create_location(item: schemas.LocationCreate, db: Session = Depends(get_db),
 
 @app.delete("/api/settings/locations/{item_id}")
 def delete_location(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db.query(models.Location).filter(models.Location.id == item_id).delete()
     db.commit()
     return {"ok": True}
@@ -937,6 +965,7 @@ def get_interview_processes(db: Session = Depends(get_db), current_user: models.
 
 @app.post("/api/settings/interview-processes", response_model=schemas.InterviewProcess)
 def create_interview_process(item: schemas.InterviewProcessCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = models.InterviewProcess(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -945,6 +974,7 @@ def create_interview_process(item: schemas.InterviewProcessCreate, db: Session =
 
 @app.delete("/api/settings/interview-processes/{item_id}")
 def delete_interview_process(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db.query(models.InterviewProcess).filter(models.InterviewProcess.id == item_id).delete()
     db.commit()
     return {"ok": True}
@@ -955,6 +985,7 @@ def get_categories(db: Session = Depends(get_db), current_user: models.User = De
 
 @app.post("/api/settings/categories", response_model=schemas.JobCategory)
 def create_category(item: schemas.JobCategoryCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = models.JobCategory(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -963,12 +994,14 @@ def create_category(item: schemas.JobCategoryCreate, db: Session = Depends(get_d
 
 @app.delete("/api/settings/categories/{item_id}")
 def delete_category(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db.query(models.JobCategory).filter(models.JobCategory.id == item_id).delete()
     db.commit()
     return {"ok": True}
 
 @app.patch("/api/settings/departments/{item_id}", response_model=schemas.Department)
 def update_department(item_id: int, item: schemas.DepartmentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     try:
         db_item = db.query(models.Department).filter(models.Department.id == item_id).first()
         if not db_item:
@@ -997,6 +1030,7 @@ def update_department(item_id: int, item: schemas.DepartmentCreate, db: Session 
 
 @app.patch("/api/settings/interviewers/{item_id}", response_model=schemas.Interviewer)
 def update_interviewer(item_id: int, item: schemas.InterviewerCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = db.query(models.Interviewer).filter(models.Interviewer.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Interviewer not found")
@@ -1008,6 +1042,7 @@ def update_interviewer(item_id: int, item: schemas.InterviewerCreate, db: Sessio
 
 @app.patch("/api/settings/locations/{item_id}", response_model=schemas.Location)
 def update_location(item_id: int, item: schemas.LocationCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = db.query(models.Location).filter(models.Location.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Location not found")
@@ -1019,6 +1054,7 @@ def update_location(item_id: int, item: schemas.LocationCreate, db: Session = De
 
 @app.patch("/api/settings/interview-processes/{item_id}", response_model=schemas.InterviewProcess)
 def update_interview_process(item_id: int, item: schemas.InterviewProcessCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = db.query(models.InterviewProcess).filter(models.InterviewProcess.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="InterviewProcess not found")
@@ -1030,6 +1066,7 @@ def update_interview_process(item_id: int, item: schemas.InterviewProcessCreate,
 
 @app.patch("/api/settings/categories/{item_id}", response_model=schemas.JobCategory)
 def update_category(item_id: int, item: schemas.JobCategoryCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = db.query(models.JobCategory).filter(models.JobCategory.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="JobCategory not found")
@@ -1045,6 +1082,7 @@ def get_email_templates(db: Session = Depends(get_db), current_user: models.User
 
 @app.post("/api/settings/email-templates", response_model=schemas.EmailTemplate)
 def create_email_template(item: schemas.EmailTemplateCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = models.EmailTemplate(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -1053,6 +1091,7 @@ def create_email_template(item: schemas.EmailTemplateCreate, db: Session = Depen
 
 @app.patch("/api/settings/email-templates/{item_id}", response_model=schemas.EmailTemplate)
 def update_email_template(item_id: int, item: schemas.EmailTemplateCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = db.query(models.EmailTemplate).filter(models.EmailTemplate.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="EmailTemplate not found")
@@ -1064,6 +1103,7 @@ def update_email_template(item_id: int, item: schemas.EmailTemplateCreate, db: S
 
 @app.delete("/api/settings/email-templates/{item_id}")
 def delete_email_template(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db.query(models.EmailTemplate).filter(models.EmailTemplate.id == item_id).delete()
     db.commit()
     return {"ok": True}
@@ -1074,6 +1114,7 @@ def get_feedback_templates(db: Session = Depends(get_db), current_user: models.U
 
 @app.post("/api/settings/feedback-templates", response_model=schemas.FeedbackTemplate)
 def create_feedback_template(item: schemas.FeedbackTemplateCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = models.FeedbackTemplate(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -1082,6 +1123,7 @@ def create_feedback_template(item: schemas.FeedbackTemplateCreate, db: Session =
 
 @app.patch("/api/settings/feedback-templates/{item_id}", response_model=schemas.FeedbackTemplate)
 def update_feedback_template(item_id: int, item: schemas.FeedbackTemplateCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db_item = db.query(models.FeedbackTemplate).filter(models.FeedbackTemplate.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="FeedbackTemplate not found")
@@ -1093,6 +1135,7 @@ def update_feedback_template(item_id: int, item: schemas.FeedbackTemplateCreate,
 
 @app.delete("/api/settings/feedback-templates/{item_id}")
 def delete_feedback_template(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
     db.query(models.FeedbackTemplate).filter(models.FeedbackTemplate.id == item_id).delete()
     db.commit()
     return {"ok": True}
