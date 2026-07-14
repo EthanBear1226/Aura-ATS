@@ -228,6 +228,12 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="邮箱或密码错误")
         
+    # 登录成功，记录日志并将之前的登录记录置为离线
+    db.query(models.UserLoginLog).filter(models.UserLoginLog.email == user.email).update({"is_online": False})
+    new_log = models.UserLoginLog(email=user.email, is_online=True)
+    db.add(new_log)
+    db.commit()
+    
     token = create_access_token({"sub": user.email})
     return {
         "access_token": token,
@@ -238,6 +244,17 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
 @app.get("/api/auth/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+@app.post("/api/auth/logout")
+def logout(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db.query(models.UserLoginLog).filter(models.UserLoginLog.email == current_user.email).update({"is_online": False})
+    db.commit()
+    return {"ok": True}
+
+@app.get("/api/settings/login-logs", response_model=list[schemas.UserLoginLogResponse])
+def get_login_logs(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
+    return db.query(models.UserLoginLog).order_by(models.UserLoginLog.login_time.desc()).limit(100).all()
 
 # --- USER INVITATION ROUTERS ---
 

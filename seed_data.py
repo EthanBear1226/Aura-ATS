@@ -96,8 +96,18 @@ def seed_dicts():
         db.add(models.FeedbackTemplate(name="标准评价表", content="1. 专业技能匹配度：\n2. 沟通表达能力：\n3. 综合潜质评估：\n"))
         db.commit()
 
+    if db.query(models.UserLoginLog).count() == 0:
+        import datetime
+        now = datetime.datetime.utcnow()
+        # 插入 4 条虚拟历史登录记录
+        db.add(models.UserLoginLog(email="hr@aura.com", login_time=now - datetime.timedelta(hours=5), is_online=False))
+        db.add(models.UserLoginLog(email="manager@aura.com", login_time=now - datetime.timedelta(hours=2), is_online=False))
+        db.add(models.UserLoginLog(email="interviewer@aura.com", login_time=now - datetime.timedelta(minutes=45), is_online=False))
+        db.add(models.UserLoginLog(email="admin@aura.com", login_time=now - datetime.timedelta(minutes=5), is_online=True))
+        db.commit()
+
 seed_dicts()
 
 db.close()
-print("🎉 4位虚拟精英候选人数据已成功注入数据库！")
+print("🎉 4位虚拟精英候选人数据及登录监控审计种子已成功注入数据库！")
 print("🎉 数据字典(部门、面试官等)已成功注入数据库！")

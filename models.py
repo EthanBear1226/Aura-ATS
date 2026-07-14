@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
 import datetime
@@ -173,3 +173,11 @@ class JobApplication(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     candidate = relationship("Candidate", back_populates="applications")
+
+class UserLoginLog(Base):
+    __tablename__ = "user_login_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), index=True)
+    login_time = Column(DateTime, default=datetime.datetime.utcnow)
+    is_online = Column(Boolean, default=True)

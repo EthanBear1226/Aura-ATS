@@ -270,3 +270,12 @@ class SystemTaskResponse(BaseModel):
 
 class CandidateScreenRequest(BaseModel):
     action: str  # "pass" / "fail"
+
+class UserLoginLogResponse(BaseModel):
+    id: int
+    email: str
+    login_time: datetime
+    is_online: bool
+
+    class Config:
+        from_attributes = True

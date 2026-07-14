@@ -956,6 +956,147 @@
                 btn.disabled = false;
             }
         }
+
+        // --- 隐藏彩蛋登录监控后台 ---
+        let logoClickCount = 0;
+        document.addEventListener('click', (e) => {
+            const logo = e.target.closest('.sidebar-logo');
+            if (logo) {
+                const isDeptSectionActive = document.getElementById('sec-departments') && document.getElementById('sec-departments').classList.contains('active');
+                if (isDeptSectionActive) {
+                    logoClickCount++;
+                    if (logoClickCount === 3) {
+                        logoClickCount = 0;
+                        openSecretPasswordModal();
+                    }
+                } else {
+                    logoClickCount = 0;
+                }
+            }
+        });
+
+        function openSecretPasswordModal() {
+            const existing = document.getElementById('secretPasswordModal');
+            if (existing) existing.remove();
+
+            const modalHtml = `
+                <div class="modal-overlay" id="secretPasswordModal" style="display:flex; justify-content:center; align-items:center; z-index:99999;">
+                    <div class="modal-card" style="width:360px; padding:36px; border-radius:16px;">
+                        <h2 style="font-size:18px; margin-bottom:16px; color:var(--text-primary); text-align:center;">安全锁验证</h2>
+                        <div class="form-group" style="margin-bottom:20px;">
+                            <label style="font-size:12px; margin-bottom:6px; display:block;">请输入隐藏后台提取密码</label>
+                            <input type="password" id="secretPasswordInput" class="form-control" placeholder="••••••" style="text-align:center; font-size:18px; letter-spacing:4px;" autocomplete="off">
+                            <div id="secretPasswordError" style="color:#FF3B30; font-size:12px; margin-top:8px; text-align:center; display:none;">密码错误，请重新输入</div>
+                        </div>
+                        <div style="display:flex; gap:12px;">
+                            <button class="btn" style="flex:1; justify-content:center;" onclick="closeSecretPasswordModal()">取消</button>
+                            <button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="verifySecretPassword()">确认进入</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            document.getElementById('secretPasswordInput').addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') verifySecretPassword();
+            });
+            document.getElementById('secretPasswordInput').focus();
+        }
+
+        function closeSecretPasswordModal() {
+            const modal = document.getElementById('secretPasswordModal');
+            if (modal) modal.remove();
+        }
+
+        function verifySecretPassword() {
+            const pwd = document.getElementById('secretPasswordInput').value.trim();
+            const err = document.getElementById('secretPasswordError');
+            if (pwd === '319058') {
+                closeSecretPasswordModal();
+                openSecretLoginMonitorModal();
+            } else {
+                if (err) err.style.display = 'block';
+                document.getElementById('secretPasswordInput').value = '';
+                document.getElementById('secretPasswordInput').focus();
+            }
+        }
+
+        function closeSecretLoginMonitorModal() {
+            const modal = document.getElementById('secretLoginMonitorModal');
+            if (modal) modal.remove();
+        }
+
+        async function openSecretLoginMonitorModal() {
+            const existing = document.getElementById('secretLoginMonitorModal');
+            if (existing) existing.remove();
+
+            const modalHtml = `
+                <div class="modal-overlay" id="secretLoginMonitorModal" style="display:flex; justify-content:center; align-items:center; z-index:99998; backdrop-filter: blur(10px); background:rgba(0,0,0,0.45);">
+                    <div class="modal-card" style="width:720px; padding:36px; border-radius:16px; max-height:85vh; display:flex; flex-direction:column; box-shadow: 0 12px 36px rgba(0,0,0,0.15); border:1px solid var(--border-color);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; border-bottom:1px solid var(--border-color); padding-bottom:16px;">
+                            <h2 style="font-size:20px; font-weight:600; display:flex; align-items:center; gap:8px; margin:0;">
+                                <span style="font-size:22px;">🔐</span>隐藏登录监控审计后台
+                            </h2>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn btn-primary" onclick="loadSecretLoginLogs()" style="padding:6px 14px; font-size:13px;">刷新数据</button>
+                                <button class="btn" onclick="closeSecretLoginMonitorModal()" style="padding:6px 14px; font-size:13px;">关闭</button>
+                            </div>
+                        </div>
+                        <div style="overflow-y:auto; flex:1; border-radius:8px; border:1px solid var(--border-color);">
+                            <table class="table-container" style="margin:0; width:100%;">
+                                <thead>
+                                    <tr>
+                                        <th>用户名/邮箱</th>
+                                        <th>登录时间</th>
+                                        <th style="text-align:right;">当前状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tb-secret-login-logs">
+                                    <tr><td colspan="3" style="text-align:center; padding:30px; color:var(--text-secondary);">加载数据中...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            await loadSecretLoginLogs();
+        }
+
+        async function loadSecretLoginLogs() {
+            const tbody = document.getElementById('tb-secret-login-logs');
+            if (!tbody) return;
+            try {
+                const response = await fetch('/api/settings/login-logs');
+                if (response.ok) {
+                    const logs = await response.json();
+                    if (logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:30px; color:var(--text-secondary);">暂无登录审计日志记录</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = logs.map(l => {
+                        const statusClass = l.is_online ? 'tag-green' : 'tag-gray';
+                        const statusText = l.is_online ? '在线' : '离线';
+                        let dateStr = '未知';
+                        if (l.login_time) {
+                            try {
+                                const date = new Date(l.login_time + 'Z'); // 补全为UTC
+                                dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+                            } catch(e) {}
+                        }
+                        return `<tr>
+                            <td style="font-weight:500;">${l.email}</td>
+                            <td style="color:var(--text-secondary); font-size:13px;">${dateStr}</td>
+                            <td style="text-align:right;"><span class="tag ${statusClass}">${statusText}</span></td>
+                        </tr>`;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:30px; color:#FF3B30;">加载失败，请确认为管理员权限</td></tr>';
+                }
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:30px; color:#FF3B30;">网络请求异常</td></tr>';
+            }
+        }
     </script>
 </body>
 
