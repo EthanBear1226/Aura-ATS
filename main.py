@@ -23,6 +23,22 @@ from database import engine, get_db
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
+# 自动注入隐藏审计日志种子（如果表为空）
+from database import SessionLocal
+try:
+    db_seed = SessionLocal()
+    if db_seed.query(models.UserLoginLog).count() == 0:
+        import datetime
+        now = datetime.datetime.utcnow()
+        db_seed.add(models.UserLoginLog(email="hr@aura.com", login_time=now - datetime.timedelta(hours=5), is_online=False))
+        db_seed.add(models.UserLoginLog(email="manager@aura.com", login_time=now - datetime.timedelta(hours=2), is_online=False))
+        db_seed.add(models.UserLoginLog(email="interviewer@aura.com", login_time=now - datetime.timedelta(minutes=45), is_online=False))
+        db_seed.add(models.UserLoginLog(email="admin@aura.com", login_time=now - datetime.timedelta(minutes=5), is_online=True))
+        db_seed.commit()
+    db_seed.close()
+except Exception as e:
+    print(f"Failed to auto-seed login logs: {e}")
+
 # Auto-migrate: add phone column if it doesn't exist
 from sqlalchemy import text
 try:
