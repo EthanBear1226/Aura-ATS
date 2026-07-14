@@ -726,12 +726,14 @@
                 }
             });
 
-            // 验证职位类别 (Segmented Control)
-            const categoryInput = document.getElementById('jobCategory');
-            if (categoryInput && !categoryInput.value) {
+            // 验证职位类别 (CategorySelect)
+            if (!selectedJobCategory) {
                 isValid = false;
-                const ctrl = document.querySelector('.segmented-control[data-target="jobCategory"]');
-                if (ctrl) ctrl.classList.add('has-error');
+                const container = document.getElementById('jobCategoryContainer');
+                if (container) {
+                    const display = container.querySelector('.tree-select-display');
+                    if (display) display.classList.add('has-error');
+                }
             }
 
             // 验证职级 (Segmented Control)
@@ -789,7 +791,7 @@
                 interview_process: document.getElementById('jobInterviewProcess').value,
                 status: "热招中",
                 
-                category: document.getElementById('jobCategory').value,
+                category: selectedJobCategory,
                 job_type: document.getElementById('jobType').value,
                 experience: document.getElementById('jobExperience').value,
                 job_level: document.getElementById('jobLevel').value,
