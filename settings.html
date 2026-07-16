@@ -79,6 +79,7 @@
                     <div class="settings-nav-item" onclick="switchSetting('categories', event)">🏷️ 职位类别</div>
                     <div class="settings-nav-item" onclick="switchSetting('email-templates', event)">📧 邮件模板</div>
                     <div class="settings-nav-item" onclick="switchSetting('feedback-templates', event)">📝 评价模板</div>
+                    <div class="settings-nav-item" onclick="switchSetting('offer-approval', event)">📋 Offer 审批配置</div>
                 </div>
 
                 <div class="settings-content">
@@ -221,6 +222,32 @@
                             <tbody id="tb-feedback-templates"></tbody>
                         </table>
                     </div>
+
+                    <!-- Offer Approval Rules -->
+                    <div id="sec-offer-approval" class="settings-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Offer 审批配置</h2>
+                            <button class="btn btn-primary" onclick="openApprovalRuleModal()">+ 新增规则</button>
+                        </div>
+                        <div class="alert alert-info" style="margin-bottom: 20px; background: #e8f4fd; color: var(--primary-color); border: 1px solid #d4ebfc; padding: 12px 16px; border-radius: 8px; font-size: 13px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--primary-color);">
+                            <span>💡</span>
+                            <span>系统会根据 Offer 的职级与部门智能匹配自定义规则，若无匹配则自动应用“默认全局审批流”。</span>
+                        </div>
+                        <table class="table-container">
+                            <thead>
+                                <tr>
+                                    <th>规则名称</th>
+                                    <th>适用部门</th>
+                                    <th>适用职级</th>
+                                    <th>审批链预览</th>
+                                    <th style="text-align:right;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tb-offer-approval-rules">
+                                <tr><td colspan="5" class="empty-state">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
@@ -286,6 +313,60 @@
         </div>
     </div>
 
+    <!-- 审批规则自定义配置弹窗 -->
+    <div class="modal-overlay" id="approvalRuleModal">
+        <div class="modal-card" style="width: 580px; max-height: 85vh; display: flex; flex-direction: column;">
+            <h2 id="approvalRuleModalTitle">新增 Offer 审批规则</h2>
+            <div style="overflow-y: auto; flex: 1; padding-right: 8px;">
+                <div class="form-group" style="margin-bottom:16px;">
+                    <label>规则名称<span class="required-mark">*</span></label>
+                    <input type="text" id="ruleName" class="form-control" placeholder="如: 技术团队 P5-P7 审批流" autocomplete="off">
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>适用部门（可空，代表全部）</label>
+                        <select id="ruleDept" class="form-control">
+                            <!-- 动态加载部门列表 -->
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>适用职级（可空，代表全部）</label>
+                        <select id="ruleJobLevel" class="form-control">
+                            <option value="">全部职级</option>
+                            <option value="P1">P1</option>
+                            <option value="P2">P2</option>
+                            <option value="P3">P3</option>
+                            <option value="P4">P4</option>
+                            <option value="P5">P5</option>
+                            <option value="P6">P6</option>
+                            <option value="P7">P7</option>
+                            <option value="P8">P8</option>
+                            <option value="P9">P9</option>
+                            <option value="HRBP">HRBP</option>
+                            <option value="D">D (总监级)</option>
+                            <option value="VP">VP (副总裁级)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>审批链节点配置<span class="required-mark">*</span></span>
+                        <button class="btn btn-primary" onclick="addRuleStepRow()" style="padding: 2px 10px; font-size: 11px;">+ 增加节点</button>
+                    </label>
+                </div>
+                <div id="ruleStepsContainer" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                    <!-- 动态注入的节点行 -->
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:12px; margin-top:24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <button class="btn" style="flex:1; justify-content:center; padding:12px;" onclick="closeApprovalRuleModal()">取消</button>
+                <button class="btn btn-primary" style="flex:1; justify-content:center; padding:12px;" onclick="submitApprovalRule()">保存生效</button>
+            </div>
+        </div>
+    </div>
+
     <script src="assets/js/app.js?v=18"></script>
     <script>
         let currentDictType = '';
@@ -294,6 +375,7 @@
             renderSidebar('settings');
             renderHeader();
             loadAllDicts();
+            loadOfferApprovalRules();
         });
 
         function switchSetting(type, event) {
@@ -301,6 +383,271 @@
             event.currentTarget.classList.add('active');
             document.querySelectorAll('.settings-section').forEach(el => el.classList.remove('active'));
             document.getElementById('sec-' + type).classList.add('active');
+        }
+
+        // ==============================================================================
+        //                      ▎ OFFER APPROVAL ENGINE FRONTEND
+        // ==============================================================================
+        let approvalRulesList = [];
+        let systemUsersList = [];
+        let isApprovalRuleEdit = false;
+        let approvalRuleEditId = null;
+
+        async function loadOfferApprovalRules() {
+            try {
+                const res = await fetch('/api/settings/approval-rules');
+                if (res.ok) {
+                    approvalRulesList = await res.json();
+                    renderOfferApprovalRulesTable();
+                }
+                const resUsers = await fetch('/api/settings/users');
+                if (resUsers.ok) {
+                    systemUsersList = await resUsers.json();
+                }
+            } catch(e) {
+                console.error("加载审批流规则失败:", e);
+            }
+        }
+
+        function renderOfferApprovalRulesTable() {
+            const tbody = document.getElementById('tb-offer-approval-rules');
+            if (!tbody) return;
+            if (approvalRulesList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="empty-state">当前暂无自定义配置规则，全部默认自动应用“默认全局审批流”</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = approvalRulesList.map(r => {
+                const deptText = r.department ? `<span class="tag tag-blue">${r.department}</span>` : '<span style="color:var(--text-secondary); font-size:13px;">不限</span>';
+                const levelText = r.job_level ? `<span class="tag tag-gray" style="font-weight:600;">${r.job_level}</span>` : '<span style="color:var(--text-secondary); font-size:13px;">不限</span>';
+                
+                let stepsPreview = '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12px;">';
+                if (r.steps && r.steps.length > 0) {
+                    stepsPreview += r.steps.map((s, idx) => {
+                        const arrow = idx < r.steps.length - 1 ? ' <span style="color:var(--text-secondary); font-weight:bold;">→</span>' : '';
+                        return `<div style="background:#f4f4f4; border:1px solid #e2e2e2; border-radius:4px; padding:2px 8px; display:flex; align-items:center; gap:4px;" title="${s.approver_email}">
+                            <span style="font-weight:600; color:var(--text-primary);">${s.label}</span>
+                            <span style="color:var(--text-secondary); font-size:11px;">(${s.approver_email.split('@')[0]})</span>
+                        </div>${arrow}`;
+                    }).join('');
+                } else {
+                    stepsPreview += '<span style="color:#FF3B30;">未配置审批节点</span>';
+                }
+                stepsPreview += '</div>';
+
+                const isDefault = r.name === '默认全局审批流';
+                const deleteBtn = isDefault ? '' : `<button class="btn btn-link" onclick="deleteApprovalRule(${r.id})" style="color:#FF3B30;">删除</button>`;
+                
+                return `<tr>
+                    <td style="font-weight:600;">${r.name}</td>
+                    <td>${deptText}</td>
+                    <td>${levelText}</td>
+                    <td>${stepsPreview}</td>
+                    <td style="text-align:right;">
+                        <button class="btn btn-link" onclick="openApprovalRuleModal(${r.id})">编辑</button>
+                        ${deleteBtn}
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function openApprovalRuleModal(editId = null) {
+            const modal = document.getElementById('approvalRuleModal');
+            if (!modal) return;
+            
+            const deptSelect = document.getElementById('ruleDept');
+            if (deptSelect) {
+                let deptOptions = '<option value="">全部部门</option>';
+                if (cachedDicts && cachedDicts['departments']) {
+                    cachedDicts['departments'].forEach(d => {
+                        deptOptions += `<option value="${d.name}">${d.name}</option>`;
+                    });
+                }
+                deptSelect.innerHTML = deptOptions;
+            }
+
+            const title = document.getElementById('approvalRuleModalTitle');
+            const container = document.getElementById('ruleStepsContainer');
+            container.innerHTML = '';
+
+            if (editId) {
+                isApprovalRuleEdit = true;
+                approvalRuleEditId = editId;
+                title.innerText = '编辑 Offer 审批规则';
+                
+                const rule = approvalRulesList.find(r => r.id === editId);
+                if (rule) {
+                    document.getElementById('ruleName').value = rule.name;
+                    document.getElementById('ruleDept').value = rule.department || '';
+                    document.getElementById('ruleJobLevel').value = rule.job_level || '';
+                    
+                    const isDefault = rule.name === '默认全局审批流';
+                    document.getElementById('ruleName').disabled = isDefault;
+                    document.getElementById('ruleDept').disabled = isDefault;
+                    document.getElementById('ruleJobLevel').disabled = isDefault;
+
+                    if (rule.steps && rule.steps.length > 0) {
+                        rule.steps.forEach(s => addRuleStepRow(s.label, s.approver_email));
+                    } else {
+                        addRuleStepRow();
+                    }
+                }
+            } else {
+                isApprovalRuleEdit = false;
+                approvalRuleEditId = null;
+                title.innerText = '新增 Offer 审批规则';
+                document.getElementById('ruleName').value = '';
+                document.getElementById('ruleName').disabled = false;
+                document.getElementById('ruleDept').value = '';
+                document.getElementById('ruleDept').disabled = false;
+                document.getElementById('ruleJobLevel').value = '';
+                document.getElementById('ruleJobLevel').disabled = false;
+                
+                addRuleStepRow('HR上级', '');
+                addRuleStepRow('薪酬', '');
+                addRuleStepRow('直线经理/业务线负责人', '');
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeApprovalRuleModal() {
+            const modal = document.getElementById('approvalRuleModal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function addRuleStepRow(label = '', approverEmail = '') {
+            const container = document.getElementById('ruleStepsContainer');
+            if (!container) return;
+
+            let userOptions = '<option value="">请选择审批人...</option>';
+            if (systemUsersList && systemUsersList.length > 0) {
+                systemUsersList.forEach(u => {
+                    const selected = u.email === approverEmail ? 'selected' : '';
+                    userOptions += `<option value="${u.email}" ${selected}>${u.name} (${u.email})</option>`;
+                });
+            } else {
+                if (approverEmail) userOptions += `<option value="${approverEmail}" selected>${approverEmail}</option>`;
+            }
+
+            const rowId = 'step_row_' + Date.now() + Math.random().toString(36).substr(2, 5);
+            const rowHtml = `
+                <div class="approval-step-row" id="${rowId}" style="display:flex; align-items:center; gap:10px; background:#fafafa; border:1px solid #e8e8e8; padding:8px 12px; border-radius:8px;">
+                    <div style="flex:1; display:flex; gap:8px;">
+                        <input type="text" class="form-control rule-step-label" value="${label}" placeholder="节点名称，如: HRVP" style="width:130px; font-weight:600;">
+                        <select class="form-control rule-step-approver" style="flex:1;">
+                            ${userOptions}
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:4px;">
+                        <button class="btn btn-link" onclick="moveRuleStepRow('${rowId}', -1)" style="padding:4px; font-size:14px; text-decoration:none;" title="上移">⬆️</button>
+                        <button class="btn btn-link" onclick="moveRuleStepRow('${rowId}', 1)" style="padding:4px; font-size:14px; text-decoration:none;" title="下移">⬇️</button>
+                        <button class="btn btn-link" onclick="removeRuleStepRow('${rowId}')" style="padding:4px; font-size:14px; text-decoration:none; color:#FF3B30;" title="删除">🗑️</button>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', rowHtml);
+        }
+
+        function removeRuleStepRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (row) row.remove();
+        }
+
+        function moveRuleStepRow(rowId, direction) {
+            const container = document.getElementById('ruleStepsContainer');
+            const row = document.getElementById(rowId);
+            if (!container || !row) return;
+
+            const children = Array.from(container.children);
+            const index = children.indexOf(row);
+            if (index === -1) return;
+
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= children.length) return;
+
+            if (direction === -1) {
+                container.insertBefore(row, children[targetIndex]);
+            } else {
+                container.insertBefore(row, children[targetIndex].nextSibling);
+            }
+        }
+
+        async function submitApprovalRule() {
+            const name = document.getElementById('ruleName').value.trim();
+            const department = document.getElementById('ruleDept').value || null;
+            const job_level = document.getElementById('ruleJobLevel').value || null;
+
+            if (!name) {
+                showToast('请输入规则名称', 'error');
+                return;
+            }
+
+            const stepRows = document.querySelectorAll('.approval-step-row');
+            const steps = [];
+            let hasError = false;
+
+            stepRows.forEach(row => {
+                const label = row.querySelector('.rule-step-label').value.trim();
+                const approver_email = row.querySelector('.rule-step-approver').value;
+                if (!label || !approver_email) {
+                    hasError = true;
+                }
+                steps.push({ label, approver_email });
+            });
+
+            if (stepRows.length === 0) {
+                showToast('请至少配置一个审批节点', 'error');
+                return;
+            }
+            if (hasError) {
+                showToast('节点名称和审批人必须填写完整', 'error');
+                return;
+            }
+
+            const payload = { name, department, job_level, steps };
+            try {
+                let res;
+                if (isApprovalRuleEdit) {
+                    res = await fetch(`/api/settings/approval-rules/${approvalRuleEditId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    res = await fetch('/api/settings/approval-rules', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                if (res.ok) {
+                    showToast('审批规则保存成功', 'success');
+                    closeApprovalRuleModal();
+                    await loadOfferApprovalRules();
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || '保存失败', 'error');
+                }
+            } catch(e) {
+                showToast('网络错误，请稍后重试', 'error');
+            }
+        }
+
+        async function deleteApprovalRule(id) {
+            if (!confirm('确定要删除该审批规则吗？')) return;
+            try {
+                const res = await fetch(`/api/settings/approval-rules/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast('删除成功', 'success');
+                    await loadOfferApprovalRules();
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || '删除失败', 'error');
+                }
+            } catch(e) {
+                showToast('网络错误，请稍后重试', 'error');
+            }
         }
 
         let cachedDicts = {}; // 7大基础配置字典及模板数据的全局缓存

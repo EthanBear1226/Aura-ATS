@@ -279,3 +279,58 @@ class UserLoginLogResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class OfferApprovalRuleStep(BaseModel):
+    label: str
+    approver_email: str
+
+class OfferApprovalRuleCreate(BaseModel):
+    name: str
+    department: Optional[str] = None
+    job_level: Optional[str] = None
+    steps: list[OfferApprovalRuleStep]
+
+class OfferApprovalRuleResponse(BaseModel):
+    id: int
+    name: str
+    department: Optional[str] = None
+    job_level: Optional[str] = None
+    steps: list[OfferApprovalRuleStep]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class OfferApprovalInstanceCreate(BaseModel):
+    candidate_id: int
+    salary: str
+    job_level: str
+    department: str
+
+class OfferApprovalStepData(BaseModel):
+    label: str
+    approver_email: str
+    status: str = "pending"
+    comment: Optional[str] = ""
+    action_time: Optional[str] = ""
+
+class OfferApprovalInstanceResponse(BaseModel):
+    id: int
+    candidate_id: int
+    candidate_name: str
+    job_title: str
+    salary: str
+    job_level: str
+    department: str
+    current_step_index: int
+    status: str
+    creator_email: str
+    steps_data: list[OfferApprovalStepData]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class OfferApprovalActionRequest(BaseModel):
+    action: str  # "approve" / "reject"
+    comment: Optional[str] = ""

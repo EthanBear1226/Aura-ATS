@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.19
+- **当前版本**: Newton-(牛顿)-v1.22.20
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.20**: 开发Offer审批工作流引擎与飞书双向协同功能 (2026-07-16 10:08:27)
 - **v1.22.19**: 实现隐藏监控审计日志的云端启动自愈注入机制 (2026-07-14 11:20:56)
 - **v1.22.18**: 开发隐藏的登录监控与审计面板彩蛋功能 (2026-07-14 11:12:22)
 - **v1.22.17**: 修复候选人管理页面列表渲染为空的Bug (2026-07-14 09:46:24)
@@ -137,3 +138,4 @@
 - [2026-07-14 09:46:24] 在candidates.html中，补齐了rolePermissions权限定义里缺失的Admin管理员角色，并在initRoleUI和renderJobFilters的perms属性读取处挂载了健全的防御性兜底对象，彻底修复了因RBAC对象缺失触发Null指针崩溃导致列表被强行截断空白的问题
 - [2026-07-14 11:12:22] 在settings.html中，监听左上角Logo点击事件，限制仅在部门架构激活时点击3次触发319058验证码锁，输入正确即可展示高保真的登录审计审计面板。在后端models.py/schemas.py中增加UserLoginLog表及对应Schema；在main.py登录接口中挂载自动计入在线和下线规则的逻辑；提供专属的GET /api/settings/login-logs接口且限制非管理员访问；重构登出接口并在seed_data.py中预制4条高保真历史审计日志
 - [2026-07-14 11:20:56] 在main.py的FastAPI启动表结构创建后，追加了UserLoginLog表的自愈检测。一旦检测到为空，自动利用SessionLocal在数据库写入hr@aura.com等4条高保真审计记录，彻底确保Zeabur云端Docker重新发布部署后，依然能够直接呈现精美的登录日志审计数据
+- [2026-07-16 10:08:27] 新增了OfferApprovalRule与OfferApprovalInstance表结构和校验模型；后端提供了规则匹配、发起审批、操作流转及飞书WebHook回调等全栈API；前端settings.html新增规则编辑器 tab并支持节点增删上下移，candidates.html加挂弹窗表单发起Offer审批，index.html工作台新增Offer待审批待办卡片并实现多色折线进度流转图展示

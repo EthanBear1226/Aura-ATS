@@ -23,7 +23,7 @@ from database import engine, get_db
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
-# 自动注入隐藏审计日志种子（如果表为空）
+# 自动注入隐藏审计日志种子与默认Offer审批流（如果表为空）
 from database import SessionLocal
 try:
     db_seed = SessionLocal()
@@ -35,9 +35,24 @@ try:
         db_seed.add(models.UserLoginLog(email="interviewer@aura.com", login_time=now - datetime.timedelta(minutes=45), is_online=False))
         db_seed.add(models.UserLoginLog(email="admin@aura.com", login_time=now - datetime.timedelta(minutes=5), is_online=True))
         db_seed.commit()
+        
+    if db_seed.query(models.OfferApprovalRule).count() == 0:
+        default_steps = [
+            {"label": "HR上级", "approver_email": "hr_manager@example.com"},
+            {"label": "薪酬", "approver_email": "finance@example.com"},
+            {"label": "直线经理/业务线负责人", "approver_email": "line_manager@example.com"},
+            {"label": "HRVP", "approver_email": "hrvp@example.com"}
+        ]
+        db_seed.add(models.OfferApprovalRule(
+            name="默认全局审批流",
+            department=None,
+            job_level=None,
+            steps=default_steps
+        ))
+        db_seed.commit()
     db_seed.close()
 except Exception as e:
-    print(f"Failed to auto-seed login logs: {e}")
+    print(f"Failed to auto-seed startup data: {e}")
 
 # Auto-migrate: add phone column if it doesn't exist
 from sqlalchemy import text
@@ -1545,6 +1560,240 @@ def resolve_system_task(task_id: int, db: Session = Depends(get_db), current_use
     db.commit()
     db.refresh(task)
     return task
+
+    return task
+
+# ==============================================================================
+#                      ▎ OFFER APPROVAL ENGINE ROUTERS
+# ==============================================================================
+
+@app.get("/api/settings/users", response_model=list[schemas.UserResponse])
+def get_settings_users(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.User).all()
+
+@app.get("/api/settings/approval-rules", response_model=list[schemas.OfferApprovalRuleResponse])
+def get_approval_rules(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.OfferApprovalRule).all()
+
+@app.post("/api/settings/approval-rules", response_model=schemas.OfferApprovalRuleResponse)
+def create_approval_rule(item: schemas.OfferApprovalRuleCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
+    db_item = models.OfferApprovalRule(
+        name=item.name,
+        department=item.department,
+        job_level=item.job_level,
+        steps=[s.model_dump() for s in item.steps]
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.patch("/api/settings/approval-rules/{item_id}", response_model=schemas.OfferApprovalRuleResponse)
+def update_approval_rule(item_id: int, item: schemas.OfferApprovalRuleCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
+    db_item = db.query(models.OfferApprovalRule).filter(models.OfferApprovalRule.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    db_item.name = item.name
+    db_item.department = item.department
+    db_item.job_level = item.job_level
+    db_item.steps = [s.model_dump() for s in item.steps]
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/api/settings/approval-rules/{item_id}")
+def delete_approval_rule(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
+    db.query(models.OfferApprovalRule).filter(models.OfferApprovalRule.id == item_id).delete()
+    db.commit()
+    return {"ok": True}
+
+@app.post("/api/approvals/launch", response_model=schemas.OfferApprovalInstanceResponse)
+def launch_offer_approval(item: schemas.OfferApprovalInstanceCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    # 1. 查找候选人及所投职位
+    cand = db.query(models.Candidate).filter(models.Candidate.id == item.candidate_id).first()
+    if not cand:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    # 2. 智能匹配规则 (精确双匹配 -> 单部门匹配 -> 单职级匹配 -> 全局默认)
+    rule = db.query(models.OfferApprovalRule).filter(
+        models.OfferApprovalRule.department == item.department,
+        models.OfferApprovalRule.job_level == item.job_level
+    ).first()
+    
+    if not rule:
+        rule = db.query(models.OfferApprovalRule).filter(
+            models.OfferApprovalRule.department == item.department,
+            models.OfferApprovalRule.job_level == None
+        ).first()
+        
+    if not rule:
+        rule = db.query(models.OfferApprovalRule).filter(
+            models.OfferApprovalRule.department == None,
+            models.OfferApprovalRule.job_level == item.job_level
+        ).first()
+        
+    if not rule:
+        rule = db.query(models.OfferApprovalRule).filter(
+            models.OfferApprovalRule.name == "默认全局审批流"
+        ).first()
+        
+    # 3. 固化步骤及节点初始化
+    steps_list = []
+    if rule and rule.steps:
+        steps_list = [
+            {
+                "label": s["label"],
+                "approver_email": s["approver_email"],
+                "status": "pending",
+                "comment": "",
+                "action_time": ""
+            }
+            for s in rule.steps
+        ]
+    else:
+        # 硬编码极简兜底
+        steps_list = [
+            {"label": "HR上级", "approver_email": "hr_manager@example.com", "status": "pending", "comment": "", "action_time": ""},
+            {"label": "HRVP", "approver_email": "hrvp@example.com", "status": "pending", "comment": "", "action_time": ""}
+        ]
+        
+    # 4. 创建实例
+    instance = models.OfferApprovalInstance(
+        candidate_id=item.candidate_id,
+        candidate_name=cand.name,
+        job_title=cand.job or "未知职位",
+        salary=item.salary,
+        job_level=item.job_level,
+        department=item.department,
+        current_step_index=0,
+        status="pending",
+        creator_email=current_user.email,
+        steps_data=steps_list
+    )
+    
+    db.add(instance)
+    
+    # 5. 自动记录候选人动态日志
+    new_log = models.CandidateLog(
+        candidate_id=cand.id,
+        operator=current_user.name,
+        action="已发起 Offer 审批",
+        details=f"职级: {item.job_level} | 部门: {item.department} | 薪酬方案: {item.salary}"
+    )
+    db.add(new_log)
+    db.commit()
+    db.refresh(instance)
+    
+    # 6. 自动触发飞书通知接口推送 (后台模拟打印)
+    if len(steps_list) > 0:
+        services.FeishuNotificationService.send_offer_approval_card(instance, steps_list[0])
+        
+    return instance
+
+@app.get("/api/approvals/pending", response_model=list[schemas.OfferApprovalInstanceResponse])
+def get_pending_approvals(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    instances = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.status == "pending").all()
+    pending_list = []
+    for inst in instances:
+        steps = inst.steps_data or []
+        if 0 <= inst.current_step_index < len(steps):
+            current_step = steps[inst.current_step_index]
+            if current_step.get("approver_email") == current_user.email:
+                pending_list.append(inst)
+    return pending_list
+
+@app.get("/api/approvals/my-launches", response_model=list[schemas.OfferApprovalInstanceResponse])
+def get_my_launches(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.creator_email == current_user.email).all()
+
+@app.get("/api/approvals/{id}", response_model=schemas.OfferApprovalInstanceResponse)
+def get_approval_detail(id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    inst = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.id == id).first()
+    if not inst:
+        raise HTTPException(status_code=404, detail="Instance not found")
+    return inst
+
+@app.post("/api/approvals/{id}/action", response_model=schemas.OfferApprovalInstanceResponse)
+def action_offer_approval(id: int, req: schemas.OfferApprovalActionRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    inst = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.id == id).first()
+    if not inst:
+        raise HTTPException(status_code=404, detail="Instance not found")
+    if inst.status != "pending":
+        raise HTTPException(status_code=400, detail="流程已结束")
+        
+    steps = inst.steps_data or []
+    if inst.current_step_index < 0 or inst.current_step_index >= len(steps):
+        raise HTTPException(status_code=400, detail="异常的节点流转位置")
+        
+    current_step = steps[inst.current_step_index]
+    if current_step.get("approver_email") != current_user.email:
+        raise HTTPException(status_code=403, detail="您不是当前节点的审批人")
+        
+    import datetime
+    now_str = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # 执行决策
+    if req.action == "approve":
+        current_step["status"] = "approved"
+        current_step["comment"] = req.comment or "同意"
+        current_step["action_time"] = now_str
+        
+        # 递增至下一个节点
+        inst.current_step_index += 1
+        if inst.current_step_index >= len(steps):
+            # 终审通过
+            inst.status = "approved"
+            # 自动联动将候选人招聘阶段更新为“沟通offer”
+            cand = db.query(models.Candidate).filter(models.Candidate.id == inst.candidate_id).first()
+            if cand:
+                cand.stage = "沟通offer"
+                new_log = models.CandidateLog(
+                    candidate_id=cand.id,
+                    operator="系统审核流",
+                    action="Offer审批终审通过",
+                    details="薪酬及各级审核通过，候选人阶段已推进至：沟通offer"
+                )
+                db.add(new_log)
+        else:
+            # 流转给下一级，触发飞书推送
+            next_step = steps[inst.current_step_index]
+            services.FeishuNotificationService.send_offer_approval_card(inst, next_step)
+            
+    elif req.action == "reject":
+        current_step["status"] = "rejected"
+        current_step["comment"] = req.comment or "驳回"
+        current_step["action_time"] = now_str
+        
+        # 流程中止
+        inst.status = "rejected"
+        cand = db.query(models.Candidate).filter(models.Candidate.id == inst.candidate_id).first()
+        if cand:
+            new_log = models.CandidateLog(
+                candidate_id=cand.id,
+                operator=current_user.name,
+                action="Offer审批已被驳回",
+                details=f"驳回人: {current_user.name} | 原因: {req.comment or '无'}"
+            )
+            db.add(new_log)
+            
+    # 强制将修改标记为脏数据以确保 JSON 数据类型被 SQLAlchmey 捕获更新入库
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(inst, "steps_data")
+    
+    db.commit()
+    db.refresh(inst)
+    return inst
+
+@app.post("/api/feishu/approval-callback")
+def feishu_approval_callback(payload: dict, db: Session = Depends(get_db)):
+    # 飞书消息卡片交互回调WebHook占位接口 (优先无需跳转直接响应)
+    print("Received Feishu approval callback payload:", payload)
+    # 1. 模拟解析 payload 中的 action, comment, email, instance_id 等参数
+    # 2. 推进状态并进行卡片刷新同步更新
+    return {"status": "ok", "msg": "飞书卡片数据已实时刷新"}
 
 if __name__ == "__main__":
     # In Zeabur, use the PORT environment variable

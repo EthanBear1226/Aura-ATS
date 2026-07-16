@@ -181,3 +181,31 @@ class UserLoginLog(Base):
     email = Column(String(255), index=True)
     login_time = Column(DateTime, default=datetime.datetime.utcnow)
     is_online = Column(Boolean, default=True)
+
+class OfferApprovalRule(Base):
+    __tablename__ = "offer_approval_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), index=True)
+    department = Column(String(100), nullable=True)
+    job_level = Column(String(50), nullable=True)
+    steps = Column(JSON)  # [{"label": "HR上级", "approver_email": "hr_mgr@aura.com"}, ...]
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class OfferApprovalInstance(Base):
+    __tablename__ = "offer_approval_instances"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidates.id"), index=True)
+    candidate_name = Column(String(100))
+    job_title = Column(String(100))
+    salary = Column(String(100))
+    job_level = Column(String(50))
+    department = Column(String(100))
+    current_step_index = Column(Integer, default=0)
+    status = Column(String(50), default="pending")  # pending / approved / rejected
+    creator_email = Column(String(255))
+    steps_data = Column(JSON)  # [{"label": "HR上级", "approver_email": "...", "status": "approved"/"rejected"/"pending", "comment": "...", "action_time": "..."}]
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    candidate = relationship("Candidate")

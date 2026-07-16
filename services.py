@@ -119,3 +119,78 @@ class EmailService:
         print(f"[Email Mock] Content:\n{content}")
         return True
 
+class FeishuNotificationService:
+    @staticmethod
+    def send_offer_approval_card(instance, step) -> bool:
+        # 预留飞书通道：模拟构造飞书端原生的交互式“消息卡片”JSON结构
+        # 消息卡片支持直接在飞书会话流中呈现完整审批单信息且无需跳转浏览器进行操作
+        feishu_card = {
+            "config": {
+                "wide_screen_mode": True
+            },
+            "header": {
+                "title": {
+                    "tag": "plain_text",
+                    "content": f"📋 待审批 Offer - {instance.candidate_name}"
+                },
+                "template": "blue"
+            },
+            "elements": [
+                {
+                    "tag": "markdown",
+                    "content": f"**候选人姓名**：{instance.candidate_name}\n"
+                               f"**应聘职位**：{instance.job_title}\n"
+                               f"**拟录用职级**：{instance.job_level}\n"
+                               f"**录用部门**：{instance.department}\n"
+                               f"**薪酬方案**：**{instance.salary}**"
+                },
+                {
+                    "tag": "hr"
+                },
+                {
+                    "tag": "markdown",
+                    "content": f"**当前审批节点**：【{step['label']}】\n"
+                               f"**当前待审批人**：{step['approver_email']}\n"
+                               f"*注：直接在下方点击即可处理，审批结果将实时刷回此卡片，优先无需跳转。*"
+                },
+                {
+                    "tag": "action",
+                    "actions": [
+                        {
+                            "tag": "button",
+                            "text": {
+                                "tag": "plain_text",
+                                "content": "同意"
+                            },
+                            "type": "primary",
+                            "value": {
+                                "action": "approve",
+                                "instance_id": instance.id,
+                                "step_label": step['label']
+                            }
+                        },
+                        {
+                            "tag": "button",
+                            "text": {
+                                "tag": "plain_text",
+                                "content": "驳回"
+                            },
+                            "type": "danger",
+                            "value": {
+                                "action": "reject",
+                                "instance_id": instance.id,
+                                "step_label": step['label']
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        print(f"\n[Feishu Integration] =========================================")
+        print(f"[Feishu Integration] 成功向 {step['approver_email']} 发送飞书交互消息卡片:")
+        import json
+        print(json.dumps(feishu_card, ensure_ascii=False, indent=2))
+        print(f"[Feishu Integration] =========================================\n")
+        return True
+

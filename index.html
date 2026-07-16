@@ -46,6 +46,8 @@
             fetchDashboardData();
         });
 
+        let pendingApprovalsList = [];
+
         async function fetchDashboardData() {
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const role = user.role || 'HR';
@@ -54,8 +56,16 @@
             document.getElementById('workbench-welcome').innerText = `${name}，${role}`;
 
             try {
+                // 1. 获取工作台核心统计
                 const response = await fetch(`/api/workbench/dashboard?role=${role}&name=${name}`);
                 const data = await response.json();
+                
+                // 2. 获取待处理的审批（Offer 待办）
+                const resApprovals = await fetch('/api/approvals/pending');
+                if (resApprovals.ok) {
+                    pendingApprovalsList = await resApprovals.json();
+                }
+
                 renderWorkbench(data);
             } catch (error) {
                 console.error("加载工作台失败:", error);
@@ -65,15 +75,14 @@
         function renderWorkbench(data) {
             const grid = document.getElementById('workbench-grid');
             grid.innerHTML = '';
-            // 重写网格布局为紧凑模式
             grid.style.display = 'grid';
             grid.style.gridTemplateColumns = 'repeat(4, 1fr)';
             grid.style.gridTemplateRows = 'auto 1fr';
             grid.style.gap = '16px';
-            grid.style.height = 'calc(100vh - 180px)'; // 使其适配单屏高度
+            grid.style.height = 'calc(100vh - 180px)';
             grid.style.marginTop = '16px';
 
-            // 1. 紧凑型统计磁贴 (Stats) - 占据顶栏
+            // 1. 统计磁贴
             data.stats.forEach(stat => {
                 const card = document.createElement('div');
                 card.className = 'glass-card';
@@ -91,19 +100,44 @@
                 grid.appendChild(card);
             });
 
-            // 2. 主待办区域 (Todos) - 占据左侧和中间
+            // 2. 待办卡片 (已合并真实待审批 Offer)
             const todoCard = document.createElement('div');
             todoCard.className = 'glass-card';
             todoCard.style.padding = '20px';
             todoCard.style.gridColumn = 'span 3';
-            todoCard.style.overflowY = 'auto'; // 允许内部滚动
-            
+            todoCard.style.overflowY = 'auto';
+
+            // A. 渲染待审批 Offer 专属卡片项
+            let approvalsHtml = '';
+            if (pendingApprovalsList && pendingApprovalsList.length > 0) {
+                pendingApprovalsList.forEach(app => {
+                    approvalsHtml += `
+                    <div class="task-item" onclick="openOfferApprovalModal(${app.id})" style="cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-radius: 8px; background: rgba(0, 122, 255, 0.05); border: 1px solid rgba(0, 122, 255, 0.15); margin-bottom: 12px; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='none'">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:10px; height:10px; border-radius:5px; background:#007AFF; flex-shrink:0; box-shadow: 0 0 8px #007AFF;"></div>
+                            <div>
+                                <div style="font-weight:700; font-size: 14px; color: var(--primary-color);">📋 待您审批 Offer：${app.candidate_name}</div>
+                                <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                                    职位：${app.job_title} | 部门：${app.department} | 职级：${app.job_level}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight:600; font-size:13px; color:#FF9500;">待审批</div>
+                            <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">薪酬：${app.salary.split(' + ')[0]}</div>
+                        </div>
+                    </div>
+                    `;
+                });
+            }
+
+            // B. 渲染常规待办项
             let todoItems = data.todos.map(todo => {
                 let clickAction = `window.location.href='candidate-detail.html?id=${todo.candidate_id}'`;
                 if (todo.type === 'schedule_task') {
                     clickAction = `window.location.href='candidates.html?open_schedule=1&candidate_id=${todo.candidate_id}'`;
                 }
-                let dotColor = '#007AFF'; // resume_alert
+                let dotColor = '#007AFF';
                 if (todo.type === 'schedule_task') dotColor = '#FF9500';
                 else if (todo.type === 'interview') dotColor = '#34C759';
 
@@ -124,24 +158,26 @@
                 `;
             }).join('');
 
+            const contentHtml = approvalsHtml + todoItems;
+
             todoCard.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <h3 style="font-size: 15px; font-weight: 600; margin: 0;">优先处理事项</h3>
                     <span style="font-size: 12px; color: var(--primary-color); cursor: pointer; font-weight: 500;">查看全部</span>
                 </div>
                 <div style="display: flex; flex-direction: column;">
-                    ${todoItems || '<div style="text-align:center; color:var(--text-secondary); padding:40px; font-size: 13px;">当前无紧急待办</div>'}
+                    ${contentHtml || '<div style="text-align:center; color:var(--text-secondary); padding:40px; font-size: 13px;">当前无紧急待办</div>'}
                 </div>
             `;
             grid.appendChild(todoCard);
 
-            // 3. 动态流 (Activities) - 占据右侧
+            // 3. 动态流
             const activityCard = document.createElement('div');
             activityCard.className = 'glass-card';
             activityCard.style.padding = '20px';
             activityCard.style.gridColumn = 'span 1';
-            activityCard.style.overflowY = 'auto'; // 允许内部滚动
-            activityCard.style.background = 'rgba(250, 250, 252, 0.8)'; // 稍微深一点的背景区分层级
+            activityCard.style.overflowY = 'auto';
+            activityCard.style.background = 'rgba(250, 250, 252, 0.8)';
             
             activityCard.innerHTML = `
                 <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 16px 0;">近期动态</h3>
@@ -163,7 +199,154 @@
                 </div>
             `;
             grid.appendChild(activityCard);
-            lucide.createIcons(); // Re-initialize icons for dynamically added elements
+            lucide.createIcons();
+        }
+
+        // ==============================================================================
+        //                      ▎ OFFER APPROVAL DETAIL & ACTION JS
+        // ==============================================================================
+        async function openOfferApprovalModal(instanceId) {
+            const existing = document.getElementById('offerApprovalDetailModal');
+            if (existing) existing.remove();
+
+            try {
+                const res = await fetch(`/api/approvals/${instanceId}`);
+                if (!res.ok) throw new Error("获取详情失败");
+                const inst = await res.json();
+                
+                // 绘制审批多节点图形化进度条
+                const graphHtml = renderOfferApprovalGraph(inst);
+
+                const modalHtml = `
+                    <div class="modal-overlay" id="offerApprovalDetailModal" style="display:flex; justify-content:center; align-items:center; z-index:99999;">
+                        <div class="modal-card" style="width:680px; padding:36px; border-radius:16px; display:flex; flex-direction:column; max-height:90vh;">
+                            <h2 style="font-size:18px; font-weight:700; margin-bottom:20px; color:var(--text-primary); text-align:center;">📋 Offer 审批单详情</h2>
+                            
+                            <div style="overflow-y:auto; flex:1; padding-right:6px;">
+                                <!-- 基础 Offer 信息 -->
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#fafafa; border:1px solid #e8e8e8; padding:16px 20px; border-radius:10px; font-size:13px; margin-bottom:20px;">
+                                    <div><strong>候选人姓名</strong>：${inst.candidate_name}</div>
+                                    <div><strong>应聘职位</strong>：${inst.job_title}</div>
+                                    <div><strong>录用部门</strong>：<span class="tag tag-blue">${inst.department}</span></div>
+                                    <div><strong>拟录用职级</strong>：<span class="tag tag-gray">${inst.job_level}</span></div>
+                                    <div style="grid-column: span 2; border-top:1px solid #eaeaea; padding-top:8px; margin-top:4px;">
+                                        <strong>录用薪酬方案</strong>：<strong style="color:var(--primary-color); font-size:14px;">${inst.salary}</strong>
+                                    </div>
+                                </div>
+                                
+                                <!-- 流程图谱 -->
+                                <div style="font-weight:600; font-size:14px; margin-bottom:10px;">流程节点流转进度</div>
+                                ${graphHtml}
+
+                                <!-- 操作审批意见 -->
+                                <div class="form-group" style="margin-top:24px; margin-bottom:16px;">
+                                    <label style="font-size:12px; margin-bottom:6px; display:block; font-weight:600;">您的审批意见</label>
+                                    <textarea id="approvalComment" class="form-control" rows="2" placeholder="同意/驳回均在此输入具体意见 (可不填，默认同意输入'同意')" style="font-size:13px;"></textarea>
+                                </div>
+                            </div>
+
+                            <div style="display:flex; gap:12px; margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+                                <button class="btn" style="flex:1; justify-content:center; padding:12px;" onclick="closeOfferApprovalModal()">关闭</button>
+                                <button class="btn" style="flex:1; justify-content:center; padding:12px; color:#FF3B30; border-color:#FF3B30; background:#fff;" onclick="submitOfferApprovalAction(${inst.id}, 'reject')">驳回</button>
+                                <button class="btn btn-primary" style="flex:1.5; justify-content:center; padding:12px;" onclick="submitOfferApprovalAction(${inst.id}, 'approve')">同意并流转</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            } catch(e) {
+                showToast("获取审批详情失败", "error");
+            }
+        }
+
+        function closeOfferApprovalModal() {
+            const modal = document.getElementById('offerApprovalDetailModal');
+            if (modal) modal.remove();
+        }
+
+        function renderOfferApprovalGraph(inst) {
+            const steps = inst.steps_data || [];
+            let html = `
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; position:relative; margin: 30px 0; padding:0 10px;">
+                <div style="position:absolute; top:20px; left:40px; right:40px; height:3px; background:#E5E5EA; z-index:1;"></div>
+                <div id="approval-progress-line" style="position:absolute; top:20px; left:40px; height:3px; background:#34C759; z-index:2; transition: width 0.3s; width:0%;"></div>
+            `;
+
+            let passedCount = 0;
+            steps.forEach((s, idx) => {
+                let nodeColor = '#E5E5EA';
+                let iconHtml = `${idx + 1}`;
+                let statusText = '等待中';
+                let statusColor = 'var(--text-secondary)';
+
+                if (s.status === 'approved') {
+                    nodeColor = '#34C759';
+                    iconHtml = '✓';
+                    statusText = '已同意';
+                    statusColor = '#34C759';
+                    passedCount = idx;
+                } else if (s.status === 'rejected') {
+                    nodeColor = '#FF3B30';
+                    iconHtml = '✗';
+                    statusText = '已驳回';
+                    statusColor = '#FF3B30';
+                    passedCount = idx;
+                } else if (idx === inst.current_step_index && inst.status === 'pending') {
+                    nodeColor = '#007AFF';
+                    iconHtml = '✏️';
+                    statusText = '待审批';
+                    statusColor = '#007AFF';
+                }
+
+                html += `
+                <div style="display:flex; flex-direction:column; align-items:center; z-index:3; position:relative; width: 100px;">
+                    <div style="width:36px; height:36px; border-radius:18px; background:${nodeColor}; color:#FFF; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 3px solid #FFF;">
+                        ${iconHtml}
+                    </div>
+                    <div style="font-weight:600; font-size:12px; color:var(--text-primary); margin-top:8px; text-align:center; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; width:100px;" title="${s.label}">${s.label}</div>
+                    <div style="font-size:10px; color:var(--text-secondary); margin-top:2px; text-align:center; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; width:100px;" title="${s.approver_email}">${s.approver_email.split('@')[0]}</div>
+                    <div style="font-size:10px; color:${statusColor}; font-weight:600; margin-top:2px; text-align:center;">${statusText}</div>
+                    ${s.comment ? `<div style="font-size:9px; color:var(--text-secondary); background:#f0f0f0; border-radius:4px; padding:2px 4px; margin-top:4px; max-width:80px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${s.comment}">${s.comment}</div>` : ''}
+                </div>
+                `;
+            });
+
+            html += '</div>';
+            
+            setTimeout(() => {
+                const line = document.getElementById('approval-progress-line');
+                if (line && steps.length > 1) {
+                    const percentage = (passedCount / (steps.length - 1)) * 100;
+                    line.style.width = Math.min(percentage, 100) + '%';
+                }
+            }, 100);
+
+            return html;
+        }
+
+        async function submitOfferApprovalAction(instanceId, action) {
+            const comment = document.getElementById('approvalComment').value.trim();
+            const btnText = action === 'approve' ? '同意并流转' : '驳回';
+            
+            try {
+                const res = await fetch(`/api/approvals/${instanceId}/action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, comment })
+                });
+
+                if (res.ok) {
+                    showToast(`Offer 审批已成功【${btnText}】`, 'success');
+                    closeOfferApprovalModal();
+                    await fetchDashboardData(); // 刷新工作台数据
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || '处理失败', 'error');
+                }
+            } catch(e) {
+                showToast('网络错误，请稍后重试', 'error');
+            }
         }
     </script>
 </body>
