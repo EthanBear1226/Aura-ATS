@@ -1671,7 +1671,8 @@ def launch_offer_approval(item: schemas.OfferApprovalInstanceCreate, db: Session
         current_step_index=0,
         status="pending",
         creator_email=current_user.email,
-        steps_data=steps_list
+        steps_data=steps_list,
+        offer_details=item.offer_details.dict() if item.offer_details else None
     )
     
     db.add(instance)
@@ -1708,6 +1709,13 @@ def get_pending_approvals(db: Session = Depends(get_db), current_user: models.Us
 @app.get("/api/approvals/my-launches", response_model=list[schemas.OfferApprovalInstanceResponse])
 def get_my_launches(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.creator_email == current_user.email).all()
+
+@app.get("/api/approvals/candidate/{candidate_id}", response_model=schemas.OfferApprovalInstanceResponse | None)
+def get_candidate_approval(candidate_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    instance = db.query(models.OfferApprovalInstance).filter(
+        models.OfferApprovalInstance.candidate_id == candidate_id
+    ).order_by(models.OfferApprovalInstance.id.desc()).first()
+    return instance
 
 @app.get("/api/approvals/{id}", response_model=schemas.OfferApprovalInstanceResponse)
 def get_approval_detail(id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

@@ -122,8 +122,34 @@ class EmailService:
 class FeishuNotificationService:
     @staticmethod
     def send_offer_approval_card(instance, step) -> bool:
-        # 预留飞书通道：模拟构造飞书端原生的交互式“消息卡片”JSON结构
-        # 消息卡片支持直接在飞书会话流中呈现完整审批单信息且无需跳转浏览器进行操作
+        # 1. 解析Offer高级字段以在飞书消息卡片中进行高保真Markdown拼装
+        details = getattr(instance, "offer_details", None) or {}
+        if details:
+            content_str = (
+                f"**候选人姓名**：{instance.candidate_name}\n"
+                f"**合同职位名称**：{details.get('contract_job', instance.job_title)}\n"
+                f"**合同主体**：{details.get('contract_subject', '--')}\n"
+                f"**录用部门**：{details.get('department', instance.department)}\n"
+                f"**职位级别**：{details.get('job_level', instance.job_level)}\n"
+                f"**预计入职时间**：{details.get('proposed_start_date', '--')}\n"
+                f"**薪资待遇方案**：¥{details.get('base_salary', 0):,.0f} /月 ({details.get('salary_type', '月薪')})\n"
+                f"**试用期细节**：试用期 {details.get('probation_months', 3)} 个月 · 发放比例 {details.get('probation_salary_rate', '100%')}\n"
+                f"**目标年终奖**：{details.get('target_bonus_months', 2)} 个月奖金\n"
+                f"**股票期权数**：{details.get('stock_options', 0):,.0f} 股\n"
+                f"**福利及其他**：绩效工资 ¥{details.get('performance_bonus', 0):,.0f} · 员工类型 {details.get('employment_type', '--')}\n"
+                f"**合规情况**：符合签署基金条件 - {details.get('compliance_check', '是')}\n"
+                f"**保障年基本薪资合计**：**¥{((details.get('base_salary', 0) or 0) * (12 + (float(details.get('target_bonus_months', 0) or 0)))):,.0f}**"
+            )
+        else:
+            content_str = (
+                f"**候选人姓名**：{instance.candidate_name}\n"
+                f"**应聘职位**：{instance.job_title}\n"
+                f"**拟录用职级**：{instance.job_level}\n"
+                f"**录用部门**：{instance.department}\n"
+                f"**薪酬方案**：**{instance.salary}**"
+            )
+
+        # 2. 模拟构造飞书端原生的交互式“消息卡片”JSON结构
         feishu_card = {
             "config": {
                 "wide_screen_mode": True
@@ -138,11 +164,7 @@ class FeishuNotificationService:
             "elements": [
                 {
                     "tag": "markdown",
-                    "content": f"**候选人姓名**：{instance.candidate_name}\n"
-                               f"**应聘职位**：{instance.job_title}\n"
-                               f"**拟录用职级**：{instance.job_level}\n"
-                               f"**录用部门**：{instance.department}\n"
-                               f"**薪酬方案**：**{instance.salary}**"
+                    "content": content_str
                 },
                 {
                     "tag": "hr"

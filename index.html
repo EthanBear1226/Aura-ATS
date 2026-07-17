@@ -223,16 +223,51 @@
                             <h2 style="font-size:18px; font-weight:700; margin-bottom:20px; color:var(--text-primary); text-align:center;">📋 Offer 审批单详情</h2>
                             
                             <div style="overflow-y:auto; flex:1; padding-right:6px;">
-                                <!-- 基础 Offer 信息 -->
-                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#fafafa; border:1px solid #e8e8e8; padding:16px 20px; border-radius:10px; font-size:13px; margin-bottom:20px;">
-                                    <div><strong>候选人姓名</strong>：${inst.candidate_name}</div>
-                                    <div><strong>应聘职位</strong>：${inst.job_title}</div>
-                                    <div><strong>录用部门</strong>：<span class="tag tag-blue">${inst.department}</span></div>
-                                    <div><strong>拟录用职级</strong>：<span class="tag tag-gray">${inst.job_level}</span></div>
-                                    <div style="grid-column: span 2; border-top:1px solid #eaeaea; padding-top:8px; margin-top:4px;">
-                                        <strong>录用薪酬方案</strong>：<strong style="color:var(--primary-color); font-size:14px;">${inst.salary}</strong>
-                                    </div>
-                                </div>
+                                <!-- 基础 Offer 信息 (支持全字段/向下兼容) -->
+                                \${(() => {
+                                    const details = inst.offer_details || {};
+                                    if (inst.offer_details) {
+                                        return `
+                                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 20px; background:#fafafa; border:1px solid #e8e8e8; padding:20px; border-radius:10px; font-size:12px; margin-bottom:20px; color:var(--text-primary);">
+                                                <div style="grid-column: span 2; font-weight:700; font-size:13px; border-bottom:1px solid #eaeaea; padding-bottom:6px; margin-bottom:4px; color:var(--primary-color);">📋 录用详情审批表</div>
+                                                <div><strong>候选人姓名</strong>：\${inst.candidate_name}</div>
+                                                <div><strong>合同职位名称</strong>：\${details.contract_job || inst.job_title}</div>
+                                                <div><strong>合同主体</strong>：\${details.contract_subject || '--'}</div>
+                                                <div><strong>录用部门</strong>：\${details.department || inst.department}</div>
+                                                <div><strong>职位级别</strong>：\${details.job_level || inst.job_level}</div>
+                                                <div><strong>预计入职时间</strong>：\${details.proposed_start_date || '--'}</div>
+                                                <div><strong>薪资类型</strong>：\${details.salary_type || '月薪'}</div>
+                                                <div><strong>基础月薪待遇</strong>：¥\${(details.base_salary || 0).toLocaleString()}</div>
+                                                <div><strong>员工类型</strong>：\${details.employment_type || '--'}</div>
+                                                <div><strong>绩效工资 (私行)</strong>：¥\${(details.performance_bonus || 0).toLocaleString()}</div>
+                                                <div><strong>试用期工资比例</strong>：\${details.probation_salary_rate || '--'}</div>
+                                                <div><strong>目标年终奖月数</strong>：\${details.target_bonus_months || 0} 个月</div>
+                                                <div><strong>期权股数</strong>：\${(details.stock_options || 0).toLocaleString()} 股</div>
+                                                <div><strong>试用期 (月)</strong>：\${details.probation_months || 3} 个月</div>
+                                                <div><strong>上家公司月薪</strong>：¥\${(details.prev_monthly_salary || 0).toLocaleString()}</div>
+                                                <div><strong>上家公司年薪</strong>：\${details.prev_annual_salary || '--'}</div>
+                                                <div><strong>符合签署基金条件</strong>：\${details.compliance_check || '是'}</div>
+                                                
+                                                <div style="grid-column: span 2; border-top:1px solid #eaeaea; padding-top:8px; margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
+                                                    <strong>录用薪酬方案合计 (保障年薪)</strong>：
+                                                    <strong style="color:var(--primary-color); font-size:14px;">¥\${((details.base_salary || 0) * (12 + (parseFloat(details.target_bonus_months) || 0))).toLocaleString()} / 年</strong>
+                                                </div>
+                                            </div>
+                                        `;
+                                    } else {
+                                        return `
+                                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#fafafa; border:1px solid #e8e8e8; padding:16px 20px; border-radius:10px; font-size:13px; margin-bottom:20px;">
+                                                <div><strong>候选人姓名</strong>：\${inst.candidate_name}</div>
+                                                <div><strong>应聘职位</strong>：\${inst.job_title}</div>
+                                                <div><strong>录用部门</strong>：<span class="tag tag-blue">\${inst.department}</span></div>
+                                                <div><strong>拟录用职级</strong>：<span class="tag tag-gray">\${inst.job_level}</span></div>
+                                                <div style="grid-column: span 2; border-top:1px solid #eaeaea; padding-top:8px; margin-top:4px;">
+                                                    <strong>录用薪酬方案</strong>：<strong style="color:var(--primary-color); font-size:14px;">\${inst.salary}</strong>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+                                })()}
                                 
                                 <!-- 流程图谱 -->
                                 <div style="font-weight:600; font-size:14px; margin-bottom:10px;">流程节点流转进度</div>

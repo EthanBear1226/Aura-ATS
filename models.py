@@ -206,6 +206,7 @@ class OfferApprovalInstance(Base):
     status = Column(String(50), default="pending")  # pending / approved / rejected
     creator_email = Column(String(255))
     steps_data = Column(JSON)  # [{"label": "HR上级", "approver_email": "...", "status": "approved"/"rejected"/"pending", "comment": "...", "action_time": "..."}]
+    offer_details = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     candidate = relationship("Candidate")

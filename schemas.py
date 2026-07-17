@@ -300,12 +300,34 @@ class OfferApprovalRuleResponse(BaseModel):
 
     class Config:
         from_attributes = True
+class OfferDetailsSchema(BaseModel):
+    contract_subject: Optional[str] = ""
+    department: Optional[str] = ""
+    job_level: Optional[str] = ""
+    proposed_start_date: Optional[str] = ""
+    salary_type: Optional[str] = "月薪"
+    base_salary: Optional[float] = 0.0
+    employment_type: Optional[str] = "正式员工"
+    performance_bonus: Optional[float] = 0.0
+    probation_salary_rate: Optional[str] = "100%"
+    target_bonus_months: Optional[float] = 0.0
+    stock_options: Optional[float] = 0.0
+    probation_months: Optional[int] = 3
+    prev_monthly_salary: Optional[float] = 0.0
+    prev_annual_salary: Optional[str] = ""
+    job_category: Optional[str] = ""
+    job_family: Optional[str] = ""
+    job_sequence: Optional[str] = ""
+    base_post: Optional[str] = ""
+    contract_job: Optional[str] = ""
+    compliance_check: Optional[str] = "是"
 
 class OfferApprovalInstanceCreate(BaseModel):
     candidate_id: int
     salary: str
     job_level: str
     department: str
+    offer_details: Optional[OfferDetailsSchema] = None
 
 class OfferApprovalStepData(BaseModel):
     label: str
@@ -326,6 +348,7 @@ class OfferApprovalInstanceResponse(BaseModel):
     status: str
     creator_email: str
     steps_data: list[OfferApprovalStepData]
+    offer_details: Optional[OfferDetailsSchema] = None
     created_at: datetime
 
     class Config:
