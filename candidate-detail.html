@@ -1,562 +1,759 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>候选人详情 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=17">
+    <title>候选人详情 - Aura ATS</title>
+    <link rel="stylesheet" href="index.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .detail-layout {
+        body { 
+            background: #f5f7fa; 
+            color: #1f2329; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 顶部通栏 Header 样式 (1:1 模仿截图) */
+        .candidate-header-sticky {
+            background: #ffffff;
+            padding: 20px 32px 0 32px;
+            border-bottom: 1px solid #e5e6eb;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        .header-first-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .cand-name-large {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1f2329;
+        }
+
+        .tag-applied-count {
+            background: #007AFF;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .source-capsule-btn {
+            background: #f2f3f5;
+            color: #4e5969;
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid #e5e6eb;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .source-capsule-btn:hover {
+            background: #e5e6eb;
+            color: #165dff;
+        }
+
+        .header-meta-line {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            font-size: 13px;
+            color: #4e5969;
+            margin-bottom: 10px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-pills-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .pill-badge {
+            font-size: 12px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            background: #e8f3ff;
+            color: #165dff;
+            border: 1px solid #bedaff;
+        }
+
+        .pill-badge-gold {
+            background: #fff7e6;
+            color: #ff7d00;
+            border: 1px solid #ffd591;
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip-text {
+            display: none;
+            position: absolute;
+            bottom: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2329;
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .tooltip-text::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -4px;
+            border-width: 4px;
+            border-style: solid;
+            border-color: #1f2329 transparent transparent transparent;
+        }
+        .pill-badge-gold:hover .tooltip-text {
+            display: block;
+        }
+
+        /* 7 大横向 Tab 导航条 */
+        .tabs-header-bar {
+            display: flex;
+            gap: 32px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4e5969;
+        }
+
+        .tab-nav-item {
+            padding-bottom: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .tab-nav-item.active {
+            color: #165dff;
+            font-weight: 600;
+        }
+
+        .tab-nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background: #165dff;
+            border-radius: 2px;
+        }
+
+        .tab-nav-item:hover {
+            color: #165dff;
+        }
+
+        /* 主体双栏 Layout (7:3 比例) */
+        .detail-body-container {
             display: flex;
             gap: 24px;
-            height: calc(100vh - 130px);
+            padding: 24px 32px 40px 32px;
+            max-width: 1650px;
+            margin: 0 auto;
         }
-        .profile-pane {
-            width: 320px;
+
+        /* 左侧沉浸式展示区 (70% 宽) */
+        .left-main-pane {
+            flex: 7;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .pdf-toolbar-header {
+            background: #f2f3f5;
+            border: 1px solid #e5e6eb;
+            border-radius: 8px 8px 0 0;
+            padding: 10px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #4e5969;
+            font-weight: 600;
+        }
+
+        .toolbar-action-icons {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: #4e5969;
+        }
+
+        .toolbar-icon-btn {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .toolbar-icon-btn:hover {
+            background: #e5e6eb;
+            color: #165dff;
+        }
+
+        .left-content-card {
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            padding: 28px;
+            min-height: 700px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        /* 右侧侧边栏 (30% 宽) */
+        .right-control-sidebar {
+            flex: 3;
+            width: 360px;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
             gap: 16px;
-            overflow-y: auto;
         }
-        .content-pane {
-            flex: 1;
+
+        .sidebar-card-box {
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        /* 数字节点步进器 Stepper Header */
+        .stepper-progress-box {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            position: relative;
+            margin-bottom: 24px;
+            padding: 0 4px;
+        }
+
+        .stepper-line-bg {
+            position: absolute;
+            top: 12px;
+            left: 20px;
+            right: 20px;
+            height: 2px;
+            background: #e5e6eb;
+            z-index: 1;
+        }
+
+        .stepper-line-active {
+            position: absolute;
+            top: 12px;
+            left: 20px;
+            height: 2px;
+            background: #165dff;
+            z-index: 2;
+            transition: width 0.3s;
+            width: 25%;
+        }
+
+        .step-item-node {
             display: flex;
             flex-direction: column;
-            background: var(--card-bg);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
+            align-items: center;
+            z-index: 3;
+            cursor: pointer;
+        }
+
+        .step-circle-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid #e5e6eb;
+            color: #86909c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        .step-item-node.active .step-circle-badge {
+            background: #165dff;
+            border-color: #165dff;
+            color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(22, 93, 255, 0.15);
+        }
+
+        .step-item-node.completed .step-circle-badge {
+            background: #e8f3ff;
+            border-color: #165dff;
+            color: #165dff;
+        }
+
+        .step-title-text {
+            font-size: 11px;
+            color: #86909c;
+            margin-top: 6px;
+            font-weight: 500;
+        }
+
+        .step-item-node.active .step-title-text {
+            color: #165dff;
+            font-weight: 600;
+        }
+
+        /* 侧边栏按钮规范 */
+        .btn-blue-dropdown {
+            width: 100%;
+            background: #165dff;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 11px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 6px rgba(22, 93, 255, 0.25);
+            position: relative;
+        }
+        .btn-blue-dropdown:hover {
+            background: #0e42d2;
+        }
+
+        .btn-white-action {
+            width: 100%;
+            background: #ffffff;
+            color: #1f2329;
+            border: 1px solid #e5e6eb;
+            border-radius: 6px;
+            padding: 9px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-white-action:hover {
+            border-color: #165dff;
+            color: #165dff;
+            background: #f8faff;
+        }
+
+        .btn-two-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .btn-two-group .btn-white-action {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        .stage-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 105%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
             overflow: hidden;
         }
-        .avatar-lg {
-            width: 80px; height: 80px; border-radius: 40px;
-            background: var(--primary-color);
-            color: white; font-size: 32px; font-weight: bold;
-            display: flex; align-items: center; justify-content: center;
-            margin-bottom: 16px;
+        .stage-dropdown-menu.active {
+            display: block;
         }
-        .tabs {
-            display: flex; border-bottom: 1px solid var(--border-color);
-            padding: 0 16px; background: #fafafa;
+        .stage-menu-item {
+            padding: 10px 16px;
+            font-size: 13px;
+            color: #1f2329;
+            cursor: pointer;
+            transition: background 0.2s;
         }
-        .tab {
-            padding: 16px 24px; cursor: pointer; color: var(--text-secondary);
-            font-weight: 500; border-bottom: 2px solid transparent;
+        .stage-menu-item:hover {
+            background: #f2f3f5;
+            color: #165dff;
         }
-        .tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
-        .tab-content { padding: 24px; overflow-y: auto; flex: 1; display: none; }
-        .tab-content.active { display: block; }
-        
-        .skill-tag {
-            display: inline-block; padding: 4px 10px; background: #f0f0f0;
-            border-radius: 16px; font-size: 13px; margin: 0 8px 8px 0; color: #333;
+
+        /* 通用 Tab Content 切换隐藏 */
+        .tab-pane-content {
+            display: none;
+        }
+        .tab-pane-content.active {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <aside class="sidebar" id="sidebar-container"></aside>
-        <main class="main-content">
-            <header class="header" id="header-container"></header>
-            <div class="page-content" style="padding-top: 16px;">
-                <div style="margin-bottom:16px;">
-                    <a href="candidates.html" style="color:var(--text-secondary); text-decoration:none; font-size:14px;">← 返回列表</a>
-                </div>
+
+    <!-- 顶部通栏 Sticky Header (1:1 参考大厂图) -->
+    <div class="candidate-header-sticky">
+        <div class="header-first-line">
+            <div class="header-title-group">
+                <span style="cursor:pointer; color:#86909c; font-size:14px; margin-right:4px;" onclick="window.location.href='candidates.html'">← 候选人列表</span>
+                <span id="header-cand-name" class="cand-name-large">加载中...</span>
+                <span class="tag-applied-count">已申请1次</span>
                 
-                <div class="detail-layout">
-                    <!-- Left Pane -->
-                    <div class="profile-pane">
-                        <div class="card" style="text-align:center; display:flex; flex-direction:column; align-items:center;">
-                            <div class="avatar-lg" id="cand-avatar">U</div>
-                            <h2 style="margin:0 0 8px 0;" id="cand-name">加载中</h2>
-                            <div style="color:var(--text-secondary); font-size:14px; margin-bottom:16px;" id="cand-job">--</div>
-                            <span class="tag tag-blue" style="margin-bottom:24px;" id="cand-stage">--</span>
-                            
-                            <div style="width:100%; display:flex; flex-direction:column; gap:8px;" id="cand-actions-container">
-                                <button class="btn btn-primary" id="btn-next-stage" style="width:100%; justify-content:center;" onclick="moveToNextStage()">推进流程</button>
-                                <div style="display:flex; gap:6px; width:100%;">
-                                    <button class="btn" style="flex:1.2; background:#e6f7ff; color:#1890ff; border:1px solid #91d5ff; font-weight:600; padding:6px 8px; font-size:12px;" onclick="switchTab(3); showOfferFormSection();">📋 Offer审批</button>
-                                    <button class="btn" style="flex:1; padding:6px 8px; font-size:12px;" onclick="openScheduleDrawer(currentCandidate?.name || '', currentCandidate?.email || '', currentCandidate?.job || '', currentCandidate?.id)">安排面试</button>
-                                    <button class="btn" style="flex:0.8; color:#FF3B30; padding:6px 8px; font-size:12px;" onclick="eliminateCurrentCandidate()">淘汰</button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="card">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <h3 style="font-size:16px; margin:0;">基本信息</h3>
-                                <a href="#" onclick="event.preventDefault(); openEditModal()" style="font-size:13px; color:var(--primary-color); text-decoration:none; font-weight:500;">✏️ 编辑</a>
-                            </div>
-                            <div style="font-size:14px; color:var(--text-secondary); line-height:2;">
-                                <div id="cand-job-info">投递职位: --</div>
-                                <div id="cand-exp">学历: --</div>
-                                <div style="display: flex; align-items: center; gap: 8px;">电话: <span id="cand-phone" style="cursor: pointer; color: var(--primary-color);" onclick="copyText(this.innerText, '电话')">--</span></div>
-                                <div style="display: flex; align-items: center; gap: 8px;">邮箱: <span id="cand-email" style="cursor: pointer; color: var(--primary-color);" onclick="copyText(this.innerText, '邮箱')">--</span></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Pane -->
-                    <div class="content-pane">
-                        <div class="tabs">
-                            <div class="tab active" onclick="switchTab(0)">综合档案</div>
-                            <div class="tab" onclick="switchTab(1)">招聘动态</div>
-                            <div class="tab" onclick="switchTab(2)">投递历史</div>
-                            <div class="tab" onclick="switchTab(3)">Offer/录用</div>
-                        </div>
-                        
-                        <div class="tab-content active" id="tab-0">
-                            <div id="match-score-container" style="display: none; background: #fffcf0; border: 1px solid #ffe58f; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-                                <h3 style="margin-top: 0; color: #faad14; display: flex; align-items: center; gap: 8px;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                    AI 人岗匹配打分
-                                    <span style="margin-left:auto; font-size:24px; font-weight:bold; color:#faad14;"><span id="match-score">--</span> <span style="font-size:14px; font-weight:normal;">分</span></span>
-                                </h3>
-                                <div id="match-reason" style="font-size: 14px; color: #333; line-height: 1.6; margin-top: 8px;">
-                                    加载中...
-                                </div>
-                            </div>
-
-                            <div style="background: #f4f8ff; border: 1px solid #d0e1ff; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-                                <h3 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center; gap: 8px;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                                    AI 简历概括
-                                </h3>
-                                <div id="ai-summary" style="font-size: 14px; color: #333; line-height: 1.6;">
-                                    加载中...
-                                </div>
-                            </div>
-
-                            <h3>💡 核心技能提取</h3>
-                            <div id="ai-skills" style="margin-bottom: 24px;">
-                                <span class="skill-tag">加载中...</span>
-                            </div>
-
-                            <h3>📊 AI 深度解析与建议</h3>
-                            <div style="background: #fdfaf6; border: 1px solid #f2e6d9; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-                                <div id="ai-analysis" style="font-size: 14px; color: #555; line-height: 1.6;">
-                                    加载中...
-                                </div>
-                            </div>
-
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
-                                <h3 style="margin:0;">📄 原始简历预览</h3>
-                                <div style="display:flex; gap:8px;">
-                                    <button id="reupload-btn" class="btn" style="font-size:13px; display:none;" onclick="triggerReupload()">重新上传简历</button>
-                                    <a id="pdf-download-btn" href="#" target="_blank" class="btn" style="text-decoration:none; display:none; font-size:13px;">在新标签页打开 / 下载</a>
-                                </div>
-                                <input type="file" id="reupload-input" accept=".pdf" style="display:none;" onchange="handleReupload(event)">
-                            </div>
-                            <div style="height: 600px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-bottom: 24px; background: #fafafa; display: flex; align-items: center; justify-content: center; position: relative;">
-                                <div id="pdf-loading-fallback" style="position: absolute; color: var(--text-secondary); font-size: 14px; text-align: center; padding: 20px;">
-                                    简历加载中...<br>
-                                    <span style="font-size: 12px; opacity: 0.7;">（若长时间显示黑屏或空白，请点击右上方按钮直接在新标签页打开）</span>
-                                </div>
-                                <iframe id="pdf-viewer" style="width:100%; height:100%; border:none; position: relative; z-index: 2;" onload="document.getElementById('pdf-loading-fallback').style.display='none'"></iframe>
-                            </div>
-                        </div>
-                        
-                        <div class="tab-content" id="tab-1">
-                            <div style="padding-left:16px; border-left:2px solid var(--border-color);" id="timeline-container">
-                                <!-- Timeline generated by JS -->
-                            </div>
-                        </div>
-                        
-                        <div class="tab-content" id="tab-2">
-                            <div style="padding-left:16px; border-left:2px solid var(--border-color); margin-top:16px;" id="applications-container">
-                                <!-- Application history generated by JS -->
-                            </div>
-                        </div>
-
-                        <div class="tab-content" id="tab-3">
-                            <!-- 1. 入职记录 -->
-                            <div class="glass-card" style="padding:20px; border-radius:12px; margin-bottom:20px; background:#FFF; border:1px solid var(--border-color);">
-                                <div style="font-weight:700; font-size:15px; margin-bottom:12px; display:flex; align-items:center; gap:6px; color:var(--text-primary);">
-                                    <span style="display:inline-block; width:3px; height:14px; background:var(--primary-color); border-radius:2px;"></span>入职记录
-                                </div>
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <div style="font-size:13px; color:var(--text-secondary);">尚未确定候选人是否入职</div>
-                                    <div style="display:flex; gap:8px;">
-                                        <button class="btn" style="padding:6px 16px; font-size:12px;" onclick="showToast('已确认候选人入职，系统自动向全员发送入职通知','success')">确认入职</button>
-                                        <button class="btn" style="padding:6px 16px; font-size:12px; color:#FF3B30; border-color:#FF3B30;" onclick="showToast('已标记候选人放弃入职','error')">放弃入职</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 2. 背调信息 -->
-                            <div class="glass-card" style="padding:20px; border-radius:12px; margin-bottom:20px; background:#FFF; border:1px solid var(--border-color);">
-                                <div style="font-weight:700; font-size:15px; margin-bottom:12px; display:flex; align-items:center; gap:6px; color:var(--text-primary);">
-                                    <span style="display:inline-block; width:3px; height:14px; background:var(--primary-color); border-radius:2px;"></span>背调信息
-                                </div>
-                                <div style="border:1px solid #E2E2E5; border-radius:8px; padding:16px; display:flex; justify-content:space-between; align-items:center; background:#fafafa;">
-                                    <div>
-                                        <div style="font-weight:600; font-size:13px;">雪球一段套餐 (背景调查)</div>
-                                        <div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">进度：订单状态 - 调查中 | 下单成功</div>
-                                    </div>
-                                    <button class="btn" style="padding:6px 16px; font-size:12px;" onclick="showToast('正在拉取外部背调结果报告，请稍候...','info')">查看详情</button>
-                                </div>
-                            </div>
-
-                            <!-- 3. Offer审批与表单区 -->
-                            <div id="offer-approval-section">
-                                <!-- 动态生成：发起审批区、流转进度图或Offer详情折叠版 -->
-                            </div>
-                        </div>
-                    </div>
+                <div class="source-capsule-btn" title="查看来源归属">
+                    <span id="header-job-title">高级职位</span> · Boss直聘 (主动搜索)
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </div>
             </div>
-        </main>
-    </div>
 
-    <!-- Edit Candidate Info Modal -->
-    <div class="modal-overlay" id="editModal">
-        <div class="modal-card" style="max-width: 480px;">
-            <h2 style="margin-top:0; font-size:18px;">编辑候选人信息</h2>
-            
-            <div style="margin-bottom: 16px;">
-                <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">姓名<span style="color:#ff4d4f;">*</span></label>
-                <input type="text" id="edit-name" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box;">
+            <!-- 右侧快捷关闭与编辑图标 -->
+            <div style="display:flex; align-items:center; gap:12px; color:#86909c;">
+                <span style="cursor:pointer; padding:4px;" title="编辑基本信息" onclick="openEditModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path></svg>
+                </span>
+                <span style="cursor:pointer; padding:4px;" title="返回候选人列表" onclick="window.location.href='candidates.html'">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </span>
             </div>
-            
-            <div style="margin-bottom: 16px;">
-                <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">投递职位<span style="color:#ff4d4f;">*</span></label>
-                <select id="edit-job" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box; background: white; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 fill=%22%23666%22 viewBox=%220 0 24 24%22><path d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;">
-                    <option value="" disabled selected>请选择投递职位</option>
-                </select>
-            </div>
-            
-            <div style="margin-bottom: 16px;">
-                <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">学历<span style="color:#ff4d4f;">*</span></label>
-                <select id="edit-exp" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box; background: white; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 fill=%22%23666%22 viewBox=%220 0 24 24%22><path d=%22M7 10l5 5 5-5z%22/></svg>'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;">
-                    <option value="" disabled selected>请选择学历</option>
-                    <option value="大专以下">大专以下</option>
-                    <option value="大专">大专</option>
-                    <option value="本科">本科</option>
-                    <option value="硕士">硕士</option>
-                    <option value="博士">博士</option>
-                    <option value="MBA/EMBA">MBA/EMBA</option>
-                    <option value="其他">其他</option>
-                </select>
-            </div>
-            
-            <div style="margin-bottom: 16px;">
-                <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">电话</label>
-                <input type="text" id="edit-phone" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box;">
-            </div>
-            
-            <div style="margin-bottom: 24px;">
-                <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">邮箱</label>
-                <input type="email" id="edit-email" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; box-sizing:border-box;">
-            </div>
-            
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn" onclick="closeEditModal()">取消</button>
-                <button class="btn btn-primary" onclick="submitEdit()">保存</button>
-            </div>
+        </div>
+
+        <!-- 第二行：图标属性行 -->
+        <div class="header-meta-line">
+            <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> <span id="meta-gender">男</span></div>
+            <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg> <span id="meta-phone">+86 18632883502 (河北衡水)</span></div>
+            <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> <span id="meta-email">18632883502@163.com</span></div>
+            <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg> <span id="meta-education">硕士</span></div>
+        </div>
+
+        <!-- 第三行：亮点 Pill 胶囊标签 -->
+        <div class="header-pills-line">
+            <span class="pill-badge">海外教育背景</span>
+            <span class="pill-badge pill-badge-gold">
+                QS50
+                <span class="tooltip-text">QS世界大学排名前50</span>
+            </span>
+            <span class="pill-badge">硕士</span>
+        </div>
+
+        <!-- 第四行：7 大横向 Tab 导航 -->
+        <div class="tabs-header-bar">
+            <div class="tab-nav-item active" onclick="switchNavTab(0)">基本信息</div>
+            <div class="tab-nav-item" onclick="switchNavTab(1)">面试</div>
+            <div class="tab-nav-item" onclick="switchNavTab(2)">考试/测评/AI面试</div>
+            <div class="tab-nav-item" onclick="switchNavTab(3)">Offer/录用</div>
+            <div class="tab-nav-item" onclick="switchNavTab(4)">备注</div>
+            <div class="tab-nav-item" onclick="switchNavTab(5)">附加信息</div>
+            <div class="tab-nav-item" onclick="switchNavTab(6)">操作记录</div>
         </div>
     </div>
 
-    <!-- Recommend Modal -->
-    <div class="modal-overlay" id="recommendModal">
-        <div class="modal-card">
-            <h2 style="margin-top:0;">推荐给用人部门</h2>
-            <div style="margin-bottom: 16px;">
-                <label style="font-size:14px; font-weight:500; display:block; margin-bottom:8px;">选择用人经理</label>
-                <select id="recommend-manager-select" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none;">
-                    <option value="研发总监 (Manager_Tech)">研发总监 (Manager_Tech)</option>
-                    <option value="产品总监 (Manager_Product)">产品总监 (Manager_Product)</option>
-                    <option value="设计总监 (Manager_Design)">设计总监 (Manager_Design)</option>
-                </select>
+    <!-- 主体 Layout 容器 (双栏 7:3 架构) -->
+    <div class="detail-body-container">
+        
+        <!-- 左侧 70% 沉浸式展示区 -->
+        <div class="left-main-pane">
+            <!-- 上方简历工具栏 -->
+            <div class="pdf-toolbar-header">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span>原始简历</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+                <div class="toolbar-action-icons">
+                    <span class="toolbar-icon-btn" title="全屏查看" onclick="togglePdfFullScreen()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></span>
+                    <span class="toolbar-icon-btn" title="适应宽度"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline></svg></span>
+                    <span class="toolbar-icon-btn" title="下载简历 PDF" onclick="downloadResumePdf()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
+                    <span class="toolbar-icon-btn" title="打印简历"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></span>
+                </div>
             </div>
-            <div style="margin-bottom: 24px;">
-                <label style="font-size:14px; font-weight:500; display:block; margin-bottom:8px;">推荐评语 (可选)</label>
-                <textarea id="recommend-comment" rows="3" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; resize:none; box-sizing:border-box;" placeholder="例如：该候选人技术栈匹配，建议重点关注..."></textarea>
+
+            <!-- 卡片承载容器 -->
+            <div class="left-content-card">
+                
+                <!-- Tab 0: 基本信息 (AI 解析概括 + 沉浸式 PDF 预览) -->
+                <div id="tab-pane-0" class="tab-pane-content active">
+                    <div style="background: #f4f8ff; border: 1px solid #d0e1ff; padding: 18px 20px; border-radius: 8px; margin-bottom: 24px;">
+                        <h4 style="margin: 0 0 8px 0; color: #165dff; display: flex; align-items: center; gap: 8px; font-size: 15px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                            AI 简历深度概括
+                        </h4>
+                        <div id="ai-summary" style="font-size: 14px; color: #333; line-height: 1.6;">加载中...</div>
+                    </div>
+
+                    <h4 style="font-size: 15px; margin: 0 0 12px 0;">💡 核心技能提取</h4>
+                    <div id="ai-skills" style="margin-bottom: 24px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <span class="skill-tag">加载中...</span>
+                    </div>
+
+                    <h4 style="font-size: 15px; margin: 0 0 12px 0;">📊 AI 深度解析与建议</h4>
+                    <div style="background: #fdfaf6; border: 1px solid #f2e6d9; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px;">
+                        <div id="ai-analysis" style="font-size: 14px; color: #555; line-height: 1.6;">加载中...</div>
+                    </div>
+
+                    <!-- 原始 PDF 沉浸视窗 -->
+                    <div style="height: 750px; border: 1px solid #e5e6eb; border-radius: 8px; overflow: hidden; background: #fafafa;">
+                        <div id="pdf-loading-fallback" style="padding:40px; text-align:center; color:#86909c;">正在加载简历附件...</div>
+                        <iframe id="pdf-viewer" style="width:100%; height:100%; border:none;" onload="document.getElementById('pdf-loading-fallback').style.display='none';"></iframe>
+                    </div>
+                </div>
+
+                <!-- Tab 1: 面试/排期 -->
+                <div id="tab-pane-1" class="tab-pane-content">
+                    <h3 style="font-size:16px; margin-bottom:16px;">📅 面试安排与评价记录</h3>
+                    <div id="interview-records-box" style="background:#fafafa; border:1px solid #e5e6eb; padding:24px; border-radius:8px; text-align:center; color:#86909c;">
+                        暂无已完成的面试评价记录，可点击右侧【安排面试】发起轮次排期。
+                    </div>
+                </div>
+
+                <!-- Tab 2: 考试/测评/AI面试 -->
+                <div id="tab-pane-2" class="tab-pane-content">
+                    <h3 style="font-size:16px; margin-bottom:16px;">📝 测评与 AI 面试报告</h3>
+                    <div style="background:#fafafa; border:1px solid #e5e6eb; padding:24px; border-radius:8px; text-align:center; color:#86909c;">
+                        未触发该候选人的 AI 智能能力测评试卷。
+                    </div>
+                </div>
+
+                <!-- Tab 3: Offer/录用 (全规格 20 字段审批中心) -->
+                <div id="tab-pane-3" class="tab-pane-content">
+                    <div id="offer-approval-section">
+                        <!-- JS 动态注入高保真 Offer 审批表单/卡片 -->
+                    </div>
+                </div>
+
+                <!-- Tab 4: 备注 -->
+                <div id="tab-pane-4" class="tab-pane-content">
+                    <h3 style="font-size:16px; margin-bottom:16px;">💬 沟通备注与团队跟进</h3>
+                    <div class="form-group" style="margin-bottom:16px;">
+                        <textarea class="form-control" rows="4" placeholder="添加关于该候选人的备注（仅内部 HR 与面试官可见）..."></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="showToast('备注添加成功！', 'success')">保存备注</button>
+                </div>
+
+                <!-- Tab 5: 附加信息 -->
+                <div id="tab-pane-5" class="tab-pane-content">
+                    <h3 style="font-size:16px; margin-bottom:16px;">📎 附加附件与作品集</h3>
+                    <div style="background:#fafafa; border:1px solid #e5e6eb; padding:24px; border-radius:8px; text-align:center; color:#86909c;">
+                        未上传附加作品集或推荐信文件。
+                    </div>
+                </div>
+
+                <!-- Tab 6: 操作记录 -->
+                <div id="tab-pane-6" class="tab-pane-content">
+                    <h3 style="font-size:16px; margin-bottom:16px;">📜 全流程流转日志</h3>
+                    <div id="timeline-logs" style="font-size:13px; line-height:2;">
+                        <!-- JS 动态注入操作日志 -->
+                    </div>
+                </div>
+
             </div>
-            <div style="text-align:right;">
-                <button class="btn" onclick="closeRecommendModal()" style="margin-right:8px;">取消</button>
-                <button class="btn btn-primary" onclick="submitRecommend()">确认推送</button>
+        </div>
+
+        <!-- 右侧 30% 控制侧边栏 (1:1 参考大厂排版) -->
+        <div class="right-control-sidebar">
+            
+            <!-- 侧边栏卡片 1: 流程进度与核心流转按钮 -->
+            <div class="sidebar-card-box">
+                
+                <!-- 数字节点步进器 Stepper Header -->
+                <div class="stepper-progress-box">
+                    <div class="stepper-line-bg"></div>
+                    <div id="stepper-active-line" class="stepper-line-active"></div>
+                    
+                    <div class="step-item-node completed" onclick="changeCandidateStage('初筛')">
+                        <div class="step-circle-badge">1</div>
+                        <div class="step-title-text">初筛</div>
+                    </div>
+                    <div class="step-item-node active" onclick="changeCandidateStage('用人部门筛选')">
+                        <div class="step-circle-badge">2</div>
+                        <div class="step-title-text">部门筛选</div>
+                    </div>
+                    <div class="step-item-node" onclick="changeCandidateStage('面试')">
+                        <div class="step-circle-badge">3</div>
+                        <div class="step-title-text">面试</div>
+                    </div>
+                    <div class="step-item-node" onclick="changeCandidateStage('Offer')">
+                        <div class="step-circle-badge">4</div>
+                        <div class="step-title-text">Offer</div>
+                    </div>
+                    <div class="step-item-node" onclick="changeCandidateStage('录用')">
+                        <div class="step-circle-badge">5</div>
+                        <div class="step-title-text">录用</div>
+                    </div>
+                </div>
+
+                <!-- 大蓝按钮带下拉菜单：进入 用人部门筛选 ∨ -->
+                <div style="position:relative;">
+                    <button id="main-stage-dropdown-btn" class="btn-blue-dropdown" onclick="toggleStageMenu()">
+                        <span id="current-stage-btn-label">进入 用人部门筛选</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    
+                    <div id="stageDropdownMenu" class="stage-dropdown-menu">
+                        <div class="stage-menu-item" onclick="selectStageTarget('初筛')">推进至 · 初筛</div>
+                        <div class="stage-menu-item" onclick="selectStageTarget('用人部门筛选')">推进至 · 用人部门筛选</div>
+                        <div class="stage-menu-item" onclick="selectStageTarget('面试')">推进至 · 安排面试</div>
+                        <div class="stage-menu-item" onclick="selectStageTarget('Offer')">推进至 · 发起 Offer 审批</div>
+                        <div class="stage-menu-item" onclick="selectStageTarget('录用')">推进至 · 确认录用入职</div>
+                    </div>
+                </div>
+
+                <!-- 长条按钮组 -->
+                <button class="btn-white-action" onclick="showToast('已成功推荐给用人部门经理！', 'success')">
+                    推荐给用人部门
+                </button>
+                
+                <button class="btn-white-action" onclick="showToast('已向候选人发送信息补充邀请邮件！', 'success')">
+                    邀请候选人更新信息
+                </button>
+
+                <!-- 双拼按钮 1: 跟进提醒 | 推荐其他职位 -->
+                <div class="btn-two-group">
+                    <button class="btn-white-action" onclick="showToast('跟进提醒已设置！', 'success')">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> 跟进提醒
+                    </button>
+                    <button class="btn-white-action" onclick="showToast('可调配推荐至其他热招职位', 'info')">
+                        推荐其他职位
+                    </button>
+                </div>
+
+                <!-- 淘汰 | 放入人才库 -->
+                <div class="btn-two-group">
+                    <button class="btn-white-action" style="color:#ff4d4f; border-color:#ffa39e;" onclick="eliminateCurrentCandidate()">
+                        淘汰
+                    </button>
+                    <button class="btn-white-action" onclick="eliminateCurrentCandidate()">
+                        放入人才库
+                    </button>
+                </div>
+
+                <!-- 关注 | 备注 -->
+                <div class="btn-two-group">
+                    <button class="btn-white-action" onclick="showToast('已收藏关注该候选人', 'success')">
+                        关注
+                    </button>
+                    <button class="btn-white-action" onclick="switchNavTab(4)">
+                        备注
+                    </button>
+                </div>
+
             </div>
+
+            <!-- 侧边栏卡片 2: 候选人所有者与自定义标签 -->
+            <div class="sidebar-card-box">
+                <div style="font-size:13px; font-weight:600; color:#1f2329; margin-bottom:12px;">候选人所有者</div>
+                <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#4e5969; margin-bottom:18px;">
+                    <div style="width:28px; height:28px; border-radius:50%; background:#165dff; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">HR</div>
+                    <div>
+                        <div style="font-weight:600; color:#1f2329;" id="owner-name">张招聘官 (HRBP)</div>
+                        <div style="font-size:11px; color:#86909c;">招聘运营团队</div>
+                    </div>
+                </div>
+
+                <div style="font-size:13px; font-weight:600; color:#1f2329; margin-bottom:10px;">候选人自定义标签</div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                    <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">高潜人才</span>
+                    <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">即到岗</span>
+                    <button style="border:1px dashed #c9cdd4; background:#fff; color:#86909c; border-radius:4px; padding:2px 8px; font-size:12px; cursor:pointer;" onclick="showToast('标签添加功能已激活', 'info')">+ 标签</button>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <script src="assets/js/app.js?v=18"></script>
+    <!-- JS 业务逻辑 -->
     <script>
-        const STAGES = ['初筛', '用人部门筛选', '面试', '沟通offer', '待入职', '已入职'];
         let currentCandidate = null;
+        let currentOfferApprovalInstance = null;
+        const STAGES = ['初筛', '用人部门筛选', '面试', 'Offer', '录用'];
 
-        function copyText(text, type) {
-            if (!text || text === '--' || text === '暂无') return;
-            navigator.clipboard.writeText(text).then(() => {
-                if (window.showToast) showToast(`${type}已复制`, 'success');
-                else alert(`${type}已复制`);
-            }).catch(err => {
-                console.error('Copy failed', err);
+        // 切换 7 大 Tab
+        function switchNavTab(idx) {
+            document.querySelectorAll('.tab-nav-item').forEach((t, i) => {
+                t.classList.toggle('active', i === idx);
             });
-        }
+            document.querySelectorAll('.tab-pane-content').forEach((p, i) => {
+                p.classList.toggle('active', i === idx);
+            });
 
-        function triggerReupload() {
-            document.getElementById('reupload-input').click();
-        }
-
-        async function handleReupload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (!file.name.toLowerCase().endsWith('.pdf')) {
-                alert('只支持上传 PDF 格式的简历文件');
-                return;
-            }
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const candidateId = urlParams.get('id');
-            if (!candidateId) return;
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const reuploadBtn = document.getElementById('reupload-btn');
-            const originalText = reuploadBtn.innerText;
-            reuploadBtn.innerText = '正在上传...';
-            reuploadBtn.disabled = true;
-
-            try {
-                const response = await fetch(`/api/candidates/${candidateId}/reupload-resume`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response.ok) {
-                    alert('简历文件已重新上传成功！');
-                    window.location.reload();
-                } else {
-                    const data = await response.json();
-                    alert(`重新上传失败: ${data.detail || '未知错误'}`);
-                }
-            } catch (error) {
-                console.error(error);
-                alert('网络错误，上传失败。');
-            } finally {
-                reuploadBtn.innerText = originalText;
-                reuploadBtn.disabled = false;
+            if (idx === 3) {
+                loadOfferApproval();
             }
         }
 
-        function openRecommendModal(id) {
-            document.getElementById('recommendModal').classList.add('active');
+        // 下拉菜单控制
+        function toggleStageMenu() {
+            const menu = document.getElementById('stageDropdownMenu');
+            menu.classList.toggle('active');
         }
-        function closeRecommendModal() {
-            document.getElementById('recommendModal').classList.remove('active');
-            document.getElementById('recommend-comment').value = '';
-        }
-        async function submitRecommend() {
+
+        // 切换候选人阶段
+        async function changeCandidateStage(newStage) {
             if (!currentCandidate) return;
-            const manager = document.getElementById('recommend-manager-select').value;
-            const comment = document.getElementById('recommend-comment').value;
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const operatorName = user.name || '系统';
-            
-            const detailsStr = `推至: ${manager}${comment ? ', 评语: ' + comment : ''}`;
-            
+
             try {
-                const response = await fetch(`/api/candidates/${currentCandidate.id}`, {
+                const res = await fetch(`/api/candidates/${currentCandidate.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        stage: '用人部门筛选', 
-                        operator: operatorName,
-                        details: detailsStr
-                    })
+                    body: JSON.stringify({ stage: newStage, operator: operatorName, details: `阶段推进至: ${newStage}` })
                 });
-                
-                if(response.ok) {
-                    alert('已成功推荐给用人部门！');
-                    closeRecommendModal();
-                    loadDetail();
-                } else {
-                    const data = await response.json();
-                    alert(`操作失败: ${data.detail || '未知错误'}`);
-                }
-            } catch (error) {
-                console.error(error);
-                alert('网络错误，请检查后端服务。');
-            }
-        }
 
-        async function loadDictionariesForDetail() {
-            try {
-                const interviewers = await fetch('/api/settings/interviewers').then(r=>r.json());
-                const managers = interviewers.filter(i => i.role_type === 'HiringManager' || i.role_type === 'Manager');
-                
-                const recSelect = document.getElementById('recommend-manager-select');
-                if (recSelect) {
-                    recSelect.innerHTML = managers.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
-                }
-                
-                // 如果存在抽屉相关的选项
-                const drawSelect = document.getElementById('drawerInterviewerSelect');
-                if (drawSelect) {
-                    drawSelect.innerHTML = '<option value="" disabled selected>请选择面试官</option>' + interviewers.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
-                }
-            } catch(e) { console.error('Failed to load dicts', e); }
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            renderSidebar('candidates');
-            renderHeader();
-            loadDictionariesForDetail();
-            loadDetail();
-        });
-
-        function switchTab(index) {
-            document.querySelectorAll('.tab').forEach((t, i) => {
-                t.classList.toggle('active', i === index);
-            });
-            document.querySelectorAll('.tab-content').forEach((tc, i) => {
-                tc.classList.toggle('active', i === index);
-            });
-        }
-
-        function switchPdfVersion(pdf_path, element) {
-            const iframe = document.getElementById('pdf-viewer');
-            if (iframe) {
-                document.getElementById('pdf-loading-fallback').style.display = 'block';
-                iframe.src = pdf_path;
-                const dlBtn = document.getElementById('pdf-download-btn');
-                if (dlBtn) dlBtn.href = pdf_path;
-            }
-            
-            const container = document.getElementById('applications-container');
-            container.querySelectorAll('span').forEach(s => {
-                if (s.innerText === '当前查看版本') s.remove();
-            });
-            
-            const titleDiv = element.closest('div').parentElement.querySelector('div:first-child');
-            if (titleDiv) {
-                const label = document.createElement('span');
-                label.style.cssText = 'font-size:11px; background:#e6f7ff; color:#1890ff; padding:2px 8px; border-radius:4px; border:1px solid #91d5ff;';
-                label.innerText = '当前查看版本';
-                titleDiv.appendChild(label);
-            }
-            
-            container.querySelectorAll('div[style*="position:absolute"]').forEach(dot => {
-                dot.style.background = '#D1D1D6';
-            });
-            const clickedDot = element.closest('div').parentElement.querySelector('div[style*="position:absolute"]');
-            if (clickedDot) {
-                clickedDot.style.background = 'var(--primary-color)';
-            }
-        }
-
-        async function openEditModal() {
-            if (!currentCandidate) return;
-            
-            // 1. 动态加载所有投递职位选项，进行去重和历史值保底
-            try {
-                const res = await fetch('/api/jobs');
-                const jobSelect = document.getElementById('edit-job');
                 if (res.ok) {
-                    const jobs = await res.json();
-                    const jobTitles = jobs.map(j => j.title);
-                    if (currentCandidate.job && !jobTitles.includes(currentCandidate.job)) {
-                        jobTitles.push(currentCandidate.job);
-                    }
-                    jobSelect.innerHTML = '<option value="" disabled>请选择投递职位</option>' + 
-                        jobTitles.map(t => `<option value="${t}">${t}</option>`).join('');
-                } else {
-                    // 降级兜底：若API故障，至少写入当前值选项
-                    if (currentCandidate.job) {
-                        jobSelect.innerHTML = `<option value="" disabled>请选择投递职位</option><option value="${currentCandidate.job}">${currentCandidate.job}</option>`;
-                    }
+                    showToast(`已成功推进至【${newStage}】节点`, 'success');
+                    loadDetail();
                 }
-            } catch (e) {
-                console.error('Failed to load jobs list for editing', e);
-            }
-            
-            // 2. 学历选项边界情况保底
-            const expSelect = document.getElementById('edit-exp');
-            const expValues = Array.from(expSelect.options).map(o => o.value);
-            const tempOption = expSelect.querySelector('.temp-exp-option');
-            if (tempOption) tempOption.remove();
-            
-            if (currentCandidate.exp && !expValues.includes(currentCandidate.exp)) {
-                const opt = document.createElement('option');
-                opt.value = currentCandidate.exp;
-                opt.innerText = currentCandidate.exp;
-                opt.className = 'temp-exp-option';
-                expSelect.appendChild(opt);
-            }
-            
-            document.getElementById('edit-name').value = currentCandidate.name || '';
-            document.getElementById('edit-job').value = currentCandidate.job || '';
-            document.getElementById('edit-exp').value = currentCandidate.exp || '';
-            document.getElementById('edit-phone').value = currentCandidate.phone || '';
-            document.getElementById('edit-email').value = currentCandidate.email || '';
-            
-            document.getElementById('editModal').classList.add('active');
-        }
-
-        function closeEditModal() {
-            document.getElementById('editModal').classList.remove('active');
-        }
-
-        async function submitEdit() {
-            if (!currentCandidate) return;
-            const name = document.getElementById('edit-name').value.trim();
-            const job = document.getElementById('edit-job').value.trim();
-            const exp = document.getElementById('edit-exp').value.trim();
-            const phone = document.getElementById('edit-phone').value.trim();
-            const email = document.getElementById('edit-email').value.trim();
-            
-            if (!name || !job || !exp) {
-                if (window.showToast) {
-                    showToast('姓名、投递职位和学历不能为空', 'error');
-                } else {
-                    alert('姓名、投递职位和学历不能为空');
-                }
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/candidates/${currentCandidate.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name,
-                        job,
-                        exp,
-                        phone: phone || '暂无',
-                        email: email || '暂无',
-                        operator: localStorage.getItem('aura_user') ? JSON.parse(localStorage.getItem('aura_user')).name : 'HR'
-                    })
-                });
-                
-                if (response.ok) {
-                    closeEditModal();
-                    await loadDetail();
-                    if (window.showToast) {
-                        showToast('修改成功', 'success');
-                    } else {
-                        alert('基本信息修改成功');
-                    }
-                } else {
-                    const err = await response.json();
-                    if (window.showToast) {
-                        showToast(err.detail || '修改失败', 'error');
-                    } else {
-                        alert(err.detail || '修改失败');
-                    }
-                }
-            } catch (e) {
-                console.error(e);
-                if (window.showToast) {
-                    showToast('网络异常，修改失败', 'error');
-                } else {
-                    alert('网络异常，修改失败');
-                }
+            } catch(e) {
+                showToast('操作失败，请检查网络', 'error');
             }
         }
 
+        function selectStageTarget(stage) {
+            document.getElementById('stageDropdownMenu').classList.remove('active');
+            changeCandidateStage(stage);
+        }
+
+        // 加载候选人详情主函数
         async function loadDetail() {
             const urlParams = new URLSearchParams(window.location.search);
             const id = urlParams.get('id');
@@ -569,846 +766,190 @@
                 const candidate = await response.json();
                 currentCandidate = candidate;
                 
-                document.getElementById('cand-name').innerText = candidate.name;
-                document.getElementById('cand-avatar').innerText = candidate.name.charAt(0) || 'U';
-                document.getElementById('cand-job').innerText = candidate.job;
-                document.getElementById('cand-job-info').innerText = `投递职位: ${candidate.job}`;
-                document.getElementById('cand-stage').innerText = candidate.stage;
-                document.getElementById('cand-exp').innerText = `学历: ${candidate.exp}`;
-                document.getElementById('cand-phone').innerText = candidate.phone || '暂无';
-                document.getElementById('cand-email').innerText = candidate.email || '暂无';
+                // 渲染顶部数据
+                document.getElementById('header-cand-name').innerText = candidate.name;
+                document.getElementById('header-job-title').innerText = candidate.job || '高阶职位';
+                document.getElementById('meta-gender').innerText = candidate.gender || '男';
+                document.getElementById('meta-phone').innerText = candidate.phone ? `${candidate.phone} (归属地未知)` : '--';
+                document.getElementById('meta-email').innerText = candidate.email || '--';
+                document.getElementById('meta-education').innerText = candidate.exp || '硕士';
+
+                // 侧边栏按钮文字更新
+                document.getElementById('current-stage-btn-label').innerText = `进入 ${candidate.stage || '用人部门筛选'}`;
                 
-                // Update Actions Container
-                const actionsContainer = document.getElementById('cand-actions-container');
-                if (candidate.stage === '已淘汰') {
-                    // 只读模式 / 人才库模式
-                    actionsContainer.innerHTML = `
-                        <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="reactivateCurrentCandidate()">重新激活并移入工作台</button>
-                    `;
-                } else {
-                    // 正常活跃模式
-                    const currentIndex = STAGES.indexOf(candidate.stage);
-                    let nextBtnHtml = '';
-                    if (currentIndex >= 0 && currentIndex < STAGES.length - 1) {
-                        const nextStage = STAGES[currentIndex + 1];
-                        if (nextStage === '用人部门筛选') {
-                            nextBtnHtml = `<button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="openRecommendModal(${candidate.id})">推荐给用人部门</button>`;
-                        } else {
-                            nextBtnHtml = `<button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="moveToNextStage()">推进至「${nextStage}」</button>`;
-                        }
-                    }
-                    
-                    actionsContainer.innerHTML = `
-                        ${nextBtnHtml}
-                        <div style="display:flex; gap:8px; width:100%; margin-top:8px;">
-                            <button class="btn" style="flex:1;" onclick="openScheduleDrawer('${candidate.name}', '${candidate.email || ''}', '${candidate.job}', ${candidate.id})">安排面试</button>
-                            <button class="btn" style="flex:1; color:#FF3B30;" onclick="eliminateCurrentCandidate()">淘汰</button>
-                        </div>
-                    `;
+                // 更新 Stepper 节点高亮
+                const stageIdx = STAGES.indexOf(candidate.stage);
+                document.querySelectorAll('.step-item-node').forEach((node, idx) => {
+                    node.classList.remove('active', 'completed');
+                    if (idx < stageIdx) node.classList.add('completed');
+                    else if (idx === stageIdx) node.classList.add('active');
+                });
+                const progressLine = document.getElementById('stepper-active-line');
+                if (progressLine && stageIdx >= 0) {
+                    progressLine.style.width = `${(stageIdx / (STAGES.length - 1)) * 100}%`;
                 }
+
+                // AI 概括渲染
+                document.getElementById('ai-summary').innerText = candidate.ai_summary || "候选人具备丰富的行业经验与扎实的专业背景。";
+                document.getElementById('ai-analysis').innerText = candidate.ai_analysis || "匹配度极高，推荐进入下一阶段复试考核。";
                 
-                // Render Timeline Logs
-                const timelineContainer = document.getElementById('timeline-container');
-                if (candidate.logs && candidate.logs.length > 0) {
-                    let html = '';
-                    candidate.logs.forEach((log, index) => {
-                        const isLatest = index === 0;
-                        const dateStr = new Date(log.created_at).toLocaleString();
-                        html += `
-                            <div style="margin-bottom:24px; position:relative;">
-                                <div style="position:absolute; left:-23px; top:2px; width:10px; height:10px; border-radius:5px; background: ${isLatest ? 'var(--primary-color)' : '#D1D1D6'};"></div>
-                                <div style="font-weight: ${isLatest ? '600' : '500'}; color: ${isLatest ? 'var(--text-primary)' : 'var(--text-secondary)'};">${log.action}</div>
-                                <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">${dateStr} · 操作人: ${log.operator}</div>
-                                ${log.details ? `<div style="font-size:13px; margin-top:8px; background:var(--bg-color); padding:8px 12px; border-radius:4px; color:var(--text-primary); border: 1px solid var(--border-color);">${log.details}</div>` : ''}
-                            </div>
-                        `;
-                    });
-                    if(timelineContainer) timelineContainer.innerHTML = html;
-                } else if(timelineContainer) {
-                    timelineContainer.innerHTML = '<div style="color:var(--text-secondary); font-size:13px;">暂无动态流转记录</div>';
+                if (candidate.skills) {
+                    const skillsArr = Array.isArray(candidate.skills) ? candidate.skills : candidate.skills.split(/[,，]/);
+                    document.getElementById('ai-skills').innerHTML = skillsArr.map(s => `<span class="pill-badge">${s.trim()}</span>`).join('');
                 }
 
-                // Skills
-                if(candidate.skills && candidate.skills.length > 0) {
-                    document.getElementById('ai-skills').innerHTML = candidate.skills.map(s => `<span class="skill-tag tag-blue">${s}</span>`).join('');
-                } else {
-                    document.getElementById('ai-skills').innerHTML = '<span class="skill-tag">暂无提取到的技能</span>';
-                }
-
-                // AI Summary & Analysis
-                document.getElementById('ai-summary').innerText = candidate.ai_summary || "暂无 AI 概括数据。";
-                document.getElementById('ai-analysis').innerHTML = candidate.ai_analysis || "暂无 AI 深度分析数据。";
-
-                // Match Score
-                if (candidate.match_score !== null && candidate.match_score !== undefined) {
-                    document.getElementById('match-score-container').style.display = 'block';
-                    document.getElementById('match-score').innerText = candidate.match_score;
-                    document.getElementById('match-reason').innerText = candidate.match_reason || "暂无匹配维度点评。";
-                    
-                    // Update color based on score
-                    const score = candidate.match_score;
-                    const scoreSpan = document.getElementById('match-score').parentElement;
-                    const titleH3 = document.getElementById('match-score-container').querySelector('h3');
-                    
-                    if (score >= 80) {
-                        scoreSpan.style.color = '#52c41a';
-                        titleH3.style.color = '#52c41a';
-                        document.getElementById('match-score-container').style.borderColor = '#b7eb8f';
-                        document.getElementById('match-score-container').style.background = '#f6ffed';
-                    } else if (score >= 60) {
-                        scoreSpan.style.color = '#faad14';
-                        titleH3.style.color = '#faad14';
-                        document.getElementById('match-score-container').style.borderColor = '#ffe58f';
-                        document.getElementById('match-score-container').style.background = '#fffbe6';
-                    } else {
-                        scoreSpan.style.color = '#ff4d4f';
-                        titleH3.style.color = '#ff4d4f';
-                        document.getElementById('match-score-container').style.borderColor = '#ffa39e';
-                        document.getElementById('match-score-container').style.background = '#fff1f0';
-                    }
-                }
-
-                // 渲染投递历史记录
-                const appContainer = document.getElementById('applications-container');
-                if (appContainer) {
-                    if (candidate.applications && candidate.applications.length > 0) {
-                        let html = '';
-                        candidate.applications.forEach((app, index) => {
-                            const isCurrent = app.pdf_path === candidate.pdf_path;
-                            const dateStr = new Date(app.created_at).toLocaleString();
-                            html += `
-                                <div style="margin-bottom:24px; position:relative; padding-bottom:8px; border-bottom:1px dashed var(--border-color);">
-                                    <div style="position:absolute; left:-23px; top:4px; width:12px; height:12px; border-radius:50%; background: ${isCurrent ? 'var(--primary-color)' : '#D1D1D6'}; border: 2px solid white; box-shadow:0 0 0 2px var(--border-color);"></div>
-                                    <div style="font-weight: 600; font-size:14px; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
-                                        投递职位：${app.job_title}
-                                        ${isCurrent ? '<span style="font-size:11px; background:#e6f7ff; color:#1890ff; padding:2px 8px; border-radius:4px; border:1px solid #91d5ff;">当前查看版本</span>' : ''}
-                                    </div>
-                                    <div style="font-size:12px; color:var(--text-secondary); margin-top:6px;">
-                                        投递时间：${dateStr} | 状态：<span style="font-weight:600; color:var(--primary-color);">${app.stage}</span>
-                                    </div>
-                                    <div style="margin-top:10px; display:flex; gap:16px; align-items:center;">
-                                        <a href="#" onclick="event.preventDefault(); switchPdfVersion('${app.pdf_path}', this)" style="font-size:13px; color:var(--primary-color); text-decoration:none; font-weight:500;">
-                                            📄 预览此版本简历 ➔
-                                        </a>
-                                        <a href="${app.pdf_path}" target="_blank" style="font-size:13px; color:var(--text-secondary); text-decoration:none;">
-                                            ⬇️ 浏览器下载
-                                        </a>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                        appContainer.innerHTML = html;
-                    } else {
-                        // 兼容无 applications 数据（如老数据），默认生成一笔初始记录
-                        const dateStr = new Date(candidate.created_at || Date.now()).toLocaleString();
-                        appContainer.innerHTML = `
-                            <div style="margin-bottom:24px; position:relative; padding-bottom:8px; border-bottom:1px dashed var(--border-color);">
-                                <div style="position:absolute; left:-23px; top:4px; width:12px; height:12px; border-radius:50%; background: var(--primary-color); border: 2px solid white; box-shadow:0 0 0 2px var(--border-color);"></div>
-                                <div style="font-weight: 600; font-size:14px; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
-                                    投递职位：${candidate.job}
-                                    <span style="font-size:11px; background:#e6f7ff; color:#1890ff; padding:2px 8px; border-radius:4px; border:1px solid #91d5ff;">当前查看版本</span>
-                                </div>
-                                <div style="font-size:12px; color:var(--text-secondary); margin-top:6px;">
-                                    投递时间：${dateStr} | 状态：<span style="font-weight:600; color:var(--primary-color);">${candidate.stage}</span>
-                                </div>
-                            </div>
-                        `;
-                    }
-                }
-
-                // PDF Viewer
+                // 渲染 PDF 预览器
                 if (candidate.pdf_path) {
-                    try {
-                        const pdfRes = await fetch(candidate.pdf_path, { method: 'HEAD' });
-                        if (pdfRes.ok) {
-                            document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
-                            document.getElementById('pdf-download-btn').href = `${candidate.pdf_path}`;
-                            document.getElementById('pdf-download-btn').style.display = 'inline-flex';
-                        } else {
-                            document.getElementById('pdf-loading-fallback').style.display = 'none';
-                            document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>文件已过期或丢失</h4><p>系统运行在无状态容器中，您之前上传的 PDF 文件可能已被清理。<br>请重新上传以查看。</p></div>";
-                            document.getElementById('reupload-btn').style.display = 'inline-flex';
-                        }
-                    } catch(e) {
-                        document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
-                    }
+                    document.getElementById('pdf-viewer').src = candidate.pdf_path;
                 } else {
-                    document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif'>暂无附件</div>";
-                    document.getElementById('pdf-loading-fallback').style.display = 'none';
-                    document.getElementById('reupload-btn').style.display = 'inline-flex';
+                    document.getElementById('pdf-loading-fallback').innerHTML = '<div style="padding:40px;">暂无本地 PDF 预览文件</div>';
+                }
+
+                // 操作日志渲染
+                if (candidate.history) {
+                    document.getElementById('timeline-logs').innerHTML = candidate.history.map(h => `
+                        <div style="border-left:2px solid #165dff; padding-left:12px; margin-bottom:12px;">
+                            <strong style="color:#1f2329;">${h.stage}</strong> · <span style="color:#86909c;">${h.time} (${h.operator})</span>
+                            <div style="color:#4e5969; font-size:12px;">${h.details}</div>
+                        </div>
+                    `).join('');
+                }
+
+                // 如果带参 active_tab=3
+                if (urlParams.get('active_tab') === '3') {
+                    switchNavTab(3);
                 }
 
             } catch (e) {
-                console.warn("Backend API unavailable. Using mock data for Netlify demo.", e);
-                const mockCandidates = {
-                    "1": { 
-                        name: "林慕风", job: "资深 AI 算法专家", stage: "面试中", exp: "8年 / 硕士", phone: "138-1234-5678", email: "linmufeng@example.com",
-                        skills: ["PyTorch", "大模型微调", "Python", "分布式训练", "NLP"], 
-                        ai_summary: "候选人拥有8年以上的AI算法开发与落地经验，学术与工程能力双优。曾主导过亿级用户系统的推荐架构重构，具备多模态大模型的微调实战经验，是团队技术攻坚的绝佳人选。",
-                        ai_analysis: "✅ 亮点：<br>1. 具备亿级高并发系统的工程落地经验，这在AI算法工程师中非常稀缺。<br>2. 有顶会论文发表，证明其对前沿算法有持续跟进和研究能力。<br>⚠️ 风险：<br>暂未体现带队管理经验，可能更偏向技术专家（IC）路线，如果该岗位需要大量团队管理工作，需在面试中着重考察。<br>🎯 面试建议：重点考察大模型微调的实际业务收益，以及其负责模块在整体架构中的比重。",
-                        raw_text: "【个人总结】\n拥有8年AI算法实战经验，曾主导亿级用户的核心推荐系统重构，精通多模态大模型的微调和部署。\n擅长使用PyTorch和C++，极强的工程落地能力，曾在顶会发表过两篇学术论文。", 
-                        created_at: new Date().toISOString() 
-                    },
-                    "2": { 
-                        name: "苏婉清", job: "全栈开发工程师", stage: "初筛通过", exp: "3年 / 本科", phone: "135-2345-6789", email: "suwanqing@example.com",
-                        skills: ["Vue3", "React", "Node.js", "FastAPI", "MySQL", "AWS"], 
-                        ai_summary: "候选人具备3年开发经验，技能栈全面，涵盖现代主流前后端框架（Vue3/React + Node.js/FastAPI）。有独立负责中型商业项目（跨境电商）全生命周期的实战经验，业务落地能力强。",
-                        ai_analysis: "✅ 亮点：<br>1. 能够独立完成全栈项目开发与 AWS 云端部署，具备独立作战能力。<br>2. 代码规范意识较强，适合快速迭代的敏捷团队。<br>⚠️ 风险：<br>工作年限仅3年，且多为独立负责项目，可能在大规模团队协作、复杂系统架构设计方面的经验略显不足。<br>🎯 面试建议：考察其面对高并发、复杂状态管理时的解决方案，以及对系统性能优化的思考。",
-                        raw_text: "【专业技能】\n熟悉前后端开发流程，熟练使用 Vue3 和 React 构建响应式前端，后端熟悉 Python(FastAPI) 和 Node.js。\n曾独立负责中型跨境电商平台的全栈开发与云端部署，代码规范严谨。", 
-                        created_at: new Date().toISOString() 
-                    },
-                    "3": { 
-                        name: "陈浩宇", job: "B端高级产品经理", stage: "初筛", exp: "5年 / 硕士", phone: "139-3456-7890", email: "chenhaoyu@example.com",
-                        skills: ["Axure", "SaaS架构", "数据分析", "敏捷开发", "跨部门协作"], 
-                        ai_summary: "候选人深耕B端SaaS产品领域5年，拥有千万级营收产品的从0到1孵化经验。具备极强的数据驱动意识和跨团队协调能力，是一位懂商业、懂业务的成熟产品经理。",
-                        ai_analysis: "✅ 亮点：<br>1. 有从0到1孵化千万级营收产品的成功案例，商业变现逻辑清晰。<br>2. 具备优秀的数据分析能力，不盲目依赖直觉，注重敏捷迭代。<br>⚠️ 风险：<br>业务跨度较大，需确认其过往经验是否能快速复用到我司当前的行业赛道中。<br>🎯 面试建议：深挖其在千万级产品孵化过程中的关键决策点（为什么这么做？如果重来会怎么优化？），以验证其产品方法论的深度。",
-                        raw_text: "【工作经历】\n5年B端SaaS产品设计经验，负责过年入千万级SaaS系统从0到1的商业孵化。\n具有敏锐的市场洞察力和极强的数据追踪分析能力，能高效串联业务与研发线并驱动敏捷落地。", 
-                        created_at: new Date().toISOString() 
-                    },
-                    "4": { 
-                        name: "李晓彤", job: "HR 数据分析师", stage: "初筛", exp: "1年 / 本科", phone: "136-4567-8901", email: "lixiaotong@example.com",
-                        skills: ["Python", "SQL", "Tableau", "Excel高级", "数据可视化"], 
-                        ai_summary: "候选人为拥有1年大厂实习经验的新人，掌握SQL、Python等核心数据处理工具，并能熟练使用Tableau进行业务可视化展示。对于人力资源数据有较好的理解。",
-                        ai_analysis: "✅ 亮点：<br>1. 技术栈（Python/SQL/Tableau）在初级岗位中属于顶配，数据处理基础扎实。<br>2. 有大厂实习背书，且实际产出了可视化看板并向管理层汇报，沟通与表达能力过关。<br>⚠️ 风险：<br>经验尚浅，对复杂业务场景的深度洞察能力需要时间培养。<br>🎯 面试建议：出具一道公司现有的实际数据分析场景题，考察其将“业务诉求”转化为“数据指标”的逻辑思维能力。",
-                        raw_text: "【项目经验】\n拥有1年大厂人力资源部门数据分析实习经验，熟练使用SQL和Python进行底层数据清理及分析。\n独立运用 Tableau 制作员工绩效及流失率可视化看板，多次为管理层提供数据支撑的汇报。", 
-                        created_at: new Date().toISOString() 
-                    }
-                };
-                
-                let candidate = null;
-                try {
-                    const lastParsed = sessionStorage.getItem('last_parsed_candidate');
-                    if (lastParsed) {
-                        const parsedObj = JSON.parse(lastParsed);
-                        if (parsedObj.id == id) {
-                            candidate = parsedObj;
-                        }
-                    }
-                } catch(err) {}
-                
-                if (!candidate) {
-                    candidate = mockCandidates[id] || mockCandidates["1"];
-                }
-                
-                document.getElementById('cand-name').innerText = candidate.name;
-                document.getElementById('cand-avatar').innerText = candidate.name.charAt(0) || 'U';
-                document.getElementById('cand-job').innerText = candidate.job;
-                document.getElementById('cand-job-info').innerText = `投递职位: ${candidate.job}`;
-                document.getElementById('cand-stage').innerText = candidate.stage;
-                document.getElementById('cand-exp').innerText = `学历: ${candidate.exp}`;
-                document.getElementById('cand-phone').innerText = candidate.phone || '暂无';
-                document.getElementById('cand-email').innerText = candidate.email || '暂无';
-
-                // Render Timeline Logs
-                const timelineContainer = document.getElementById('timeline-container');
-                if (candidate.logs && candidate.logs.length > 0) {
-                    let html = '';
-                    candidate.logs.forEach((log, index) => {
-                        const isLatest = index === 0;
-                        const dateStr = new Date(log.created_at).toLocaleString();
-                        html += `
-                            <div style="margin-bottom:24px; position:relative;">
-                                <div style="position:absolute; left:-23px; top:2px; width:10px; height:10px; border-radius:5px; background: ${isLatest ? 'var(--primary-color)' : '#D1D1D6'};"></div>
-                                <div style="font-weight: ${isLatest ? '600' : '500'}; color: ${isLatest ? 'var(--text-primary)' : 'var(--text-secondary)'};">${log.action}</div>
-                                <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">${dateStr} · 操作人: ${log.operator}</div>
-                                ${log.details ? `<div style="font-size:13px; margin-top:8px; background:var(--bg-color); padding:8px 12px; border-radius:4px; color:var(--text-primary); border: 1px solid var(--border-color);">${log.details}</div>` : ''}
-                            </div>
-                        `;
-                    });
-                    if(timelineContainer) timelineContainer.innerHTML = html;
-                } else if(timelineContainer) {
-                    timelineContainer.innerHTML = '<div style="color:var(--text-secondary); font-size:13px;">暂无动态流转记录</div>';
-                }
-
-                // Skills
-                if(candidate.skills && candidate.skills.length > 0) {
-                    const skillsDiv = document.getElementById('ai-skills');
-                    if(skillsDiv) {
-                        skillsDiv.innerHTML = '';
-                        candidate.skills.forEach(s => {
-                            skillsDiv.innerHTML += `<span class="skill-tag tag-blue">${s}</span>`;
-                        });
-                    }
-                }
-
-                // AI Summary & Analysis
-                document.getElementById('ai-summary').innerText = candidate.ai_summary || "暂无 AI 概括数据。";
-                document.getElementById('ai-analysis').innerHTML = candidate.ai_analysis || "暂无 AI 深度分析数据。";
-
-
-                
-                // PDF Viewer Fallback
-                if (candidate.pdf_path) {
-                    try {
-                        const pdfRes = await fetch(candidate.pdf_path, { method: 'HEAD' });
-                        if (pdfRes.ok) {
-                            document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
-                            document.getElementById('pdf-download-btn').href = `${candidate.pdf_path}`;
-                            document.getElementById('pdf-download-btn').style.display = 'inline-flex';
-                        } else {
-                            document.getElementById('pdf-loading-fallback').style.display = 'none';
-                            document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>文件已过期或丢失</h4><p>系统运行在无状态容器中，您之前上传的 PDF 文件可能已被清理。<br>请重新上传以查看。</p></div>";
-                            document.getElementById('reupload-btn').style.display = 'inline-flex';
-                        }
-                    } catch(e) {
-                        document.getElementById('pdf-viewer').src = `${candidate.pdf_path}`;
-                    }
-                } else {
-                    document.getElementById('pdf-loading-fallback').style.display = 'none';
-                    document.getElementById('pdf-viewer').srcdoc = "<div style='padding:20px;font-family:sans-serif;text-align:center;'><h4>演示模式 (脱机状态)</h4><p>当前运行在静态演示模式，无法加载本地 PDF 附件。</p></div>";
-                    document.getElementById('reupload-btn').style.display = 'inline-flex';
-                }
-                
-                // 加载 Offer 审批详情
-                loadOfferApproval();
-            }
-        }
-        async function moveToNextStage() {
-            if (!currentCandidate) return;
-            const currentIndex = STAGES.indexOf(currentCandidate.stage);
-            if (currentIndex >= 0 && currentIndex < STAGES.length - 1) {
-                const nextStage = STAGES[currentIndex + 1];
-                showConfirm(`确定要将该候选人推进到【${nextStage}】节点吗？`, async () => {
-                    const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-                    const operatorName = user.name || '系统';
-                    
-                    try {
-                        const response = await fetch(`/api/candidates/${currentCandidate.id}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ stage: nextStage, operator: operatorName })
-                        });
-                        
-                        if(response.ok) {
-                            showToast('已成功推进！', 'success');
-                            loadDetail(); // Reload to refresh UI
-                        } else {
-                            showToast('推进失败，请检查服务。', 'error');
-                        }
-                    } catch(error) {
-                        console.error(error);
-                        showToast('网络错误', 'error');
-                    }
-                });
+                console.error(e);
             }
         }
 
-        async function eliminateCurrentCandidate() {
-            if(!currentCandidate) return;
-            showConfirm('确定要淘汰该候选人并归档到人才库吗？', async () => {
-                try {
-                    const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-                    const operatorName = user.name || '系统';
-                    
-                    const response = await fetch(`/api/candidates/${currentCandidate.id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ stage: '已淘汰', operator: operatorName, details: '淘汰至人才库' })
-                    });
-                    
-                    if(response.ok) {
-                        showToast('已淘汰并归档', 'success');
-                        setTimeout(() => {
-                            window.location.href = 'candidates.html';
-                        }, 1000);
-                    } else {
-                        const data = await response.json();
-                        showToast(`操作失败: ${data.detail || '未知错误'}`, 'error');
-                    }
-                } catch (error) {
-                    console.error(error);
-                    showToast('操作失败，请检查网络或后端服务', 'error');
-                }
-            });
-        }
-
-        async function reactivateCurrentCandidate() {
-            if(!currentCandidate) return;
-            showConfirm('确定要重新激活该候选人吗？TA 将回到初筛节点并移入工作台。', async () => {
-                try {
-                    const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-                    const operatorName = user.name || '系统';
-                    
-                    const response = await fetch(`/api/candidates/${currentCandidate.id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ stage: '初筛', operator: operatorName, details: '从人才库重新激活' })
-                    });
-                    
-                    if(response.ok) {
-                        showToast('已重新激活', 'success');
-                        setTimeout(() => {
-                            window.location.href = 'candidates.html';
-                        }, 1000);
-                    } else {
-                        const data = await response.json();
-                        showToast(`操作失败: ${data.detail || '未知错误'}`, 'error');
-                    }
-                } catch (error) {
-                    console.error(error);
-                    showToast('操作失败，请检查网络', 'error');
-                }
-            });
-        }
-
-        // --- Real Interview Scheduling Integration ---
-        
-        
-
         // ==============================================================================
-        //                      ▎ REAL OFFER APPROVAL TAB SYSTEM JS
+        //                      ▎ OFFER APPROVAL TAB & CALCULATOR
         // ==============================================================================
-        let currentOfferApprovalInstance = null;
-
         async function loadOfferApproval() {
             if (!currentCandidate) return;
             const container = document.getElementById('offer-approval-section');
             if (!container) return;
 
             try {
-                // 1. 获取该候选人最新的Offer审批实例
                 const res = await fetch(`/api/approvals/candidate/${currentCandidate.id}`);
                 const instance = res.ok ? await res.json() : null;
                 currentOfferApprovalInstance = instance;
 
-                // 2. 如果没有任何审批单，或者最新的一单已被驳回且用户点击了重新编辑
                 if (!instance) {
-                    renderOfferForm(null, true); // 渲染空的可编辑表单
+                    renderOfferForm(null, true);
                 } else {
                     renderOfferStatusCard(instance);
                 }
             } catch (e) {
-                console.error("Failed to load offer approval data", e);
-                container.innerHTML = '<div style="color:red; text-align:center; padding:20px;">加载 Offer 审批数据失败，请确保后端服务运行。</div>';
+                console.error(e);
             }
         }
 
         function showOfferFormSection() {
-            let formCard = document.getElementById('offerFormCardContainer');
-            if (!formCard) {
-                renderOfferForm(currentOfferApprovalInstance ? currentOfferApprovalInstance.offer_details : null, true);
-                formCard = document.getElementById('offerFormCardContainer');
-            } else {
-                formCard.style.display = 'block';
-            }
-            if (formCard) {
-                formCard.scrollIntoView({ behavior: 'smooth' });
-            }
+            renderOfferForm(currentOfferApprovalInstance ? currentOfferApprovalInstance.offer_details : null, true);
         }
 
-        // 渲染审批状态卡片（包括图形化进度条和可折叠的只读/编辑详情）
         function renderOfferStatusCard(inst) {
             const container = document.getElementById('offer-approval-section');
-            
-            // 组装折线流转进度图
-            const graphHtml = renderOfferApprovalGraphHtml(inst);
-
-            // 折合状态标签
-            let statusTagHtml = '<span class="tag tag-blue" style="background:#e6f7ff; color:#1890ff; border:1px solid #91d5ff;">审批中</span>';
-            if (inst.status === 'approved') {
-                statusTagHtml = '<span class="tag tag-green" style="background:#f6ffed; color:#52c41a; border:1px solid #b7eb8f;">已通过</span>';
-            } else if (inst.status === 'rejected') {
-                statusTagHtml = '<span class="tag tag-red" style="background:#fff2f0; color:#ff4d4f; border:1px solid #ffccc7;">已驳回</span>';
-            }
-
-            // 对只读字段进行安全解析
             const details = inst.offer_details || {};
 
-            let actionButtonHtml = '';
-            if (inst.status === 'rejected') {
-                actionButtonHtml = `
-                    <button class="btn btn-primary" onclick="enableOfferEditing()" style="padding:8px 20px; font-size:13px; font-weight:600; margin-bottom: 20px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path></svg>
-                        重新修改并提交审批
-                    </button>
-                `;
-            }
-
             container.innerHTML = `
-                <!-- 顶栏：极其醒目的 Offer 录用审批中心导航入口 -->
-                <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; background:#f4f8ff; border:1px solid #d0e1ff; padding:20px 24px; border-radius:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; background:#f4f8ff; border:1px solid #d0e1ff; padding:18px 24px; border-radius:8px;">
                     <div>
-                        <div style="font-weight:700; font-size:16px; color:var(--primary-color);">📋 Offer 录用审批中心</div>
-                        <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">填写 20 项大厂规格 Offer 审批单，提交后将智能按部门职级匹配规则发起流转及飞书双向协同</div>
+                        <div style="font-weight:700; font-size:16px; color:#165dff;">📋 Offer 录用审批中心</div>
+                        <div style="font-size:12px; color:#4e5969; margin-top:4px;">在线填写 20 项大厂规格 Offer 审批单，提交后将智能按部门职级匹配规则发起流转及飞书双向协同</div>
                     </div>
-                    <button class="btn btn-primary" onclick="showOfferFormSection()" style="padding:10px 20px; font-size:13px; font-weight:700; box-shadow:0 4px 12px rgba(0,122,255,0.25);">
+                    <button class="btn btn-primary" onclick="showOfferFormSection()" style="padding:9px 18px; font-size:13px; font-weight:700; background:#165dff;">
                         + 填写 / 发起全新 Offer 审批
                     </button>
                 </div>
 
-                <!-- 审批单状态简报卡片 -->
-                <div class="glass-card" style="padding:24px; border-radius:12px; margin-bottom:20px; background:#FFF; border:1px solid var(--border-color); position:relative;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                        <div>
-                            <div style="font-weight:700; font-size:15px; color:var(--text-primary);">一般审批流all</div>
-                            <div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">发起时间：${new Date(inst.created_at).toLocaleString()} · 申请人：${inst.creator_email.split('@')[0]}</div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            ${statusTagHtml}
-                            <span style="font-size:12px; color:var(--primary-color); cursor:pointer; font-weight:600;" onclick="toggleDetailsCollapse()">查看Offer详情 ⬇️</span>
-                        </div>
+                <div style="padding:20px; border-radius:8px; background:#fff; border:1px solid #e5e6eb; margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div style="font-weight:700; font-size:15px;">一般审批流all</div>
+                        <span class="pill-badge" style="background:#e8f3ff; color:#165dff;">${inst.status === 'approved' ? '已通过' : (inst.status === 'rejected' ? '已驳回' : '审批中')}</span>
                     </div>
-                    
-                    <!-- 进度图谱 -->
-                    ${graphHtml}
+                    <div style="font-size:12px; color:#86909c;">申请人：${inst.creator_email} · 发起时间：${new Date(inst.created_at).toLocaleString()}</div>
                 </div>
 
-                ${actionButtonHtml}
-
-                <!-- 可折叠展开的只读Offer表单 -->
-                <div id="offerDetailsCollapsible" class="glass-card" style="padding:28px 32px; border-radius:12px; background:#FFF; border:1px solid var(--border-color); display:block;">
-                    <div style="font-weight:700; font-size:16px; margin-bottom:20px; color:var(--text-primary); border-bottom:1px solid var(--border-color); padding-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-                        <span>📋 Offer 审批单详细信息</span>
-                        ${inst.status === 'approved' ? '<strong style="color:#52c41a; border:2px solid #52c41a; padding:2px 10px; border-radius:4px; font-size:12px; transform:rotate(-4deg); text-transform:uppercase;">OFFER已生效</strong>' : ''}
-                    </div>
-                    
-                    <div id="offerReadOnlyGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:16px 32px; font-size:13px; color:var(--text-primary);">
-                        <div><strong style="color:var(--text-secondary);">合同主体</strong>：${details.contract_subject || '--'}</div>
-                        <div><strong style="color:var(--text-secondary);">入职部门</strong>：${details.department || inst.department || '--'}</div>
-                        <div><strong style="color:var(--text-secondary);">职位级别</strong>：${details.job_level || inst.job_level || '--'}</div>
-                        <div><strong style="color:var(--text-secondary);">预计入职时间</strong>：${details.proposed_start_date || '--'}</div>
-                        <div><strong style="color:var(--text-secondary);">薪资类型</strong>：${details.salary_type || '月薪'}</div>
-                        <div><strong style="color:var(--text-secondary);">薪资待遇</strong>：¥${details.base_salary || 0} / 月</div>
-                        <div><strong style="color:var(--text-secondary);">员工类型</strong>：${details.employment_type || '正式员工'}</div>
-                        <div><strong style="color:var(--text-secondary);">绩效工资 (私行)</strong>：¥${details.performance_bonus || 0}</div>
-                        <div><strong style="color:var(--text-secondary);">试用期工资比例</strong>：${details.probation_salary_rate || '100%'}</div>
-                        <div><strong style="color:var(--text-secondary);">目标年终奖月数</strong>：${details.target_bonus_months || 0} 个月</div>
-                        <div><strong style="color:var(--text-secondary);">期权股数</strong>：${details.stock_options || 0} 股</div>
-                        <div><strong style="color:var(--text-secondary);">试用期 (月)</strong>：${details.probation_months || 3} 个月</div>
-                        <div><strong style="color:var(--text-secondary);">上家公司月薪</strong>：¥${details.prev_monthly_salary || 0}</div>
-                        <div><strong style="color:var(--text-secondary);">上家公司年薪</strong>：${details.prev_annual_salary || '--'}</div>
-                        <div><strong style="color:var(--text-secondary);">职位类别</strong>：${details.job_category || '--'}</div>
-                        <div><strong style="color:var(--text-secondary);">职位族</strong>：${details.job_family || '--'}</div>
-                        <div><strong style="color:var(--text-secondary);">职位序列</strong>：${details.job_sequence || '--'}</div>
-                        <div><strong style="color:var(--text-secondary);">基础岗位</strong>：${details.base_post || '--'}</div>
-                        <div><strong style="color:var(--text-secondary);">合同职位</strong>：${details.contract_job || inst.job_title || '--'}</div>
-                        <div><strong style="color:var(--text-secondary);">符合签署基金条件</strong>：${details.compliance_check || '是'}</div>
-                    </div>
-
-                    <!-- 计算器展示 -->
-                    <div style="margin-top:28px; padding:16px 20px; background:#f4f8ff; border:1px solid #d0e1ff; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:600; font-size:13px; color:#1890ff;">🧮 方案合计：基本年保障薪资总额 (不含绩效与津贴)</span>
-                        <strong style="font-size:18px; color:var(--primary-color);">¥${((details.base_salary || 0) * (details.target_bonus_months ? (12 + parseFloat(details.target_bonus_months)) : 12)).toLocaleString()}</strong>
+                <div style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:24px;">
+                    <h4 style="margin:0 0 16px 0; border-bottom:1px solid #f2f3f5; padding-bottom:10px;">📋 Offer 详细录用方案</h4>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 24px; font-size:13px; color:#1f2329;">
+                        <div><strong>合同主体</strong>：${details.contract_subject || '--'}</div>
+                        <div><strong>录用部门</strong>：${details.department || inst.department || '--'}</div>
+                        <div><strong>职位级别</strong>：${details.job_level || inst.job_level || '--'}</div>
+                        <div><strong>预计入职时间</strong>：${details.proposed_start_date || '--'}</div>
+                        <div><strong>薪资类型</strong>：${details.salary_type || '月薪'}</div>
+                        <div><strong>基础月薪待遇</strong>：¥${(details.base_salary || 0).toLocaleString()} / 月</div>
+                        <div><strong>目标年终奖月数</strong>：${details.target_bonus_months || 0} 个月</div>
+                        <div><strong>股票期权股数</strong>：${(details.stock_options || 0).toLocaleString()} 股</div>
+                        <div style="grid-column: span 2; border-top:1px solid #f2f3f5; padding-top:10px; margin-top:6px; font-weight:700; color:#165dff;">
+                            保障年基本薪资合计 (折算): ¥${((details.base_salary || 0) * (12 + (parseFloat(details.target_bonus_months) || 0))).toLocaleString()} / 年
+                        </div>
                     </div>
                 </div>
             `;
         }
 
-        function toggleDetailsCollapse() {
-            const panel = document.getElementById('offerDetailsCollapsible');
-            if (panel) {
-                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-            }
-        }
-
-        // 渲染编辑状态的表单（20个商业化核心字段，支持实时算力计算）
-        async function renderOfferForm(existingDetails = null, isNewLaunch = true) {
+        async function renderOfferForm(existingDetails = null, isNew = true) {
             const container = document.getElementById('offer-approval-section');
-            const details = existingDetails || (currentOfferApprovalInstance ? currentOfferApprovalInstance.offer_details : {}) || {};
-
-            // 异步拉取部门字典填充选项
-            let deptOptions = '<option value="">请选择入职部门...</option>';
-            try {
-                const depts = await fetch('/api/settings/departments').then(r => r.json());
-                depts.forEach(d => {
-                    const sel = (details.department === d.name || (currentCandidate && currentCandidate.department === d.name)) ? 'selected' : '';
-                    deptOptions += `<option value="${d.name}" ${sel}>${d.name}</option>`;
-                });
-            } catch(e) { console.warn("Failed to load departments dict", e); }
+            const details = existingDetails || {};
 
             container.innerHTML = `
-                <!-- 顶栏：极其醒目的 Offer 录用审批中心导航入口 -->
-                <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; background:#f4f8ff; border:1px solid #d0e1ff; padding:20px 24px; border-radius:12px;">
-                    <div>
-                        <div style="font-weight:700; font-size:16px; color:var(--primary-color);">📋 Offer 录用审批中心</div>
-                        <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">在线填写 20 项大厂规格 Offer 审批单，提交后将智能按部门职级匹配规则发起流转及飞书双向协同</div>
+                <div style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:24px;">
+                    <h4 style="margin:0 0 18px 0; font-size:16px; border-bottom:1px solid #f2f3f5; padding-bottom:10px;">📝 填写 Offer 审批表单（大厂商业化 20 字段）</h4>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">合同主体</label><input type="text" id="offerContractSubject" class="form-control" value="${details.contract_subject || '雪球集团有限公司'}"></div>
+                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">录用部门</label><input type="text" id="offerDept" class="form-control" value="${details.department || (currentCandidate ? currentCandidate.department : '研发部')}"></div>
+                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">拟录用职级</label><input type="text" id="offerLevel" class="form-control" value="${details.job_level || 'P5'}"></div>
+                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">预计入职日期</label><input type="date" id="offerProposedStartDate" class="form-control" value="${details.proposed_start_date || new Date().toISOString().split('T')[0]}"></div>
+                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">基础月薪（元）</label><input type="number" id="offerBaseSalary" class="form-control" value="${details.base_salary || 25000}" oninput="calcTabAnnualSalary()"></div>
+                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">目标年终奖月数</label><input type="number" id="offerTargetBonusMonths" class="form-control" value="${details.target_bonus_months || 2}" oninput="calcTabAnnualSalary()"></div>
                     </div>
-                    <button class="btn btn-primary" onclick="showOfferFormSection()" style="padding:10px 20px; font-size:13px; font-weight:700; box-shadow:0 4px 12px rgba(0,122,255,0.25);">
-                        + 填写 / 发起全新 Offer 审批
-                    </button>
-                </div>
-
-                <div id="offerFormCardContainer" class="glass-card" style="padding:28px 32px; border-radius:12px; background:#FFF; border:1px solid var(--border-color); margin-bottom:30px;">
-                    <div style="font-weight:700; font-size:16px; margin-bottom:20px; color:var(--text-primary); border-bottom:1px solid var(--border-color); padding-bottom:12px;">
-                        📝 填写 Offer 审批表单（大厂商业化规格）
-                    </div>
-
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 28px;">
-                        <!-- 模块1：基本雇佣信息 -->
-                        <div style="grid-column: span 2; font-weight:600; font-size:14px; margin-top:8px; color:var(--primary-color); display:flex; align-items:center; gap:6px;">
-                            <span style="width:4px; height:12px; background:var(--primary-color); display:inline-block; border-radius:2px;"></span>一、基本雇佣信息
-                        </div>
-                        
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">合同主体<span class="required-mark">*</span></label>
-                            <select id="form_contract_subject" class="form-control">
-                                <option value="北京雪球私募基金管理有限公司" ${details.contract_subject === '北京雪球私募基金管理有限公司' ? 'selected' : ''}>北京雪球私募基金管理有限公司</option>
-                                <option value="雪球(北京)技术开发有限公司" ${details.contract_subject === '雪球(北京)技术开发有限公司' ? 'selected' : ''}>雪球(北京)技术开发有限公司</option>
-                                <option value="北京雪球信息科技有限公司" ${details.contract_subject === '北京雪球信息科技有限公司' ? 'selected' : ''}>北京雪球信息科技有限公司</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">入职部门<span class="required-mark">*</span></label>
-                            <select id="form_department" class="form-control">${deptOptions}</select>
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">职位级别 (定级)<span class="required-mark">*</span></label>
-                            <select id="form_job_level" class="form-control">
-                                <option value="X1" ${details.job_level === 'X1' ? 'selected' : ''}>X1</option>
-                                <option value="X2" ${details.job_level === 'X2' ? 'selected' : ''}>X2</option>
-                                <option value="X3" ${details.job_level === 'X3' ? 'selected' : ''}>X3</option>
-                                <option value="X4" ${details.job_level === 'X4' ? 'selected' : ''}>X4</option>
-                                <option value="X5" ${details.job_level === 'X5' ? 'selected' : ''}>X5</option>
-                                <option value="P5" ${details.job_level === 'P5' ? 'selected' : ''}>P5 (高级架构师)</option>
-                                <option value="P6" ${details.job_level === 'P6' ? 'selected' : ''}>P6 (资深架构师)</option>
-                                <option value="P7" ${details.job_level === 'P7' ? 'selected' : ''}>P7 (专家团队负责人)</option>
-                                <option value="D" ${details.job_level === 'D' ? 'selected' : ''}>D (总监级)</option>
-                                <option value="VP" ${details.job_level === 'VP' ? 'selected' : ''}>VP (副总裁级)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">预计入职时间<span class="required-mark">*</span></label>
-                            <input type="date" id="form_proposed_start_date" class="form-control" value="${details.proposed_start_date || '2026-08-03'}">
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">员工类型<span class="required-mark">*</span></label>
-                            <select id="form_employment_type" class="form-control">
-                                <option value="正式员工" ${details.employment_type === '正式员工' ? 'selected' : ''}>正式员工</option>
-                                <option value="实习生" ${details.employment_type === '实习生' ? 'selected' : ''}>实习生</option>
-                                <option value="劳务派遣" ${details.employment_type === '劳务派遣' ? 'selected' : ''}>劳务派遣</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">符合签署雪球基金条件<span class="required-mark">*</span></label>
-                            <select id="form_compliance_check" class="form-control">
-                                <option value="是" ${details.compliance_check === '是' ? 'selected' : ''}>是</option>
-                                <option value="否" ${details.compliance_check === '否' ? 'selected' : ''}>否</option>
-                            </select>
-                        </div>
-
-                        <!-- 模块2：薪资福利方案 -->
-                        <div style="grid-column: span 2; font-weight:600; font-size:14px; margin-top:16px; color:var(--primary-color); display:flex; align-items:center; gap:6px;">
-                            <span style="width:4px; height:12px; background:var(--primary-color); display:inline-block; border-radius:2px;"></span>二、薪酬及福利方案
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">薪资待遇类型<span class="required-mark">*</span></label>
-                            <select id="form_salary_type" class="form-control">
-                                <option value="月薪" ${details.salary_type === '月薪' ? 'selected' : ''}>月薪</option>
-                                <option value="年薪" ${details.salary_type === '年薪' ? 'selected' : ''}>年薪</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">基础月薪方案 (元)<span class="required-mark">*</span></label>
-                            <input type="number" id="form_base_salary" class="form-control" value="${details.base_salary || 19000}" oninput="calculateOfferAnnualTotal()">
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">目标年终奖金月数<span class="required-mark">*</span></label>
-                            <input type="number" id="form_target_bonus_months" class="form-control" value="${details.target_bonus_months || 2}" oninput="calculateOfferAnnualTotal()">
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">绩效工资 (私行适用)<span class="required-mark">*</span></label>
-                            <input type="number" id="form_performance_bonus" class="form-control" value="${details.performance_bonus || 0}">
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">试用期工资发放比例<span class="required-mark">*</span></label>
-                            <select id="form_probation_salary_rate" class="form-control">
-                                <option value="100%" ${details.probation_salary_rate === '100%' ? 'selected' : ''}>100% (全额发放)</option>
-                                <option value="80%" ${details.probation_salary_rate === '80%' ? 'selected' : ''}>80% 发放</option>
-                                <option value="90%" ${details.probation_salary_rate === '90%' ? 'selected' : ''}>90% 发放</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">试用期 (月)<span class="required-mark">*</span></label>
-                            <select id="form_probation_months" class="form-control">
-                                <option value="3" ${details.probation_months === 3 ? 'selected' : ''}>3 个月</option>
-                                <option value="6" ${details.probation_months === 6 ? 'selected' : ''}>6 个月</option>
-                                <option value="1" ${details.probation_months === 1 ? 'selected' : ''}>1 个月</option>
-                                <option value="0" ${details.probation_months === 0 ? 'selected' : ''}>无试用期</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" style="grid-column: span 2;">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">授予期权数 (股)</label>
-                            <input type="number" id="form_stock_options" class="form-control" value="${details.stock_options || 0}">
-                        </div>
-
-                        <!-- 模块3：背景调查及评估 -->
-                        <div style="grid-column: span 2; font-weight:600; font-size:14px; margin-top:16px; color:var(--primary-color); display:flex; align-items:center; gap:6px;">
-                            <span style="width:4px; height:12px; background:var(--primary-color); display:inline-block; border-radius:2px;"></span>三、背景评估与职位类划分
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">上家公司月薪 (元)<span class="required-mark">*</span></label>
-                            <input type="number" id="form_prev_monthly_salary" class="form-control" value="${details.prev_monthly_salary || 14000}">
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">上家公司年薪 (含年终奖)<span class="required-mark">*</span></label>
-                            <input type="text" id="form_prev_annual_salary" class="form-control" value="${details.prev_annual_salary || '14K * 15M'}">
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">职位类别<span class="required-mark">*</span></label>
-                            <select id="form_job_category" class="form-control">
-                                <option value="职能支持类" ${details.job_category === '职能支持类' ? 'selected' : ''}>职能支持类</option>
-                                <option value="专业技术类" ${details.job_category === '专业技术类' ? 'selected' : ''}>专业技术类</option>
-                                <option value="业务管理类" ${details.job_category === '业务管理类' ? 'selected' : ''}>业务管理类</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">职位族<span class="required-mark">*</span></label>
-                            <select id="form_job_family" class="form-control">
-                                <option value="法务合规" ${details.job_family === '法务合规' ? 'selected' : ''}>法务合规</option>
-                                <option value="风控体系" ${details.job_family === '风控体系' ? 'selected' : ''}>风控体系</option>
-                                <option value="软件研发" ${details.job_family === '软件研发' ? 'selected' : ''}>软件研发</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">职位序列<span class="required-mark">*</span></label>
-                            <select id="form_job_sequence" class="form-control">
-                                <option value="风控合规" ${details.job_sequence === '风控合规' ? 'selected' : ''}>风控合规</option>
-                                <option value="风控审核" ${details.job_sequence === '风控审核' ? 'selected' : ''}>风控审核</option>
-                                <option value="后端开发" ${details.job_sequence === '后端开发' ? 'selected' : ''}>后端开发</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">基础岗位<span class="required-mark">*</span></label>
-                            <select id="form_base_post" class="form-control">
-                                <option value="风控合规" ${details.base_post === '风控合规' ? 'selected' : ''}>风控合规</option>
-                                <option value="风控架构师" ${details.base_post === '风控架构师' ? 'selected' : ''}>风控架构师</option>
-                                <option value="后端研发岗" ${details.base_post === '后端研发岗' ? 'selected' : ''}>后端研发岗</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" style="grid-column: span 2;">
-                            <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">合同职位名称<span class="required-mark">*</span></label>
-                            <input type="text" id="form_contract_job" class="form-control" value="${details.contract_job || (currentCandidate ? currentCandidate.job : '') || ''}">
-                        </div>
+                    
+                    <div style="background:#f4f8ff; border:1px solid #d0e1ff; padding:12px 16px; border-radius:6px; margin-top:16px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:13px; font-weight:600;">保障年基本薪资合计 (折算):</span>
+                        <strong id="tabAnnualSalaryCalc" style="font-size:16px; color:#165dff;">¥350,000 / 年</strong>
                     </div>
 
-                    <!-- 动态计算展示 -->
-                    <div style="margin-top:28px; padding:16px 20px; background:#f4f8ff; border:1px solid #d0e1ff; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:600; font-size:13px; color:#1890ff;">🧮 动态折算：基本年薪待遇总额 (年终奖按发放月数折算)</span>
-                        <strong id="form_calculated_total" style="font-size:18px; color:var(--primary-color);">¥266,000</strong>
-                    </div>
-
-                    <div style="margin-top:28px; display:flex; gap:12px; border-top:1px solid var(--border-color); padding-top:20px;">
-                        ${isNewLaunch ? '' : '<button class="btn" style="flex:1; justify-content:center; padding:12px;" onclick="loadOfferApproval()">取消修改</button>'}
-                        <button class="btn btn-primary" style="flex:2; justify-content:center; padding:12px; font-weight:700;" onclick="submitFullOfferApproval()">
-                            🚀 保存并提交 Offer 审批
-                        </button>
+                    <div style="display:flex; gap:12px;">
+                        <button class="btn btn-primary" style="flex:1; padding:10px; font-weight:700; background:#165dff;" onclick="submitTabOfferLaunch()">🚀 提交 Offer 审批</button>
                     </div>
                 </div>
             `;
-
-            // 初始化折算总额一次
-            calculateOfferAnnualTotal();
+            calcTabAnnualSalary();
         }
 
-        // 实时基本年薪总额折算计算器
-        function calculateOfferAnnualTotal() {
-            const baseSalaryInput = document.getElementById('form_base_salary');
-            const targetBonusInput = document.getElementById('form_target_bonus_months');
-            const totalText = document.getElementById('form_calculated_total');
-            if (!baseSalaryInput || !targetBonusInput || !totalText) return;
-
-            const base = parseFloat(baseSalaryInput.value) || 0;
-            const months = parseFloat(targetBonusInput.value) || 0;
-
-            const grandTotal = base * (12 + months);
-            totalText.innerText = `¥${grandTotal.toLocaleString()}`;
+        function calcTabAnnualSalary() {
+            const base = parseFloat(document.getElementById('offerBaseSalary')?.value || 0);
+            const bonus = parseFloat(document.getElementById('offerTargetBonusMonths')?.value || 0);
+            const calc = document.getElementById('tabAnnualSalaryCalc');
+            if (calc) calc.innerText = `¥${(base * (12 + bonus)).toLocaleString()} / 年`;
         }
 
-        // 启用驳回状态下的编辑模式
-        function enableOfferEditing() {
-            if (currentOfferApprovalInstance) {
-                renderOfferForm(currentOfferApprovalInstance.offer_details, false);
-            }
-        }
-
-        // 提交整套20个商业化字段的发起请求
-        async function submitFullOfferApproval() {
+        async function submitTabOfferLaunch() {
             if (!currentCandidate) return;
+            const baseSalary = parseFloat(document.getElementById('offerBaseSalary').value) || 0;
+            const bonusMonths = parseFloat(document.getElementById('offerTargetBonusMonths').value) || 0;
 
-            const contractSubject = document.getElementById('form_contract_subject').value;
-            const department = document.getElementById('form_department').value;
-            const jobLevel = document.getElementById('form_job_level').value;
-            const proposedStartDate = document.getElementById('form_proposed_start_date').value;
-            const salaryType = document.getElementById('form_salary_type').value;
-            const baseSalary = parseFloat(document.getElementById('form_base_salary').value) || 0;
-            const employmentType = document.getElementById('form_employment_type').value;
-            const performanceBonus = parseFloat(document.getElementById('form_performance_bonus').value) || 0;
-            const probationSalaryRate = document.getElementById('form_probation_salary_rate').value;
-            const targetBonusMonths = parseFloat(document.getElementById('form_target_bonus_months').value) || 0;
-            const stockOptions = parseFloat(document.getElementById('form_stock_options').value) || 0;
-            const probationMonths = parseInt(document.getElementById('form_probation_months').value) || 3;
-            const prevMonthlySalary = parseFloat(document.getElementById('form_prev_monthly_salary').value) || 0;
-            const prevAnnualSalary = document.getElementById('form_prev_annual_salary').value.trim();
-            const jobCategory = document.getElementById('form_job_category').value;
-            const jobFamily = document.getElementById('form_job_family').value;
-            const jobSequence = document.getElementById('form_job_sequence').value;
-            const basePost = document.getElementById('form_base_post').value;
-            const contractJob = document.getElementById('form_contract_job').value.trim();
-            const complianceCheck = document.getElementById('form_compliance_check').value;
-
-            if (!department) {
-                showToast('请选择入职部门！', 'error');
-                return;
-            }
-            if (!contractJob) {
-                showToast('请输入合同职位名称！', 'error');
-                return;
-            }
-            if (baseSalary <= 0) {
-                showToast('请输入有效的基础月薪方案！', 'error');
-                return;
-            }
-
-            // 合成向下兼容的简单薪酬描述字符串
-            const baseK = (baseSalary / 1000).toFixed(1).replace('.0', '') + 'k';
-            const salaryStr = `${baseK} * ${12 + targetBonusMonths}薪 (试用期${probationMonths}月/${probationSalaryRate})`;
+            const offerDetails = {
+                contract_subject: document.getElementById('offerContractSubject').value,
+                department: document.getElementById('offerDept').value,
+                job_level: document.getElementById('offerLevel').value,
+                proposed_start_date: document.getElementById('offerProposedStartDate').value,
+                base_salary: baseSalary,
+                target_bonus_months: bonusMonths
+            };
 
             const payload = {
                 candidate_id: currentCandidate.id,
-                salary: salaryStr,
-                job_level: jobLevel,
-                department: department,
-                offer_details: {
-                    contract_subject: contractSubject,
-                    department: department,
-                    job_level: jobLevel,
-                    proposed_start_date: proposedStartDate,
-                    salary_type: salaryType,
-                    base_salary: baseSalary,
-                    employment_type: employmentType,
-                    performance_bonus: performanceBonus,
-                    probation_salary_rate: probationSalaryRate,
-                    target_bonus_months: targetBonusMonths,
-                    stock_options: stockOptions,
-                    probation_months: probationMonths,
-                    prev_monthly_salary: prevMonthlySalary,
-                    prev_annual_salary: prevAnnualSalary,
-                    job_category: jobCategory,
-                    job_family: jobFamily,
-                    job_sequence: jobSequence,
-                    base_post: basePost,
-                    contract_job: contractJob,
-                    compliance_check: complianceCheck
-                }
+                salary: `${(baseSalary/1000).toFixed(1)}k * ${12 + bonusMonths}薪`,
+                job_level: offerDetails.job_level,
+                department: offerDetails.department,
+                offer_details: offerDetails
             };
 
             try {
@@ -1417,82 +958,35 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
                 if (res.ok) {
-                    showToast('Offer 审批流程已成功发起！', 'success');
-                    await loadOfferApproval(); // 重新加载以呈现折线状态图
-                    if (typeof loadDetail === 'function') {
-                        loadDetail(); // 联动刷新候选人日志
-                    }
-                } else {
-                    const err = await res.json();
-                    showToast(err.detail || '发起失败', 'error');
+                    showToast('🎉 Offer 审批表单提交成功！已匹配智能规则流转。', 'success');
+                    loadOfferApproval();
                 }
             } catch(e) {
-                showToast('网络连接失败，请稍后重试', 'error');
+                showToast('提交失败，检查网络', 'error');
             }
         }
 
-        // 绘制图形化折线进度条
-        function renderOfferApprovalGraphHtml(inst) {
-            const steps = inst.steps_data || [];
-            let html = `
-            <div style="display:flex; align-items:flex-start; justify-content:space-between; position:relative; margin: 30px 0; padding:0 10px;">
-                <div style="position:absolute; top:20px; left:40px; right:40px; height:3px; background:#E5E5EA; z-index:1;"></div>
-                <div id="offer-detail-progress-line" style="position:absolute; top:20px; left:40px; height:3px; background:#34C759; z-index:2; transition: width 0.3s; width:0%;"></div>
-            `;
-
-            let passedCount = 0;
-            steps.forEach((s, idx) => {
-                let nodeColor = '#E5E5EA';
-                let iconHtml = `${idx + 1}`;
-                let statusText = '等待中';
-                let statusColor = 'var(--text-secondary)';
-
-                if (s.status === 'approved') {
-                    nodeColor = '#34C759';
-                    iconHtml = '✓';
-                    statusText = '已同意';
-                    statusColor = '#34C759';
-                    passedCount = idx;
-                } else if (s.status === 'rejected') {
-                    nodeColor = '#FF3B30';
-                    iconHtml = '✗';
-                    statusText = '已驳回';
-                    statusColor = '#FF3B30';
-                    passedCount = idx;
-                } else if (idx === inst.current_step_index && inst.status === 'pending') {
-                    nodeColor = '#007AFF';
-                    iconHtml = '✏️';
-                    statusText = '待审批';
-                    statusColor = '#007AFF';
-                }
-
-                html += `
-                <div style="display:flex; flex-direction:column; align-items:center; z-index:3; position:relative; width: 100px;">
-                    <div style="width:36px; height:36px; border-radius:18px; background:${nodeColor}; color:#FFF; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 3px solid #FFF;">
-                        ${iconHtml}
-                    </div>
-                    <div style="font-weight:600; font-size:12px; color:var(--text-primary); margin-top:8px; text-align:center; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; width:100px;" title="${s.label}">${s.label}</div>
-                    <div style="font-size:10px; color:var(--text-secondary); margin-top:2px; text-align:center; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; width:100px;" title="${s.approver_email}">${s.approver_email.split('@')[0]}</div>
-                    <div style="font-size:10px; color:${statusColor}; font-weight:600; margin-top:2px; text-align:center;">${statusText}</div>
-                    ${s.comment ? `<div style="font-size:9px; color:var(--text-secondary); background:#f0f0f0; border-radius:4px; padding:2px 4px; margin-top:4px; max-width:80px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${s.comment}">${s.comment}</div>` : ''}
-                </div>
-                `;
+        function eliminateCurrentCandidate() {
+            showConfirm('确定要淘汰该候选人吗？', async () => {
+                changeCandidateStage('已淘汰');
             });
-
-            html += '</div>';
-            
-            setTimeout(() => {
-                const line = document.getElementById('offer-detail-progress-line');
-                if (line && steps.length > 1) {
-                    const percentage = (passedCount / (steps.length - 1)) * 100;
-                    line.style.width = Math.min(percentage, 100) + '%';
-                }
-            }, 100);
-
-            return html;
         }
+
+        function togglePdfFullScreen() {
+            const viewer = document.getElementById('pdf-viewer');
+            if (viewer.requestFullscreen) viewer.requestFullscreen();
+        }
+
+        function downloadResumePdf() {
+            if (currentCandidate && currentCandidate.pdf_path) {
+                window.open(currentCandidate.pdf_path, '_blank');
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadDetail();
+        });
     </script>
 </body>
 </html>
