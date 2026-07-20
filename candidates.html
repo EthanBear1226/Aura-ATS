@@ -387,7 +387,7 @@
                 // 发起Offer审批按钮：限HR/招聘官/管理员在面试通过、复筛通过或待录用阶段点击
                 let offerBtnHtml = '';
                 if (role !== 'Interviewer' && (c.stage === '复筛通过' || c.stage === '面试通过' || c.stage === '待录用')) {
-                    offerBtnHtml = `<button class="btn" onclick="event.stopPropagation(); openLaunchOfferModal(${c.id}, '${c.name}', '${c.job}')" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff; border-color: var(--primary-color); color: var(--primary-color);">Offer审批</button>`;
+                    offerBtnHtml = `<button class="btn" onclick="event.stopPropagation(); window.location.href='candidate-detail.html?id=${c.id}&active_tab=3';" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff; border-color: var(--primary-color); color: var(--primary-color);">Offer审批</button>`;
                 }
 
                 if (role === 'HiringManager' && c.stage === '初筛') {
