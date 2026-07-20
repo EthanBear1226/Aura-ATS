@@ -76,9 +76,10 @@
                             
                             <div style="width:100%; display:flex; flex-direction:column; gap:8px;" id="cand-actions-container">
                                 <button class="btn btn-primary" id="btn-next-stage" style="width:100%; justify-content:center;" onclick="moveToNextStage()">推进流程</button>
-                                <div style="display:flex; gap:8px; width:100%;">
-                                    <button class="btn" style="flex:1;" onclick="openScheduleDrawer(currentCandidate?.name || '', currentCandidate?.email || '', currentCandidate?.job || '', currentCandidate?.id)">安排面试</button>
-                                    <button class="btn" style="flex:1; color:#FF3B30;" onclick="eliminateCurrentCandidate()">淘汰</button>
+                                <div style="display:flex; gap:6px; width:100%;">
+                                    <button class="btn" style="flex:1.2; background:#e6f7ff; color:#1890ff; border:1px solid #91d5ff; font-weight:600; padding:6px 8px; font-size:12px;" onclick="switchTab(3); showOfferFormSection();">📋 Offer审批</button>
+                                    <button class="btn" style="flex:1; padding:6px 8px; font-size:12px;" onclick="openScheduleDrawer(currentCandidate?.name || '', currentCandidate?.email || '', currentCandidate?.job || '', currentCandidate?.id)">安排面试</button>
+                                    <button class="btn" style="flex:0.8; color:#FF3B30; padding:6px 8px; font-size:12px;" onclick="eliminateCurrentCandidate()">淘汰</button>
                                 </div>
                             </div>
                         </div>

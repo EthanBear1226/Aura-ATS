@@ -387,7 +387,7 @@
                 // 发起Offer审批按钮：非只读面试官即可随时为候选人发起/查看 Offer 审批 (全面放开阶段限制)
                 let offerBtnHtml = '';
                 if (role !== 'Interviewer') {
-                    offerBtnHtml = `<button class="btn" onclick="event.stopPropagation(); window.location.href='candidate-detail.html?id=${c.id}&active_tab=3';" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #e6f7ff; border-color: #91d5ff; color: #1890ff; font-weight:600;">Offer审批</button>`;
+                    offerBtnHtml = `<button class="btn" onclick="event.stopPropagation(); openLaunchOfferModal(${c.id}, '${c.name}', '${c.job}');" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #e6f7ff; border-color: #91d5ff; color: #1890ff; font-weight:600;">Offer审批</button>`;
                 }
 
                 if (role === 'HiringManager' && c.stage === '初筛') {
@@ -670,77 +670,164 @@
         // ==============================================================================
         //                      ▎ LAUNCH OFFER APPROVAL MODAL JS
         // ==============================================================================
-        function openLaunchOfferModal(candidateId, candidateName, jobTitle) {
+        function calcModalAnnualSalary() {
+            const baseSalary = parseFloat(document.getElementById('modalBaseSalary')?.value || 0);
+            const targetBonus = parseFloat(document.getElementById('modalTargetBonus')?.value || 0);
+            const annual = baseSalary * (12 + targetBonus);
+            const calcElem = document.getElementById('modalAnnualSalaryCalc');
+            if (calcElem) {
+                calcElem.innerText = `¥${annual.toLocaleString()} / 年`;
+            }
+        }
+
+        async function openLaunchOfferModal(candidateId, candidateName, jobTitle) {
             const existing = document.getElementById('launchOfferModal');
             if (existing) existing.remove();
 
             // 发起异步请求拉取部门字典
-            fetch('/api/settings/departments')
-                .then(r => r.json())
-                .then(depts => {
-                    let deptOptions = '<option value="">请选择部门...</option>';
-                    depts.forEach(d => {
-                        deptOptions += `<option value="${d.name}">${d.name}</option>`;
-                    });
+            let deptOptions = '<option value="">请选择部门...</option>';
+            try {
+                const depts = await fetch('/api/settings/departments').then(r => r.json());
+                depts.forEach(d => {
+                    deptOptions += `<option value="${d.name}">${d.name}</option>`;
+                });
+            } catch(e) {}
 
-                    const modalHtml = `
-                        <div class="modal-overlay" id="launchOfferModal" style="display:flex; justify-content:center; align-items:center; z-index:99999;">
-                            <div class="modal-card" style="width:480px; padding:36px; border-radius:16px;">
-                                <h2 style="font-size:18px; margin-bottom:16px; color:var(--text-primary); text-align:center;">发起 Offer 审批</h2>
-                                <div class="form-group" style="margin-bottom:12px;">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block;">候选人</label>
+            const modalHtml = `
+                <div class="modal-overlay" id="launchOfferModal" style="display:flex; justify-content:center; align-items:center; z-index:99999;">
+                    <div class="modal-card" style="width:720px; padding:32px; border-radius:16px; max-height:85vh; display:flex; flex-direction:column;">
+                        <h2 style="font-size:18px; margin-bottom:16px; color:var(--text-primary); text-align:center; font-weight:700;">📋 发起 Offer 录用审批</h2>
+                        
+                        <div style="overflow-y:auto; flex:1; padding-right:8px;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">候选人姓名</label>
                                     <input type="text" class="form-control" value="${candidateName}" disabled style="background:#f4f4f4;">
                                 </div>
-                                <div class="form-group" style="margin-bottom:12px;">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block;">拟录用职位</label>
-                                    <input type="text" class="form-control" value="${jobTitle}" disabled style="background:#f4f4f4;">
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">合同职位名称<span class="required-mark">*</span></label>
+                                    <input type="text" id="modalContractJob" class="form-control" value="${jobTitle}">
                                 </div>
-                                <div style="display:flex; gap:12px; margin-bottom:12px;">
-                                    <div class="form-group" style="flex:1;">
-                                        <label style="font-size:12px; margin-bottom:4px; display:block;">录用部门<span class="required-mark">*</span></label>
-                                        <select id="offerDept" class="form-control">${deptOptions}</select>
-                                    </div>
-                                    <div class="form-group" style="flex:1;">
-                                        <label style="font-size:12px; margin-bottom:4px; display:block;">拟录用职级<span class="required-mark">*</span></label>
-                                        <select id="offerLevel" class="form-control">
-                                            <option value="P1">P1</option>
-                                            <option value="P2">P2</option>
-                                            <option value="P3">P3</option>
-                                            <option value="P4">P4</option>
-                                            <option value="P5" selected>P5</option>
-                                            <option value="P6">P6</option>
-                                            <option value="P7">P7</option>
-                                            <option value="P8">P8</option>
-                                            <option value="P9">P9</option>
-                                            <option value="HRBP">HRBP</option>
-                                            <option value="D">D (总监级)</option>
-                                            <option value="VP">VP (副总裁级)</option>
-                                        </select>
-                                    </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">合同主体<span class="required-mark">*</span></label>
+                                    <select id="modalContractSubject" class="form-control">
+                                        <option value="雪球集团有限公司">雪球集团有限公司</option>
+                                        <option value="雪球证券有限公司">雪球证券有限公司</option>
+                                        <option value="雪球基金销售有限公司">雪球基金销售有限公司</option>
+                                        <option value="雪球科技（北京）有限公司">雪球科技（北京）有限公司</option>
+                                    </select>
                                 </div>
-                                <div style="display:flex; gap:12px; margin-bottom:16px;">
-                                    <div class="form-group" style="flex:1.5;">
-                                        <label style="font-size:12px; margin-bottom:4px; display:block;">基础月薪（元）<span class="required-mark">*</span></label>
-                                        <input type="number" id="offerBaseSalary" class="form-control" value="25000" placeholder="如: 25000">
-                                    </div>
-                                    <div class="form-group" style="flex:1;">
-                                        <label style="font-size:12px; margin-bottom:4px; display:block;">发放月数<span class="required-mark">*</span></label>
-                                        <input type="number" id="offerMonths" class="form-control" value="13" placeholder="如: 13">
-                                    </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">录用部门<span class="required-mark">*</span></label>
+                                    <select id="modalOfferDept" class="form-control">${deptOptions}</select>
                                 </div>
-                                <div class="form-group" style="margin-bottom:24px;">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block;">额外福利/绩效说明（审批表高级字段，暂做占位预留）</label>
-                                    <textarea id="offerNotes" class="form-control" rows="2" placeholder="如: 年终绩效奖金0-4个月，带薪年假10天等" style="font-size:13px;"></textarea>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">拟录用职级<span class="required-mark">*</span></label>
+                                    <select id="modalOfferLevel" class="form-control">
+                                        <option value="P1">P1</option>
+                                        <option value="P2">P2</option>
+                                        <option value="P3">P3</option>
+                                        <option value="P4">P4</option>
+                                        <option value="P5" selected>P5</option>
+                                        <option value="P6">P6</option>
+                                        <option value="P7">P7</option>
+                                        <option value="P8">P8</option>
+                                        <option value="P9">P9</option>
+                                        <option value="HRBP">HRBP</option>
+                                        <option value="D">D (总监级)</option>
+                                        <option value="VP">VP (副总裁级)</option>
+                                    </select>
                                 </div>
-                                <div style="display:flex; gap:12px;">
-                                    <button class="btn" style="flex:1; justify-content:center; padding:12px;" onclick="closeLaunchOfferModal()">取消</button>
-                                    <button class="btn btn-primary" style="flex:1; justify-content:center; padding:12px;" onclick="submitLaunchOffer(${candidateId})">发起审批</button>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">预计入职时间</label>
+                                    <input type="date" id="modalProposedStartDate" class="form-control" value="${new Date(Date.now() + 14*86400000).toISOString().split('T')[0]}">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">薪资类型</label>
+                                    <select id="modalSalaryType" class="form-control">
+                                        <option value="月薪" selected>月薪</option>
+                                        <option value="日薪">日薪</option>
+                                        <option value="年薪包">年薪包</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">基础月薪（元）<span class="required-mark">*</span></label>
+                                    <input type="number" id="modalBaseSalary" class="form-control" value="25000" oninput="calcModalAnnualSalary()">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">员工类型</label>
+                                    <select id="modalEmploymentType" class="form-control">
+                                        <option value="正式员工" selected>正式员工</option>
+                                        <option value="实习生">实习生</option>
+                                        <option value="外包/顾问">外包/顾问</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">绩效工资 (私行)</label>
+                                    <input type="number" id="modalPerformanceBonus" class="form-control" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">试用期工资发放比例</label>
+                                    <select id="modalProbationSalaryRate" class="form-control">
+                                        <option value="100%" selected>100%</option>
+                                        <option value="80%">80%</option>
+                                        <option value="90%">90%</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">目标年终奖月数</label>
+                                    <input type="number" id="modalTargetBonus" class="form-control" value="2" step="0.5" oninput="calcModalAnnualSalary()">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">股票期权（股）</label>
+                                    <input type="number" id="modalStockOptions" class="form-control" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">试用期（月）</label>
+                                    <select id="modalProbationMonths" class="form-control">
+                                        <option value="3" selected>3 个月</option>
+                                        <option value="6">6 个月</option>
+                                        <option value="1">1 个月</option>
+                                        <option value="0">无试用期</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">上家公司月薪（元）</label>
+                                    <input type="number" id="modalPrevMonthlySalary" class="form-control" value="20000">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">上家公司年薪</label>
+                                    <input type="text" id="modalPrevAnnualSalary" class="form-control" value="28万">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">符合签署雪球基金条件</label>
+                                    <select id="modalComplianceCheck" class="form-control">
+                                        <option value="是" selected>是</option>
+                                        <option value="否">否</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">职位序列</label>
+                                    <input type="text" id="modalJobSequence" class="form-control" value="研发序列 (T)">
                                 </div>
                             </div>
+
+                            <!-- 动态计算保障年薪 -->
+                            <div style="background:#f4f8ff; border:1px solid #d0e1ff; padding:12px 16px; border-radius:8px; margin-top:8px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:13px; font-weight:600; color:var(--text-primary);">保障年基本薪资合计 (折算):</span>
+                                <strong id="modalAnnualSalaryCalc" style="font-size:16px; color:var(--primary-color);">¥350,000 / 年</strong>
+                            </div>
                         </div>
-                    `;
-                    document.body.insertAdjacentHTML('beforeend', modalHtml);
-                });
+
+                        <div style="display:flex; gap:12px; margin-top:16px; border-top:1px solid var(--border-color); padding-top:16px;">
+                            <button class="btn" style="flex:1; justify-content:center; padding:12px;" onclick="closeLaunchOfferModal()">取消</button>
+                            <button class="btn btn-primary" style="flex:1.5; justify-content:center; padding:12px; font-weight:700;" onclick="submitLaunchOffer(${candidateId})">🚀 保存并发起 Offer 审批</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            calcModalAnnualSalary();
         }
 
         function closeLaunchOfferModal() {
@@ -749,11 +836,11 @@
         }
 
         async function submitLaunchOffer(candidateId) {
-            const dept = document.getElementById('offerDept').value;
-            const level = document.getElementById('offerLevel').value;
-            const baseSalary = document.getElementById('offerBaseSalary').value.trim();
-            const months = document.getElementById('offerMonths').value.trim();
-            const notes = document.getElementById('offerNotes').value.trim();
+            const dept = document.getElementById('modalOfferDept').value;
+            const level = document.getElementById('modalOfferLevel').value;
+            const baseSalary = parseFloat(document.getElementById('modalBaseSalary').value) || 0;
+            const targetBonus = parseFloat(document.getElementById('modalTargetBonus').value) || 0;
+            const contractJob = document.getElementById('modalContractJob').value.trim();
 
             if (!dept) {
                 showToast('请选择录用部门', 'error');
