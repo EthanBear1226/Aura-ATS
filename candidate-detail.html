@@ -1469,27 +1469,224 @@
 
         async function renderOfferForm(existingDetails = null, isNew = true) {
             const container = document.getElementById('offer-approval-section');
-            const details = existingDetails || {};
+            const details = existingDetails || (currentOfferApprovalInstance ? currentOfferApprovalInstance.offer_details : null) || {
+                compliance_pass: '否',
+                contract_subject: '北京雪球私募基金管理有限公司',
+                department: (currentCandidate ? (currentCandidate.department || currentCandidate.job || '金融风控(雪球(北京)技术开发有限公司/法务合规部/金融合规/金融风控)') : '金融风控'),
+                job_level: 'X5',
+                proposed_start_date: '2026-08-03',
+                base_salary: 19000,
+                employee_type: '正式员工',
+                perf_salary: '0',
+                probation_rate: '100%',
+                target_bonus_months: 2,
+                stock_options: '0',
+                probation_months: '6',
+                prev_month_salary: '14000',
+                prev_annual_salary: '14K*15M',
+                job_category: '职能支持类',
+                job_family: '法务合规',
+                job_sequence: '风控合规',
+                base_position: '风控合规',
+                contract_title: '高级风控合规',
+                direct_manager: '代天娇',
+                gender: '女',
+                pc_config: 'Windows电脑',
+                onboard_location: '北京市朝阳区来广营融新科技中心C座18层',
+                work_area: '北京（融新）',
+                cost_center: '资产管理',
+                salary_special_note: '目前就职于老虎，校招入职后未进行过调薪，故本次薪资涨幅略高。',
+                edu_special_note: '-',
+                attachment_name: '薪酬与教育信息收集表-涂佳颖.xlsx',
+                attachment_size: '15.7MB',
+                remarks: '离职替代，定级X5，汇报上级 天娇，base金融合规。',
+                is_campus_hire: '否'
+            };
 
             container.innerHTML = `
                 <div style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:24px;">
-                    <h4 style="margin:0 0 18px 0; font-size:16px; border-bottom:1px solid #f2f3f5; padding-bottom:10px;">📝 填写 Offer 审批表单（大厂商业化 20 字段）</h4>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">合同主体</label><input type="text" id="offerContractSubject" class="form-control" value="${details.contract_subject || '雪球集团有限公司'}"></div>
-                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">录用部门</label><input type="text" id="offerDept" class="form-control" value="${details.department || (currentCandidate ? currentCandidate.department : '研发部')}"></div>
-                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">拟录用职级</label><input type="text" id="offerLevel" class="form-control" value="${details.job_level || 'P5'}"></div>
-                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">预计入职日期</label><input type="date" id="offerProposedStartDate" class="form-control" value="${details.proposed_start_date || new Date().toISOString().split('T')[0]}"></div>
-                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">基础月薪（元）</label><input type="number" id="offerBaseSalary" class="form-control" value="${details.base_salary || 25000}" oninput="calcTabAnnualSalary()"></div>
-                        <div><label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">目标年终奖月数</label><input type="number" id="offerTargetBonusMonths" class="form-control" value="${details.target_bonus_months || 2}" oninput="calcTabAnnualSalary()"></div>
-                    </div>
-                    
-                    <div style="background:#f4f8ff; border:1px solid #d0e1ff; padding:12px 16px; border-radius:6px; margin-top:16px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:13px; font-weight:600;">保障年基本薪资合计 (折算):</span>
-                        <strong id="tabAnnualSalaryCalc" style="font-size:16px; color:#165dff;">¥350,000 / 年</strong>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; border-bottom:1px solid #f2f3f5; padding-bottom:12px;">
+                        <h4 style="margin:0; font-size:16px; font-weight:700; color:#1f2329;">📝 编辑 Offer 详情（大厂 30 项全量字段对齐）</h4>
+                        <button class="moka-btn-gray" onclick="loadOfferApproval()" style="font-size:12px;">← 取消并返回预览</button>
                     </div>
 
-                    <div style="display:flex; gap:12px;">
-                        <button class="btn btn-primary" style="flex:1; padding:10px; font-weight:700; background:#165dff;" onclick="submitTabOfferLaunch()">🚀 提交 Offer 审批</button>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 24px;">
+                        
+                        <div style="grid-column: span 2;">
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">请判断该员工是否符合签署雪球基金的条件</label>
+                            <select id="offerCompliancePass" class="form-control">
+                                <option value="否" ${details.compliance_pass === '否' ? 'selected' : ''}>否</option>
+                                <option value="是" ${details.compliance_pass === '是' ? 'selected' : ''}>是</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">合同主体</label>
+                            <input type="text" id="offerContractSubject" class="form-control" value="${details.contract_subject || '北京雪球私募基金管理有限公司'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">入职部门</label>
+                            <input type="text" id="offerDept" class="form-control" value="${details.department || '金融风控(雪球(北京)技术开发有限公司/法务合规部/金融合规/金融风控)'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">拟录用职级</label>
+                            <input type="text" id="offerLevel" class="form-control" value="${details.job_level || 'X5'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">预计入职日期</label>
+                            <input type="date" id="offerProposedStartDate" class="form-control" value="${details.proposed_start_date || '2026-08-03'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">基础月薪（元）</label>
+                            <input type="number" id="offerBaseSalary" class="form-control" value="${details.base_salary || 19000}" oninput="calcTabAnnualSalary()">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">员工类型</label>
+                            <select id="offerEmployeeType" class="form-control">
+                                <option value="正式员工" ${details.employee_type === '正式员工' ? 'selected' : ''}>正式员工</option>
+                                <option value="实习生" ${details.employee_type === '实习生' ? 'selected' : ''}>实习生</option>
+                                <option value="外包人员" ${details.employee_type === '外包人员' ? 'selected' : ''}>外包人员</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">绩效工资-私行适用</label>
+                            <input type="text" id="offerPerfSalary" class="form-control" value="${details.perf_salary || '0'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">私行适用-试用期工资发放比例</label>
+                            <input type="text" id="offerProbationRate" class="form-control" value="${details.probation_rate || '100%'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">目标年终奖金月数</label>
+                            <input type="number" id="offerTargetBonusMonths" class="form-control" value="${details.target_bonus_months || 2}" oninput="calcTabAnnualSalary()">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">期权数</label>
+                            <input type="number" id="offerStockOptions" class="form-control" value="${details.stock_options || 0}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">试用期（月）</label>
+                            <input type="number" id="offerProbationMonths" class="form-control" value="${details.probation_months || 6}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">上家公司月薪（元）</label>
+                            <input type="text" id="offerPrevMonthSalary" class="form-control" value="${details.prev_month_salary || '14000'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">上家公司年薪（元）</label>
+                            <input type="text" id="offerPrevAnnualSalary" class="form-control" value="${details.prev_annual_salary || '14K*15M'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">职位类</label>
+                            <select id="offerJobCategory" class="form-control">
+                                <option value="职能支持类" ${details.job_category === '职能支持类' ? 'selected' : ''}>职能支持类</option>
+                                <option value="技术研发类" ${details.job_category === '技术研发类' ? 'selected' : ''}>技术研发类</option>
+                                <option value="产品运营类" ${details.job_category === '产品运营类' ? 'selected' : ''}>产品运营类</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">职位族</label>
+                            <input type="text" id="offerJobFamily" class="form-control" value="${details.job_family || '法务合规'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">职位序列</label>
+                            <input type="text" id="offerJobSequence" class="form-control" value="${details.job_sequence || '风控合规'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">基础岗位</label>
+                            <input type="text" id="offerBasePosition" class="form-control" value="${details.base_position || '风控合规'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">合同职位</label>
+                            <input type="text" id="offerContractTitle" class="form-control" value="${details.contract_title || '高级风控合规'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">直属主管</label>
+                            <input type="text" id="offerDirectManager" class="form-control" value="${details.direct_manager || '代天娇'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">性别</label>
+                            <select id="offerGender" class="form-control">
+                                <option value="女" ${details.gender === '女' ? 'selected' : ''}>女</option>
+                                <option value="男" ${details.gender === '男' ? 'selected' : ''}>男</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">电脑配置</label>
+                            <select id="offerPcConfig" class="form-control">
+                                <option value="Windows电脑" ${details.pc_config === 'Windows电脑' ? 'selected' : ''}>Windows电脑</option>
+                                <option value="MacBook Pro" ${details.pc_config === 'MacBook Pro' ? 'selected' : ''}>MacBook Pro</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">入职办理地点</label>
+                            <input type="text" id="offerOnboardLocation" class="form-control" value="${details.onboard_location || '北京市朝阳区来广营融新科技中心C座18层'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">办公区</label>
+                            <input type="text" id="offerWorkArea" class="form-control" value="${details.work_area || '北京（融新）'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">成本中心-财务</label>
+                            <input type="text" id="offerCostCenter" class="form-control" value="${details.cost_center || '资产管理'}">
+                        </div>
+
+                        <div style="grid-column: span 2;">
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">薪酬特殊说明（年现金涨幅超20%时说明原因）</label>
+                            <textarea id="offerSalarySpecialNote" class="form-control" rows="2">${details.salary_special_note || '目前就职于老虎，校招入职后未进行过调薪，故本次薪资涨幅略高。'}</textarea>
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">学历特殊说明</label>
+                            <input type="text" id="offerEduSpecialNote" class="form-control" value="${details.edu_special_note || '-'}">
+                        </div>
+
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">是否校招生</label>
+                            <select id="offerIsCampusHire" class="form-control">
+                                <option value="否" ${details.is_campus_hire === '否' ? 'selected' : ''}>否</option>
+                                <option value="是" ${details.is_campus_hire === '是' ? 'selected' : ''}>是</option>
+                            </select>
+                        </div>
+
+                        <div style="grid-column: span 2;">
+                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">备注（职级，HC，核心职责等）</label>
+                            <textarea id="offerRemarks" class="form-control" rows="2">${details.remarks || '离职替代，定级X5，汇报上级 天娇，base金融合规。'}</textarea>
+                        </div>
+
+                    </div>
+                    
+                    <div style="background:#f4f8ff; border:1px solid #d0e1ff; padding:12px 18px; border-radius:6px; margin-top:20px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:13px; font-weight:600; color:#1f2329;">保障年基本薪资合计 (折算):</span>
+                        <strong id="tabAnnualSalaryCalc" style="font-size:16px; color:#165dff;">¥266,000 / 年</strong>
+                    </div>
+
+                    <div style="display:flex; gap:16px;">
+                        <button class="moka-btn-gray" style="flex:1;" onclick="loadOfferApproval()">取消</button>
+                        <button class="btn btn-primary" style="flex:2; padding:10px; font-weight:600; background:#165dff;" onclick="submitTabOfferLaunch()">保存 Offer 详情并提交</button>
                     </div>
                 </div>
             `;
@@ -1509,12 +1706,35 @@
             const bonusMonths = parseFloat(document.getElementById('offerTargetBonusMonths').value) || 0;
 
             const offerDetails = {
-                contract_subject: document.getElementById('offerContractSubject').value,
-                department: document.getElementById('offerDept').value,
-                job_level: document.getElementById('offerLevel').value,
-                proposed_start_date: document.getElementById('offerProposedStartDate').value,
+                compliance_pass: document.getElementById('offerCompliancePass')?.value || '否',
+                contract_subject: document.getElementById('offerContractSubject')?.value || '北京雪球私募基金管理有限公司',
+                department: document.getElementById('offerDept')?.value || '金融风控',
+                job_level: document.getElementById('offerLevel')?.value || 'X5',
+                proposed_start_date: document.getElementById('offerProposedStartDate')?.value || '2026-08-03',
                 base_salary: baseSalary,
-                target_bonus_months: bonusMonths
+                employee_type: document.getElementById('offerEmployeeType')?.value || '正式员工',
+                perf_salary: document.getElementById('offerPerfSalary')?.value || '0',
+                probation_rate: document.getElementById('offerProbationRate')?.value || '100%',
+                target_bonus_months: bonusMonths,
+                stock_options: document.getElementById('offerStockOptions')?.value || '0',
+                probation_months: document.getElementById('offerProbationMonths')?.value || '6',
+                prev_month_salary: document.getElementById('offerPrevMonthSalary')?.value || '14000',
+                prev_annual_salary: document.getElementById('offerPrevAnnualSalary')?.value || '14K*15M',
+                job_category: document.getElementById('offerJobCategory')?.value || '职能支持类',
+                job_family: document.getElementById('offerJobFamily')?.value || '法务合规',
+                job_sequence: document.getElementById('offerJobSequence')?.value || '风控合规',
+                base_position: document.getElementById('offerBasePosition')?.value || '风控合规',
+                contract_title: document.getElementById('offerContractTitle')?.value || '高级风控合规',
+                direct_manager: document.getElementById('offerDirectManager')?.value || '代天娇',
+                gender: document.getElementById('offerGender')?.value || '女',
+                pc_config: document.getElementById('offerPcConfig')?.value || 'Windows电脑',
+                onboard_location: document.getElementById('offerOnboardLocation')?.value || '北京市朝阳区来广营融新科技中心C座18层',
+                work_area: document.getElementById('offerWorkArea')?.value || '北京（融新）',
+                cost_center: document.getElementById('offerCostCenter')?.value || '资产管理',
+                salary_special_note: document.getElementById('offerSalarySpecialNote')?.value || '',
+                edu_special_note: document.getElementById('offerEduSpecialNote')?.value || '-',
+                remarks: document.getElementById('offerRemarks')?.value || '',
+                is_campus_hire: document.getElementById('offerIsCampusHire')?.value || '否'
             };
 
             const payload = {
@@ -1532,11 +1752,11 @@
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) {
-                    showToast('🎉 Offer 审批表单提交成功！已匹配智能规则流转。', 'success');
+                    showToast('🎉 Offer 详情修改保存成功！', 'success');
                     loadOfferApproval();
                 }
             } catch(e) {
-                showToast('提交失败，检查网络', 'error');
+                showToast('保存失败，检查网络', 'error');
             }
         }
 
