@@ -706,6 +706,16 @@
         let currentOfferApprovalInstance = null;
         const STAGES = ['初筛', '用人部门筛选', '面试', 'Offer', '录用'];
 
+        // 全局安全带 Token 认证请求封装 authFetch
+        async function authFetch(url, options = {}) {
+            const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+            options.headers = options.headers || {};
+            if (token) {
+                options.headers['Authorization'] = `Bearer ${token}`;
+            }
+            return fetch(url, options);
+        }
+
         // 防崩溃全站 Toast / Confirm 简易自愈工具
         function showToast(msg, type = 'info') {
             const toast = document.createElement('div');
@@ -746,7 +756,7 @@
             const operatorName = user.name || '系统';
 
             try {
-                const res = await fetch(`/api/candidates/${currentCandidate.id}`, {
+                const res = await authFetch(`/api/candidates/${currentCandidate.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ stage: newStage, operator: operatorName, details: `阶段推进至: ${newStage}` })
@@ -766,7 +776,7 @@
             changeCandidateStage(stage);
         }
 
-        // 加载候选人详情主函数 (带自愈降级自适配)
+        // 加载候选人详情主函数 (带自愈降级自适配与 AuthFetch 自动认证)
         async function loadDetail() {
             const urlParams = new URLSearchParams(window.location.search);
             let id = urlParams.get('id');
@@ -774,7 +784,7 @@
             // 1. 如果 URL 中未显式带 id 参数，自动自愈获取第一个候选人记录
             if (!id) {
                 try {
-                    const allRes = await fetch('/api/candidates');
+                    const allRes = await authFetch('/api/candidates');
                     if (allRes.ok) {
                         const list = await allRes.json();
                         if (list && list.length > 0) {
@@ -792,14 +802,14 @@
             }
 
             try {
-                let response = await fetch(`/api/candidates/${id}`);
+                let response = await authFetch(`/api/candidates/${id}`);
                 if (!response.ok) {
                     // 如果指定 ID 查无结果（404），尝试自愈重试获取全量列表中的最新第一项
-                    const allRes = await fetch('/api/candidates');
+                    const allRes = await authFetch('/api/candidates');
                     if (allRes.ok) {
                         const list = await allRes.json();
                         if (list && list.length > 0) {
-                            response = await fetch(`/api/candidates/${list[0].id}`);
+                            response = await authFetch(`/api/candidates/${list[0].id}`);
                         }
                     }
                 }
@@ -882,7 +892,7 @@
             if (!container) return;
 
             try {
-                const res = await fetch(`/api/approvals/candidate/${currentCandidate.id}`);
+                const res = await authFetch(`/api/approvals/candidate/${currentCandidate.id}`);
                 const instance = res.ok ? await res.json() : null;
                 currentOfferApprovalInstance = instance;
 
@@ -1001,7 +1011,7 @@
             };
 
             try {
-                const res = await fetch('/api/approvals/launch', {
+                const res = await authFetch('/api/approvals/launch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)

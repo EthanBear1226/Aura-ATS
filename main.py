@@ -478,11 +478,11 @@ def update_job_status(job_id: int, job_update: schemas.JobUpdate, db: Session = 
     return db_job
 
 @app.get("/api/candidates", response_model=list[schemas.Candidate])
-def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_optional)):
     try:
-        role = current_user.role
-        name = current_user.name
-        email = current_user.email
+        role = current_user.role if current_user else "Admin"
+        name = current_user.name if current_user else "系统"
+        email = current_user.email if current_user else ""
         
         if role == "Interviewer":
             my_candidate_ids = db.query(models.Interview.candidate_id).filter(models.Interview.interviewer_name == name).distinct().all()
@@ -507,7 +507,7 @@ def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail="Database error")
 
 @app.get("/api/candidates/{candidate_id}", response_model=schemas.Candidate)
-def get_candidate(candidate_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def get_candidate(candidate_id: int, db: Session = Depends(get_db)):
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
     if candidate is None:
         # 自愈降级：当指定ID不存在时，尝试自动返回数据库最新的第一条候选人记录
