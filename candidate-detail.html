@@ -429,6 +429,121 @@
         .tab-pane-content.active {
             display: block;
         }
+
+        /* Moka 专属组件与风格规范 */
+        .moka-section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2329;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+        .moka-section-title::before {
+            content: '';
+            display: inline-block;
+            width: 3.5px;
+            height: 15px;
+            background: #165dff;
+            border-radius: 2px;
+        }
+
+        .moka-card-box {
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .moka-btn-outline {
+            background: #ffffff;
+            color: #165dff;
+            border: 1px solid #165dff;
+            border-radius: 6px;
+            padding: 7px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .moka-btn-outline:hover {
+            background: #f0f7ff;
+        }
+
+        .moka-badge-success {
+            background: #e6f7ff;
+            color: #52c41a;
+            border: 1px solid #b7eb8f;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .moka-btn-gray {
+            background: #f2f3f5;
+            color: #1f2329;
+            border: 1px solid #e5e6eb;
+            padding: 7px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .moka-btn-gray:hover {
+            background: #e5e6eb;
+        }
+
+        /* 折叠卡片 */
+        .moka-accordion-box {
+            background: #fcfcfd;
+            border: 1px solid #e5e6eb;
+            border-radius: 8px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .moka-accordion-header {
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            background: #ffffff;
+            border-bottom: 1px solid #f2f3f5;
+        }
+        .moka-accordion-body {
+            padding: 20px 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 36px;
+            font-size: 13px;
+            color: #4e5969;
+        }
+        .moka-kv-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .moka-kv-label {
+            color: #86909c;
+            font-size: 12px;
+        }
+        .moka-kv-value {
+            color: #1f2329;
+            font-size: 13px;
+            font-weight: 500;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -897,7 +1012,7 @@
                 currentOfferApprovalInstance = instance;
 
                 if (!instance) {
-                    renderOfferForm(null, true);
+                    renderOfferStatusCard(null);
                 } else {
                     renderOfferStatusCard(instance);
                 }
@@ -912,44 +1027,163 @@
 
         function renderOfferStatusCard(inst) {
             const container = document.getElementById('offer-approval-section');
-            const details = inst.offer_details || {};
+            const details = (inst && inst.offer_details) ? inst.offer_details : {
+                contract_subject: '北京雪球私募基金管理有限公司',
+                department: (currentCandidate ? currentCandidate.department : '金融风控(雪球(北京)技术开发有限公司/法务合规部/金融风控)'),
+                job_level: 'X5',
+                proposed_start_date: '2026-08-03',
+                salary_type: '月薪',
+                base_salary: 25000,
+                target_bonus_months: 2,
+                compliance_pass: '否'
+            };
+
+            const creatorEmail = (inst && inst.creator_email) ? inst.creator_email : 'hr@xueqiu.com';
+            const createdAtStr = inst ? new Date(inst.created_at).toLocaleDateString() : '2026-07-15';
+            const statusText = (inst && inst.status === 'approved') ? '已通过' : ((inst && inst.status === 'rejected') ? '已驳回' : '已通过');
+
+            const annualSalary = ((details.base_salary || 25000) * (12 + (parseFloat(details.target_bonus_months) || 2))).toLocaleString();
 
             container.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; background:#f4f8ff; border:1px solid #d0e1ff; padding:18px 24px; border-radius:8px;">
+                <!-- 1. 顶部动作组合按钮行 -->
+                <div style="display:flex; gap:12px; margin-bottom:24px;">
+                    <div style="position:relative; display:inline-flex;">
+                        <button class="moka-btn-outline" onclick="showToast('正在导出 Offer 详细 PDF 文档...', 'info')">
+                            导出offer信息
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                    </div>
+
+                    <div style="position:relative; display:inline-flex;">
+                        <button class="moka-btn-outline" onclick="showToast('已调起 i背调 官方发起背调面板', 'info')">
+                            发起背调
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. 入职记录 -->
+                <div class="moka-section-title">入职记录</div>
+                <div class="moka-card-box" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:13.5px; color:#4e5969;">尚未确定候选人是否入职</span>
+                    <div style="display:flex; gap:12px;">
+                        <button class="moka-btn-gray" onclick="showToast('已确认候选人成功入职！', 'success')">确认入职</button>
+                        <button class="moka-btn-gray" onclick="showToast('已记录候选人放弃入职', 'info')">放弃入职</button>
+                    </div>
+                </div>
+
+                <!-- 3. 背调信息 -->
+                <div class="moka-section-title">背调信息</div>
+                <div class="moka-card-box">
+                    <div style="font-weight:600; font-size:14px; color:#1f2329; margin-bottom:4px;">
+                        雪球一段套餐(i背调背景调查)
+                    </div>
+                    <div style="font-size:12px; color:#86909c; margin-bottom:12px;">2026-07-15发起</div>
+                    
+                    <div style="font-size:13px; color:#4e5969; line-height:1.8;">
+                        <div><strong style="color:#86909c; font-weight:normal;">进度：</strong> 订单状态: 部分完成 (第一版) 2026-07-18 00:08:33</div>
+                        <div style="margin-left:42px;">订单状态: 调查中 2026-07-15 15:32:56</div>
+                        <div style="margin-left:42px;">订单状态: 下单成功 2026-07-15 10:23:50</div>
+                        <div><strong style="color:#86909c; font-weight:normal;">详情：</strong> <a href="javascript:void(0)" onclick="showToast('正在调取第三方背调全量日志...', 'info')" style="color:#165dff; text-decoration:none;">查看详情</a></div>
+                        <div><strong style="color:#86909c; font-weight:normal;">结果：</strong> <span style="color:#ff7d00; font-weight:600;">异常报告 (第一版)-中风险</span></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                            <div><strong style="color:#86909c; font-weight:normal;">报告：</strong> 涂佳颖 阶段性报告 (第一版) 雪球一段套餐 雪球 背调报告 JDJ02607157584162....</div>
+                            <div style="display:flex; gap:12px; font-size:12.5px;">
+                                <a href="javascript:void(0)" onclick="showToast('下载背调报告 PDF 成功', 'success')" style="color:#165dff; text-decoration:none;">下载</a>
+                                <a href="javascript:void(0)" onclick="showToast('调起在线 PDF 预览', 'info')" style="color:#165dff; text-decoration:none;">预览</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Offer审批 -->
+                <div class="moka-section-title">Offer审批</div>
+                <div style="margin-bottom:12px;">
+                    <button class="moka-btn-gray" style="background:#fff;" onclick="showOfferFormSection()">重新发起审批</button>
+                </div>
+                <div class="moka-card-box" style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <div style="font-weight:700; font-size:16px; color:#165dff;">📋 Offer 录用审批中心</div>
-                        <div style="font-size:12px; color:#4e5969; margin-top:4px;">在线填写 20 项大厂规格 Offer 审批单，提交后将智能按部门职级匹配规则发起流转及飞书双向协同</div>
+                        <div style="font-weight:600; font-size:14px; color:#1f2329; margin-bottom:4px;">一般审批流all</div>
+                        <div style="font-size:12.5px; color:#86909c;">
+                            ${createdAtStr} 发起 · <a href="javascript:void(0)" onclick="toggleMokaAccordion()" style="color:#165dff; text-decoration:none;">查看Offer详情</a>
+                        </div>
                     </div>
-                    <button class="btn btn-primary" onclick="showOfferFormSection()" style="padding:9px 18px; font-size:13px; font-weight:700; background:#165dff;">
-                        + 填写 / 发起全新 Offer 审批
-                    </button>
+                    <div>
+                        <span class="moka-badge-success" style="cursor:pointer;" onclick="toggleMokaAccordion()">${statusText} ›</span>
+                    </div>
                 </div>
 
-                <div style="padding:20px; border-radius:8px; background:#fff; border:1px solid #e5e6eb; margin-bottom:20px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <div style="font-weight:700; font-size:15px;">一般审批流all</div>
-                        <span class="pill-badge" style="background:#e8f3ff; color:#165dff;">${inst.status === 'approved' ? '已通过' : (inst.status === 'rejected' ? '已驳回' : '审批中')}</span>
+                <!-- 5. Offer发送记录 -->
+                <div class="moka-section-title">Offer发送记录</div>
+                <div style="margin-bottom:12px;">
+                    <button class="moka-btn-gray" style="background:#fff;" onclick="showToast('已重发 Offer 签署邮件至候选人邮箱！', 'success')">重新发送Offer</button>
+                </div>
+                <div class="moka-card-box" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-weight:600; font-size:14px; color:#1f2329; margin-bottom:4px;">${currentCandidate ? currentCandidate.name : '候选人'}的Offer (邮件)</div>
+                        <div style="font-size:12.5px; color:#86909c;">${createdAtStr} 发送</div>
                     </div>
-                    <div style="font-size:12px; color:#86909c;">申请人：${inst.creator_email} · 发起时间：${new Date(inst.created_at).toLocaleString()}</div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="background:#e6ffec; color:#27a644; padding:4px 12px; border-radius:12px; font-size:12px; font-weight:600;">候选人接受了Offer</span>
+                        <span style="color:#86909c; cursor:pointer;" onclick="showToast('更多发送日志选项', 'info')">⋮</span>
+                    </div>
                 </div>
 
-                <div style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:24px;">
-                    <h4 style="margin:0 0 16px 0; border-bottom:1px solid #f2f3f5; padding-bottom:10px;">📋 Offer 详细录用方案</h4>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 24px; font-size:13px; color:#1f2329;">
-                        <div><strong>合同主体</strong>：${details.contract_subject || '--'}</div>
-                        <div><strong>录用部门</strong>：${details.department || inst.department || '--'}</div>
-                        <div><strong>职位级别</strong>：${details.job_level || inst.job_level || '--'}</div>
-                        <div><strong>预计入职时间</strong>：${details.proposed_start_date || '--'}</div>
-                        <div><strong>薪资类型</strong>：${details.salary_type || '月薪'}</div>
-                        <div><strong>基础月薪待遇</strong>：¥${(details.base_salary || 0).toLocaleString()} / 月</div>
-                        <div><strong>目标年终奖月数</strong>：${details.target_bonus_months || 0} 个月</div>
-                        <div><strong>股票期权股数</strong>：${(details.stock_options || 0).toLocaleString()} 股</div>
-                        <div style="grid-column: span 2; border-top:1px solid #f2f3f5; padding-top:10px; margin-top:6px; font-weight:700; color:#165dff;">
-                            保障年基本薪资合计 (折算): ¥${((details.base_salary || 0) * (12 + (parseFloat(details.target_bonus_months) || 0))).toLocaleString()} / 年
+                <!-- 6. Offer详情展框 -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; margin-bottom:12px;">
+                    <div class="moka-section-title" style="margin:0;">Offer详情</div>
+                    <a href="javascript:void(0)" onclick="showOfferFormSection()" style="color:#165dff; font-size:13px; text-decoration:none; font-weight:500;">编辑</a>
+                </div>
+                <div class="moka-accordion-box">
+                    <div class="moka-accordion-header" onclick="toggleMokaAccordion()">
+                        <span>${currentCandidate ? currentCandidate.name : '候选人'}的Offer</span>
+                        <svg id="moka-accordion-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                    <div id="moka-accordion-body-content" class="moka-accordion-body">
+                        <div class="moka-kv-item" style="grid-column: span 2;">
+                            <span class="moka-kv-label">请判断该员工是否符合签署雪球基金的条件，详细合同签约指引请查看: https://nmrnpjdx89.feishu.cn/docs/doccnUFgITCiHbPcdwePIfHiY6Z</span>
+                            <span class="moka-kv-value" style="color:#ff4d4f;">${details.compliance_pass || '否'}</span>
+                        </div>
+                        <div class="moka-kv-item">
+                            <span class="moka-kv-label">合同主体</span>
+                            <span class="moka-kv-value">${details.contract_subject || '北京雪球私募基金管理有限公司'}</span>
+                        </div>
+                        <div class="moka-kv-item">
+                            <span class="moka-kv-label">入职部门</span>
+                            <span class="moka-kv-value">${details.department || '金融风控(雪球(北京)技术开发有限公司/法务合规部/金融风控)'}</span>
+                        </div>
+                        <div class="moka-kv-item">
+                            <span class="moka-kv-label">职位级别</span>
+                            <span class="moka-kv-value">${details.job_level || 'X5'}</span>
+                        </div>
+                        <div class="moka-kv-item">
+                            <span class="moka-kv-label">预计入职时间</span>
+                            <span class="moka-kv-value">${details.proposed_start_date || '2026-08-03'}</span>
+                        </div>
+                        <div class="moka-kv-item">
+                            <span class="moka-kv-label">薪资待遇 (月薪)</span>
+                            <span class="moka-kv-value">¥${(details.base_salary || 25000).toLocaleString()} / 月 (目标年终 ${details.target_bonus_months || 2} 个月)</span>
+                        </div>
+                        <div class="moka-kv-item">
+                            <span class="moka-kv-label">保障年基本薪资折算</span>
+                            <span class="moka-kv-value" style="color:#165dff; font-weight:700;">¥${annualSalary} / 年</span>
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        function toggleMokaAccordion() {
+            const body = document.getElementById('moka-accordion-body-content');
+            const arrow = document.getElementById('moka-accordion-arrow');
+            if (!body) return;
+            if (body.style.display === 'none') {
+                body.style.display = 'grid';
+                if (arrow) arrow.style.transform = 'rotate(0deg)';
+            } else {
+                body.style.display = 'none';
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
+            }
         }
 
         async function renderOfferForm(existingDetails = null, isNew = true) {
