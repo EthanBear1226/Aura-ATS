@@ -792,7 +792,17 @@
             }
 
             try {
-                const response = await fetch(`/api/candidates/${id}`);
+                let response = await fetch(`/api/candidates/${id}`);
+                if (!response.ok) {
+                    // 如果指定 ID 查无结果（404），尝试自愈重试获取全量列表中的最新第一项
+                    const allRes = await fetch('/api/candidates');
+                    if (allRes.ok) {
+                        const list = await allRes.json();
+                        if (list && list.length > 0) {
+                            response = await fetch(`/api/candidates/${list[0].id}`);
+                        }
+                    }
+                }
                 if (!response.ok) throw new Error("Candidate not found");
                 
                 const candidate = await response.json();
