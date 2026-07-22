@@ -1842,11 +1842,11 @@ DEFAULT_OFFER_FIELDS_CONFIG = [
 offer_fields_config_db = [dict(item) for item in DEFAULT_OFFER_FIELDS_CONFIG]
 
 @app.get("/api/approvals/offer-fields-config")
-def get_offer_fields_config(current_user: models.User = Depends(get_current_user_optional)):
+def get_offer_fields_config():
     return offer_fields_config_db
 
 @app.post("/api/approvals/offer-fields-config")
-def save_offer_fields_config(payload: list[dict], current_user: models.User = Depends(get_current_user_optional)):
+def save_offer_fields_config(payload: list[dict]):
     global offer_fields_config_db
     offer_fields_config_db = payload
     return {"status": "ok", "msg": "Offer 详情字段填报配置保存成功", "config": offer_fields_config_db}

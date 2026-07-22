@@ -457,6 +457,42 @@
         let approvalRulesList = [];
         let systemUsersList = [];
         let approvalRuleEditId = null;
+        const DEFAULT_STATIC_OFFER_FIELDS_CONFIG = [
+            {"field_key": "compliance_pass", "field_name": "请判断该员工是否符合签署雪球基金的条件", "category": "基础与合规", "enabled": true, "required": false},
+            {"field_key": "contract_subject", "field_name": "合同主体", "category": "基础与合规", "enabled": true, "required": true},
+            {"field_key": "department", "field_name": "入职部门", "category": "基础与合规", "enabled": true, "required": true},
+            {"field_key": "job_level", "field_name": "拟录用职级", "category": "基础与合规", "enabled": true, "required": false},
+            {"field_key": "proposed_start_date", "field_name": "预计入职日期", "category": "基础与合规", "enabled": true, "required": true},
+            {"field_key": "employee_type", "field_name": "员工类型", "category": "基础与合规", "enabled": true, "required": false},
+            {"field_key": "is_campus_hire", "field_name": "是否校招生", "category": "基础与合规", "enabled": true, "required": false},
+
+            {"field_key": "base_salary", "field_name": "基础月薪（元）", "category": "薪酬考核与福利", "enabled": true, "required": true},
+            {"field_key": "perf_salary", "field_name": "绩效工资-私行适用", "category": "薪酬考核与福利", "enabled": true, "required": false},
+            {"field_key": "probation_rate", "field_name": "私行适用-试用期工资发放比例", "category": "薪酬考核与福利", "enabled": true, "required": false},
+            {"field_key": "target_bonus_months", "field_name": "目标年终奖金月数", "category": "薪酬考核与福利", "enabled": true, "required": false},
+            {"field_key": "stock_options", "field_name": "期权数", "category": "薪酬考核与福利", "enabled": true, "required": false},
+            {"field_key": "probation_months", "field_name": "试用期（月）", "category": "薪酬考核与福利", "enabled": true, "required": false},
+            {"field_key": "prev_month_salary", "field_name": "上家公司月薪（元）", "category": "薪酬考核与福利", "enabled": true, "required": false},
+            {"field_key": "prev_annual_salary", "field_name": "上家公司年薪（元）", "category": "薪酬考核与福利", "enabled": true, "required": false},
+
+            {"field_key": "job_category", "field_name": "职位类", "category": "架构序列与主管", "enabled": true, "required": false},
+            {"field_key": "job_family", "field_name": "职位族", "category": "架构序列与主管", "enabled": true, "required": false},
+            {"field_key": "job_sequence", "field_name": "职位序列", "category": "架构序列与主管", "enabled": true, "required": false},
+            {"field_key": "base_position", "field_name": "基础岗位", "category": "架构序列与主管", "enabled": true, "required": false},
+            {"field_key": "contract_title", "field_name": "合同职位", "category": "架构序列与主管", "enabled": true, "required": false},
+            {"field_key": "direct_manager", "field_name": "直属主管", "category": "架构序列与主管", "enabled": true, "required": false},
+            {"field_key": "gender", "field_name": "性别", "category": "架构序列与主管", "enabled": true, "required": false},
+
+            {"field_key": "pc_config", "field_name": "电脑配置", "category": "办公地点与成本", "enabled": true, "required": false},
+            {"field_key": "onboard_location", "field_name": "入职办理地点", "category": "办公地点与成本", "enabled": true, "required": false},
+            {"field_key": "work_area", "field_name": "办公区", "category": "办公地点与成本", "enabled": true, "required": false},
+            {"field_key": "cost_center", "field_name": "成本中心-财务", "category": "办公地点与成本", "enabled": true, "required": false},
+            {"field_key": "salary_special_note", "field_name": "薪酬特殊说明（年现金涨幅超20%时说明原因）", "category": "办公地点与成本", "enabled": true, "required": false},
+            {"field_key": "edu_special_note", "field_name": "学历特殊说明", "category": "办公地点与成本", "enabled": true, "required": false},
+            {"field_key": "attachment_name", "field_name": "发送附件给审批人", "category": "办公地点与成本", "enabled": true, "required": false},
+            {"field_key": "remarks", "field_name": "备注（职级，HC，核心职责等）", "category": "办公地点与成本", "enabled": true, "required": false}
+        ];
+
         let offerFieldsConfigList = [];
 
         function switchApprovalSubTab(tabName) {
@@ -506,12 +542,20 @@
             try {
                 const res = await fetch('/api/approvals/offer-fields-config');
                 if (res.ok) {
-                    offerFieldsConfigList = await res.json();
-                    renderOfferFieldsConfig();
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        offerFieldsConfigList = data;
+                    } else {
+                        offerFieldsConfigList = JSON.parse(JSON.stringify(DEFAULT_STATIC_OFFER_FIELDS_CONFIG));
+                    }
+                } else {
+                    offerFieldsConfigList = JSON.parse(JSON.stringify(DEFAULT_STATIC_OFFER_FIELDS_CONFIG));
                 }
             } catch(e) {
-                console.error("加载 Offer 字段配置失败:", e);
+                console.error("加载 Offer 字段配置失败，应用静态保底配置:", e);
+                offerFieldsConfigList = JSON.parse(JSON.stringify(DEFAULT_STATIC_OFFER_FIELDS_CONFIG));
             }
+            renderOfferFieldsConfig();
         }
 
         function renderOfferFieldsConfig() {
