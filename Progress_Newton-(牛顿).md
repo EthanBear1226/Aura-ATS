@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.41
+- **当前版本**: Newton-(牛顿)-v1.22.42
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.42**: 彻底清除settings.html中同名const变量重复声明导致的Uncaught SyntaxError重大崩溃缺陷 (2026-07-22 16:31:56)
 - **v1.22.41**: 修复settings.html中静态数组混入Python语法表达式导致的脚本报错瘫痪BUG (2026-07-22 16:21:54)
 - **v1.22.40**: 上线Offer详情预填模板与部门架构树调取功能 (2026-07-22 15:50:21)
 - **v1.22.39**: 为settings.html注入30项Offer字段静态保底模板，消除异步拉取网络延迟引发的界面空白BUG (2026-07-22 14:50:34)
@@ -181,3 +182,4 @@
 - [2026-07-22 14:50:34] 开放了main.py中/api/approvals/offer-fields-config接口的免鉴权访问；在settings.html中添加了DEFAULT_STATIC_OFFER_FIELDS_CONFIG静态默认模板，即使在弱网或数据尚未返回时，前端仍可秒级以静态保底模板初始化渲染30项配置表格，彻底杜绝了空白界面的出现
 - [2026-07-22 15:50:21] 在settings.html中增加了第四列【提前预设选项/预填模板】配置列与【自动调取系统部门架构树】勾选框；在main.py中扩展了options与use_dept_tree属性；并在candidate-detail.html中实现了带有预设模板下拉秒选、以及点击'🌳 调取部门树'弹窗交互点选部门架构树的功能
 - [2026-07-22 16:21:54] 定位并去除了settings.html第523行误入的Python表达式True if 'enabled' in locals() else True，恢复了全页JS脚本的正常解析与交互响应
+- [2026-07-22 16:31:56] 删除了settings.html中重复定义的旧DEFAULT_STATIC_OFFER_FIELDS_CONFIG const变量声明，彻底消除了SyntaxError异常，恢复了系统设置页面全量按钮与部门架构树的加载响应
