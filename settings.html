@@ -267,8 +267,8 @@
                             <div>
                                 <h2 class="section-title">Offer 审批与字段配置</h2>
                                 <div style="display:flex; gap:12px; margin-top:12px;">
-                                    <button id="subtab-btn-rules" class="btn btn-secondary" onclick="switchApprovalSubTab('rules')" style="background:#165dff; color:#fff; font-weight:600;">📋 审批流匹配规则</button>
-                                    <button id="subtab-btn-fields" class="btn btn-secondary" onclick="switchApprovalSubTab('fields')">⚙️ Offer 详情字段填报配置</button>
+                                    <button id="subtab-btn-rules" class="btn btn-secondary" onclick="switchApprovalSubTab('rules')" style="background:#165dff; color:#fff; font-weight:600;">审批流匹配规则</button>
+                                    <button id="subtab-btn-fields" class="btn btn-secondary" onclick="switchApprovalSubTab('fields')">Offer 详情字段填报配置</button>
                                 </div>
                             </div>
                             <div id="approval-rules-actions">
@@ -276,7 +276,7 @@
                             </div>
                             <div id="approval-fields-actions" style="display:none; gap:12px;">
                                 <button class="btn btn-secondary" onclick="resetOfferFieldsConfig()">恢复默认配置</button>
-                                <button class="btn btn-primary" onclick="saveOfferFieldsConfig()">💾 保存字段配置</button>
+                                <button class="btn btn-primary" onclick="saveOfferFieldsConfig()">保存字段配置</button>
                             </div>
                         </div>
 
@@ -591,12 +591,12 @@
                                     const ctrlType = f.control_type || (f.use_dept_tree ? 'dept_tree' : ((f.options && f.options.length > 0) ? 'select' : 'input'));
                                     
                                     if (ctrlType === 'dept_tree' || f.field_key === 'department') {
-                                        badgeHtml = `<span style="background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe; padding:4px 10px; border-radius:12px; font-size:11.5px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">🌳 组织架构树调取</span>`;
+                                        badgeHtml = `<span style="background:#f4effb; color:#722ed1; border:1px solid #e9d8fd; padding:3px 10px; border-radius:4px; font-size:11.5px; font-weight:500;">组织架构树调取</span>`;
                                     } else if (ctrlType === 'select' || (f.options && f.options.length > 0)) {
                                         const count = (f.options || []).length;
-                                        badgeHtml = `<span style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:4px 10px; border-radius:12px; font-size:11.5px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">📋 预设下拉 (${count}项)</span>`;
+                                        badgeHtml = `<span style="background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-size:11.5px; font-weight:500;">预设下拉 (${count}项)</span>`;
                                     } else {
-                                        badgeHtml = `<span style="background:#f3f4f6; color:#4b5563; border:1px solid #e5e7eb; padding:4px 10px; border-radius:12px; font-size:11.5px; font-weight:500; display:inline-flex; align-items:center; gap:4px;">📝 自由填空</span>`;
+                                        badgeHtml = `<span style="background:#f2f3f5; color:#4e5969; border:1px solid #e5e6eb; padding:3px 10px; border-radius:4px; font-size:11.5px; font-weight:500;">自由填空</span>`;
                                     }
 
                                     return `
@@ -616,7 +616,7 @@
                                         </td>
                                         <td style="text-align:center;">${badgeHtml}</td>
                                         <td style="text-align:center;">
-                                            <button type="button" class="btn btn-secondary" onclick="openOfferFieldConfigModal('${f.field_key}')" style="font-size:12px; padding:3px 10px; height:28px; border-radius:6px; background:#f4f5f7; border:1px solid #d0d5dd; color:#1f2329; font-weight:600; cursor:pointer;">⚙️ 规则与预设</button>
+                                            <button type="button" class="btn btn-secondary" onclick="openOfferFieldConfigModal('${f.field_key}')" style="font-size:12px; padding:3px 10px; height:28px; border-radius:4px; background:#fff; border:1px solid #d0d5dd; color:#1f2329; font-weight:500; cursor:pointer;">规则与配置</button>
                                         </td>
                                     </tr>
                                     `;
@@ -698,8 +698,8 @@
             div.className = "opt-item-row";
             div.innerHTML = `
                 <span style="color:#86909c; font-size:12px;">•</span>
-                <input type="text" class="form-control opt-item-input" style="font-size:12px; height:32px; flex:1; border-radius:6px;" value="${val}" placeholder="输入选项值，例如: 北京雪球私募基金管理有限公司">
-                <button type="button" onclick="this.parentElement.remove()" style="border:none; background:transparent; color:#FF3B30; font-size:16px; cursor:pointer; padding:0 4px;">✕</button>
+                <input type="text" class="form-control opt-item-input" style="font-size:12px; height:32px; flex:1; border-radius:4px;" value="${val}" placeholder="输入选项名称，如: 北京雪球私募基金管理有限公司">
+                <button type="button" onclick="this.parentElement.remove()" style="border:none; background:transparent; color:#86909c; font-size:14px; cursor:pointer; padding:0 4px;" onmouseover="this.style.color='#FF3B30'" onmouseout="this.style.color='#86909c'">✕</button>
             `;
             container.appendChild(div);
         }
@@ -714,7 +714,7 @@
                 container.innerHTML = '';
                 arr.forEach(opt => addFieldOptionItem(opt));
                 area.value = '';
-                showToast(`已批量导入 ${arr.length} 个预设选项`, 'success');
+                showToast(`已解析并导入 ${arr.length} 个预设选项`, 'success');
             }
         }
 
@@ -751,7 +751,7 @@
 
             renderOfferFieldsConfig();
             closeOfferFieldConfigModal();
-            showToast(`🎉 ${field.field_name} 的字段规则与预设模板配置已更新！点击右上角【保存字段配置】即可生效。`, 'success');
+            showToast(`${field.field_name} 的字段规则与预设配置已更新，点击右上角【保存字段配置】即可应用生效`, 'success');
         }
 
         function toggleFieldEnabled(key) {
@@ -1862,86 +1862,86 @@
         }
     </script>
     <!-- 独立 Offer 字段规则与预设配置 Modal 弹窗 -->
-    <div class="modal-overlay" id="offerFieldConfigModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
-        <div class="modal-card" style="background:#fff; width:560px; border-radius:14px; padding:28px; box-shadow:0 16px 40px rgba(0,0,0,0.18); max-height:85vh; display:flex; flex-direction:column;">
+    <div class="modal-overlay" id="offerFieldConfigModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(2px);">
+        <div class="modal-card" style="background:#fff; width:540px; border-radius:10px; padding:24px 28px; box-shadow:0 20px 48px rgba(0,0,0,0.12); max-height:85vh; display:flex; flex-direction:column;">
             
             <!-- 头部 -->
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f2f3f5; padding-bottom:14px; margin-bottom:20px;">
-                <h3 style="margin:0; font-size:16px; font-weight:700; color:#1f2329; display:flex; align-items:center; gap:8px;">
-                    ⚙️ 规则与预设配置：<span id="modal-field-title" style="color:#165dff;">合同主体</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f2f3f5; padding-bottom:12px; margin-bottom:18px;">
+                <h3 style="margin:0; font-size:15px; font-weight:600; color:#1f2329;">
+                    字段规则与配置：<span id="modal-field-title" style="color:#165dff; font-weight:600;">合同主体</span>
                 </h3>
-                <span style="cursor:pointer; font-size:20px; color:#86909c;" onclick="closeOfferFieldConfigModal()">✕</span>
+                <span style="cursor:pointer; font-size:18px; color:#86909c; transition:color 0.2s;" onmouseover="this.style.color='#1f2329'" onmouseout="this.style.color='#86909c'" onclick="closeOfferFieldConfigModal()">✕</span>
             </div>
 
             <!-- 第一阶段：选择控件输入形态 -->
-            <div style="margin-bottom:20px;">
-                <label style="font-size:13px; font-weight:700; color:#1f2329; display:block; margin-bottom:10px;">第一步：选择发起 Offer 时的填写形态</label>
+            <div style="margin-bottom:18px;">
+                <label style="font-size:12.5px; font-weight:600; color:#1f2329; display:block; margin-bottom:10px;">选择发起 Offer 时的填报方式</label>
                 <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
-                    <label style="cursor:pointer; border:1px solid #e5e6eb; border-radius:8px; padding:12px 10px; text-align:center; transition:all 0.2s;" onmouseover="this.style.borderColor='#165dff'" onmouseout="this.style.borderColor='#e5e6eb'">
+                    <label style="cursor:pointer; border:1px solid #e5e6eb; border-radius:6px; padding:12px 10px; text-align:center; transition:all 0.2s;" onmouseover="this.style.borderColor='#165dff'" onmouseout="this.style.borderColor='#e5e6eb'">
                         <input type="radio" name="ctrlTypeRadio" id="radio-type-input" value="input" onchange="switchFieldTypePhase('input')" style="accent-color:#165dff; margin-right:4px;">
-                        <span style="font-size:12.5px; font-weight:600; color:#1f2329;">📝 自由填空</span>
-                        <div style="font-size:11px; color:#86909c; margin-top:2px;">发起人自由打字</div>
+                        <span style="font-size:12.5px; font-weight:600; color:#1f2329;">自由填空</span>
+                        <div style="font-size:11px; color:#86909c; margin-top:2px;">发起人文本手动输入</div>
                     </label>
-                    <label style="cursor:pointer; border:1px solid #e5e6eb; border-radius:8px; padding:12px 10px; text-align:center; transition:all 0.2s;" onmouseover="this.style.borderColor='#165dff'" onmouseout="this.style.borderColor='#e5e6eb'">
+                    <label style="cursor:pointer; border:1px solid #e5e6eb; border-radius:6px; padding:12px 10px; text-align:center; transition:all 0.2s;" onmouseover="this.style.borderColor='#165dff'" onmouseout="this.style.borderColor='#e5e6eb'">
                         <input type="radio" name="ctrlTypeRadio" id="radio-type-select" value="select" onchange="switchFieldTypePhase('select')" style="accent-color:#165dff; margin-right:4px;">
-                        <span style="font-size:12.5px; font-weight:600; color:#165dff;">📋 预设下拉</span>
-                        <div style="font-size:11px; color:#86909c; margin-top:2px;">下拉快捷点选</div>
+                        <span style="font-size:12.5px; font-weight:600; color:#165dff;">预设下拉</span>
+                        <div style="font-size:11px; color:#86909c; margin-top:2px;">预填模板下拉点选</div>
                     </label>
-                    <label style="cursor:pointer; border:1px solid #e5e6eb; border-radius:8px; padding:12px 10px; text-align:center; transition:all 0.2s;" onmouseover="this.style.borderColor='#7e22ce'" onmouseout="this.style.borderColor='#e5e6eb'">
-                        <input type="radio" name="ctrlTypeRadio" id="radio-type-depttree" value="dept_tree" onchange="switchFieldTypePhase('dept_tree')" style="accent-color:#7e22ce; margin-right:4px;">
-                        <span style="font-size:12.5px; font-weight:600; color:#7e22ce;">🌳 部门架构树</span>
-                        <div style="font-size:11px; color:#86909c; margin-top:2px;">一键调取组织树</div>
+                    <label style="cursor:pointer; border:1px solid #e5e6eb; border-radius:6px; padding:12px 10px; text-align:center; transition:all 0.2s;" onmouseover="this.style.borderColor='#722ed1'" onmouseout="this.style.borderColor='#e5e6eb'">
+                        <input type="radio" name="ctrlTypeRadio" id="radio-type-depttree" value="dept_tree" onchange="switchFieldTypePhase('dept_tree')" style="accent-color:#722ed1; margin-right:4px;">
+                        <span style="font-size:12.5px; font-weight:600; color:#722ed1;">部门架构树</span>
+                        <div style="font-size:11px; color:#86909c; margin-top:2px;">调取公司组织架构树</div>
                     </label>
                 </div>
             </div>
 
             <!-- 第二阶段：二次动态内容填报区 -->
-            <div style="flex:1; overflow-y:auto; border-top:1px solid #f2f3f5; padding-top:16px;">
+            <div style="flex:1; overflow-y:auto; border-top:1px solid #f2f3f5; padding-top:14px;">
                 
                 <!-- 1. 自由填空配置 -->
                 <div id="phase-sec-input" style="display:none;">
-                    <div style="font-size:13px; font-weight:700; color:#1f2329; margin-bottom:8px;">第二步：填空二次属性说明</div>
-                    <div style="background:#f8f9fa; border:1px solid #e5e6eb; border-radius:8px; padding:14px; font-size:12.5px; color:#4e5969;">
-                        选中自由填空后，发起人在填写 Offer 时将呈现为标准的自由输入框，可任意打字填入。
+                    <div style="font-size:12.5px; font-weight:600; color:#1f2329; margin-bottom:6px;">自由填空说明</div>
+                    <div style="background:#f8f9fa; border:1px solid #e5e6eb; border-radius:6px; padding:12px; font-size:12px; color:#4e5969; line-height:1.6;">
+                        选择自由填空模式后，HR 发起 Offer 审批时该字段将展示为标准输入框，由发起人自由填入对应内容。
                     </div>
                 </div>
 
                 <!-- 2. 下拉选择预设选项池 -->
                 <div id="phase-sec-select" style="display:none;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <div style="font-size:13px; font-weight:700; color:#1f2329;">第二步：配置预设下拉选项池</div>
-                        <button type="button" class="btn btn-primary" onclick="addFieldOptionItem('')" style="font-size:11.5px; padding:3px 10px; height:28px; border-radius:6px;">+ 添加一个选项</button>
+                        <div style="font-size:12.5px; font-weight:600; color:#1f2329;">配置预设下拉选项</div>
+                        <button type="button" class="btn btn-primary" onclick="addFieldOptionItem('')" style="font-size:11.5px; padding:3px 10px; height:26px; border-radius:4px;">+ 添加选项</button>
                     </div>
 
                     <!-- 选项逐行池 -->
-                    <div id="modal-options-list-container" style="max-height:180px; overflow-y:auto; margin-bottom:14px; padding-right:4px;">
+                    <div id="modal-options-list-container" style="max-height:160px; overflow-y:auto; margin-bottom:12px; padding-right:4px;">
                         <!-- 动态插入 rows -->
                     </div>
 
                     <!-- 批量导入组 -->
-                    <div style="background:#f8f9fa; border:1px dashed #c9cdd4; border-radius:8px; padding:12px;">
-                        <div style="font-size:11.5px; color:#4e5969; margin-bottom:6px; font-weight:600;">⚡ 批量快速粘贴 (使用逗号或换行分隔多个选项):</div>
+                    <div style="background:#f8f9fa; border:1px dashed #d0d5dd; border-radius:6px; padding:12px;">
+                        <div style="font-size:11.5px; color:#4e5969; margin-bottom:6px; font-weight:600;">批量快速输入 (使用逗号或换行分隔多个选项):</div>
                         <div style="display:flex; gap:8px;">
-                            <textarea id="modal-batch-options-area" class="form-control" rows="2" style="font-size:12px; flex:1;" placeholder="例如: 公司A, 公司B, 公司C"></textarea>
-                            <button type="button" class="btn btn-secondary" onclick="batchParseOptions()" style="white-space:nowrap; font-size:12px; height:auto; align-self:stretch;">解析导入</button>
+                            <textarea id="modal-batch-options-area" class="form-control" rows="2" style="font-size:12px; flex:1; border-radius:4px;" placeholder="如: 北京雪球私募基金管理有限公司, 雪球(北京)技术开发有限公司"></textarea>
+                            <button type="button" class="btn btn-secondary" onclick="batchParseOptions()" style="white-space:nowrap; font-size:12px; height:auto; align-self:stretch; border-radius:4px;">解析导入</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- 3. 部门架构树配置 -->
                 <div id="phase-sec-dept" style="display:none;">
-                    <div style="font-size:13px; font-weight:700; color:#7e22ce; margin-bottom:8px;">第二步：部门树调取模式已启用</div>
-                    <div style="background:#f3e8ff; border:1px solid #d8b4fe; border-radius:8px; padding:14px; font-size:12.5px; color:#6b21a8;">
-                        🌳 开启此选项后，HR 在发起/编辑 Offer 详情时，入职部门右侧将自动出现 <b>[🌳 调取部门树]</b> 按钮，可直接点击弹窗调取公司全量组织架构。
+                    <div style="font-size:12.5px; font-weight:600; color:#722ed1; margin-bottom:6px;">部门架构树模式已启用</div>
+                    <div style="background:#f4effb; border:1px solid #e9d8fd; border-radius:6px; padding:12px; font-size:12px; color:#591bb7; line-height:1.6;">
+                        开启此模式后，HR 发起 Offer 详情时入职部门旁将自动提供 [选择部门] 按钮，点击即可弹窗展示公司全量组织架构树进行点选。
                     </div>
                 </div>
 
             </div>
 
             <!-- 底部提交操作 -->
-            <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px; border-top:1px solid #f2f3f5; padding-top:16px;">
-                <button type="button" class="btn btn-secondary" onclick="closeOfferFieldConfigModal()" style="font-size:12.5px; height:36px; padding:0 16px;">取消</button>
-                <button type="button" class="btn btn-primary" onclick="saveSingleFieldConfigModal()" style="font-size:12.5px; height:36px; padding:0 20px;">保存此字段配置</button>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:18px; border-top:1px solid #f2f3f5; padding-top:14px;">
+                <button type="button" class="btn btn-secondary" onclick="closeOfferFieldConfigModal()" style="font-size:12px; height:34px; padding:0 16px; border-radius:4px;">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveSingleFieldConfigModal()" style="font-size:12px; height:34px; padding:0 18px; border-radius:4px;">保存配置</button>
             </div>
 
         </div>

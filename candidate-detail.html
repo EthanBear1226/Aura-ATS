@@ -1224,9 +1224,9 @@
             if (ctrlType === 'dept_tree' || key === 'department') {
                 ctrlHtml = `
                     <div style="display:flex; gap:8px;">
-                        <input type="text" id="${ctrlId}" class="moka-input-clean" value="${currentValue || ''}" placeholder="如: 金融风控或从部门树调取">
-                        <button type="button" onclick="openOfferDeptTreeModal()" style="white-space:nowrap; font-size:12.5px; height:38px; padding:0 12px; border-radius:6px; background:#e8f4fd; color:#165dff; border:1px solid #b6e0fe; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                            🌳 调取部门树
+                        <input type="text" id="${ctrlId}" class="moka-input-clean" value="${currentValue || ''}" placeholder="如: 金融风控或从组织架构选择">
+                        <button type="button" onclick="openOfferDeptTreeModal()" style="white-space:nowrap; font-size:12px; height:38px; padding:0 14px; border-radius:4px; background:#f2f7ff; color:#165dff; border:1px solid #c9e0ff; font-weight:500; cursor:pointer; transition:all 0.2s;">
+                            选择部门
                         </button>
                     </div>
                 `;
@@ -1802,12 +1802,12 @@
                 const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
                 const hasChildren = node.children && node.children.length > 0;
                 return `
-                    <li style="margin:6px 0;">
-                        <div style="display:flex; align-items:center; gap:6px; cursor:pointer; padding:6px 10px; border-radius:6px; border:1px solid #f0f0f0; background:#fff; transition:all 0.2s;" onmouseover="this.style.background='#e8f4fd'; this.style.borderColor='#b6e0fe';" onmouseout="this.style.background='#fff'; this.style.borderColor='#f0f0f0';" onclick="selectOfferDeptPath('${fullPath}')">
-                            <span style="font-size:14px;">${hasChildren ? '🏢' : '📁'}</span>
-                            <span style="font-size:13px; font-weight:600; color:#1f2329;">${node.name}</span>
+                    <li style="margin:5px 0;">
+                        <div style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 12px; border-radius:4px; border:1px solid #e5e6eb; background:#fff; transition:all 0.2s;" onmouseover="this.style.background='#f2f7ff'; this.style.borderColor='#c9e0ff';" onmouseout="this.style.background='#fff'; this.style.borderColor='#e5e6eb';" onclick="selectOfferDeptPath('${fullPath}')">
+                            <span style="font-size:12px; color:${hasChildren ? '#165dff' : '#86909c'}; font-weight:600;">${hasChildren ? '▶' : '•'}</span>
+                            <span style="font-size:12.5px; font-weight:500; color:#1f2329;">${node.name}</span>
                             ${node.code ? `<span style="font-size:11px; color:#86909c; font-family:monospace;">(${node.code})</span>` : ''}
-                            <span style="margin-left:auto; font-size:11.5px; color:#165dff; font-weight:600; background:#f0f7ff; padding:2px 8px; border-radius:4px;">点选此部门 ›</span>
+                            <span style="margin-left:auto; font-size:11.5px; color:#165dff; font-weight:500;">选择 ›</span>
                         </div>
                         ${hasChildren ? renderOfferDeptTreeHtml(node.children, fullPath) : ''}
                     </li>
@@ -1819,7 +1819,7 @@
             const deptInput = document.getElementById('offerDept');
             if (deptInput) {
                 deptInput.value = path;
-                showToast(`🎉 已自动选取部门架构：${path}`, 'success');
+                showToast(`已自动选择部门架构：${path}`, 'success');
             }
             closeOfferDeptTreeModal();
         }
@@ -1830,20 +1830,20 @@
     </script>
 
     <!-- 调取系统部门架构树 Modal 弹窗 -->
-    <div class="modal-overlay" id="offerDeptTreeModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
-        <div class="modal-card" style="background:#fff; width:540px; border-radius:12px; padding:24px; box-shadow:0 12px 32px rgba(0,0,0,0.15); max-height:80vh; display:flex; flex-direction:column;">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f2f3f5; padding-bottom:14px; margin-bottom:16px;">
-                <h3 style="margin:0; font-size:16px; font-weight:700; color:#1f2329; display:flex; align-items:center; gap:8px;">
-                    🌳 调取系统部门架构树
+    <div class="modal-overlay" id="offerDeptTreeModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(2px);">
+        <div class="modal-card" style="background:#fff; width:520px; border-radius:10px; padding:24px; box-shadow:0 16px 40px rgba(0,0,0,0.12); max-height:80vh; display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f2f3f5; padding-bottom:12px; margin-bottom:14px;">
+                <h3 style="margin:0; font-size:15px; font-weight:600; color:#1f2329;">
+                    选择组织架构部门
                 </h3>
                 <span style="cursor:pointer; font-size:18px; color:#86909c;" onclick="closeOfferDeptTreeModal()">✕</span>
             </div>
-            <div style="font-size:12.5px; color:#86909c; margin-bottom:12px;">点击下方架构树中的任意部门节点，即可自动精准回填入职部门：</div>
-            <div id="offer-dept-tree-container" style="flex:1; overflow-y:auto; border:1px solid #e5e6eb; border-radius:8px; padding:16px; background:#fafafa;">
-                <div style="color:#86909c; text-align:center; padding:20px;">正在加载部门架构树...</div>
+            <div style="font-size:12px; color:#86909c; margin-bottom:12px;">点击架构树中的部门节点，即可自动填入入职部门：</div>
+            <div id="offer-dept-tree-container" style="flex:1; overflow-y:auto; border:1px solid #e5e6eb; border-radius:6px; padding:14px; background:#fafafa;">
+                <div style="color:#86909c; text-align:center; padding:20px;">正在加载组织架构数据...</div>
             </div>
-            <div style="display:flex; justify-content:flex-end; margin-top:16px;">
-                <button class="moka-btn-gray" onclick="closeOfferDeptTreeModal()">取消</button>
+            <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+                <button class="moka-btn-gray" onclick="closeOfferDeptTreeModal()" style="border-radius:4px; font-size:12px; padding:4px 16px;">取消</button>
             </div>
         </div>
     </div>
