@@ -1203,43 +1203,43 @@
         function renderOfferStatusCard(inst) {
             const container = document.getElementById('offer-approval-section');
             const details = (inst && inst.offer_details) ? inst.offer_details : {
-                contract_subject: '北京雪球私募基金管理有限公司',
-                department: (currentCandidate ? currentCandidate.department : '金融风控(雪球(北京)技术开发有限公司/法务合规部/金融合规/金融风控)'),
-                job_level: 'X5',
-                proposed_start_date: '2026-08-03',
+                contract_subject: '',
+                department: (currentCandidate ? (currentCandidate.department || currentCandidate.job || '') : '') || '',
+                job_level: '',
+                proposed_start_date: '',
                 salary_type: '月薪',
-                base_salary: 19000,
-                employee_type: '正式员工',
-                perf_salary: '0',
-                probation_rate: '100%',
-                target_bonus_months: 2,
-                stock_options: '0',
-                probation_months: '6',
-                prev_month_salary: '14000',
-                prev_annual_salary: '14K*15M',
-                job_category: '职能支持类',
-                job_family: '法务合规',
-                job_sequence: '风控合规',
-                base_position: '风控合规',
-                contract_title: '高级风控合规',
-                direct_manager: '代天娇',
-                gender: '女',
-                pc_config: 'Windows电脑',
-                onboard_location: '北京市朝阳区来广营融新科技中心C座18层',
-                work_area: '北京（融新）',
-                cost_center: '资产管理',
-                salary_special_note: '目前就职于老虎，校招入职后未进行过调薪，故本次薪资涨幅略高。',
+                base_salary: 0,
+                employee_type: '',
+                perf_salary: '',
+                probation_rate: '',
+                target_bonus_months: 0,
+                stock_options: '',
+                probation_months: '',
+                prev_month_salary: '',
+                prev_annual_salary: '',
+                job_category: '',
+                job_family: '',
+                job_sequence: '',
+                base_position: '',
+                contract_title: '',
+                direct_manager: '',
+                gender: '',
+                pc_config: '',
+                onboard_location: '',
+                work_area: '',
+                cost_center: '',
+                salary_special_note: '',
                 edu_special_note: '-',
-                attachment_name: '薪酬与教育信息收集表-涂佳颖.xlsx',
-                attachment_size: '15.7MB',
-                remarks: '离职替代，定级X5，汇报上级 天娇，base金融合规。',
-                is_campus_hire: '否',
-                compliance_pass: '否'
+                attachment_name: '',
+                attachment_size: '',
+                remarks: '',
+                is_campus_hire: '',
+                compliance_pass: ''
             };
 
-            const candName = currentCandidate ? currentCandidate.name : '涂佳颖';
-            const createdAtStr = inst ? new Date(inst.created_at).toLocaleDateString() : '2026-07-15';
-            const statusText = (inst && inst.status === 'approved') ? '已通过' : ((inst && inst.status === 'rejected') ? '已驳回' : '已通过');
+            const candName = currentCandidate ? currentCandidate.name : '候选人';
+            const createdAtStr = inst ? new Date(inst.created_at).toLocaleDateString() : '';
+            const statusText = (inst && inst.status === 'approved') ? '已通过' : ((inst && inst.status === 'rejected') ? '已驳回' : '未发起');
 
             container.innerHTML = `
                 <!-- 1. 顶部动作组合按钮行 -->
@@ -1266,23 +1266,14 @@
                 <div class="moka-section-title">背调信息</div>
                 <div class="moka-card-box">
                     <div style="font-weight:600; font-size:14px; color:#1f2329; margin-bottom:4px;">
-                        雪球一段套餐(i背调背景调查)
+                        背调详情
                     </div>
-                    <div style="font-size:12px; color:#86909c; margin-bottom:12px;">2026-07-15发起</div>
+                    <div style="font-size:12px; color:#86909c; margin-bottom:12px;">${inst ? '已发起背景调查' : '尚未发起背调调查'}</div>
                     
                     <div style="font-size:13px; color:#4e5969; line-height:1.8;">
-                        <div><strong style="color:#86909c; font-weight:normal;">进度：</strong> 订单状态: 部分完成 (第一版) 2026-07-18 00:08:33</div>
-                        <div style="margin-left:42px;">订单状态: 调查中 2026-07-15 15:32:56</div>
-                        <div style="margin-left:42px;">订单状态: 下单成功 2026-07-15 10:23:50</div>
-                        <div><strong style="color:#86909c; font-weight:normal;">详情：</strong> <a href="javascript:void(0)" onclick="showToast('正在调取第三方背调全量日志...', 'info')" style="color:#165dff; text-decoration:none;">查看详情</a></div>
-                        <div><strong style="color:#86909c; font-weight:normal;">结果：</strong> <span style="color:#ff7d00; font-weight:600;">异常报告 (第一版)-中风险</span></div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                            <div><strong style="color:#86909c; font-weight:normal;">报告：</strong> 涂佳颖 阶段性报告 (第一版) 雪球一段套餐 雪球 背调报告 JDJ02607157584162....</div>
-                            <div style="display:flex; gap:12px; font-size:12.5px;">
-                                <a href="javascript:void(0)" onclick="showToast('下载背调报告 PDF 成功', 'success')" style="color:#165dff; text-decoration:none;">下载</a>
-                                <a href="javascript:void(0)" onclick="showToast('调起在线 PDF 预览', 'info')" style="color:#165dff; text-decoration:none;">预览</a>
-                            </div>
-                        </div>
+                        <div><strong style="color:#86909c; font-weight:normal;">进度：</strong> ${inst ? '订单状态: 下单成功 2026-07-15 10:23:50' : '暂无订单记录'}</div>
+                        <div><strong style="color:#86909c; font-weight:normal;">详情：</strong> <a href="javascript:void(0)" onclick="showToast('暂无背调全量日志', 'info')" style="color:#165dff; text-decoration:none;">查看详情</a></div>
+                        <div><strong style="color:#86909c; font-weight:normal;">结果：</strong> <span style="color:#86909c;">-</span></div>
                     </div>
                 </div>
 
@@ -1295,11 +1286,11 @@
                     <div>
                         <div style="font-weight:600; font-size:14px; color:#1f2329; margin-bottom:4px;">一般审批流all</div>
                         <div style="font-size:12.5px; color:#86909c;">
-                            ${createdAtStr} 发起 · <a href="javascript:void(0)" onclick="toggleMokaAccordion()" style="color:#165dff; text-decoration:none;">查看Offer详情</a>
+                            ${createdAtStr ? createdAtStr + ' 发起' : '尚未发起审批流'} · <a href="javascript:void(0)" onclick="toggleMokaAccordion()" style="color:#165dff; text-decoration:none;">查看Offer详情</a>
                         </div>
                     </div>
                     <div>
-                        <span class="moka-badge-success" style="cursor:pointer;" onclick="toggleMokaAccordion()">${statusText} ›</span>
+                        <span class="moka-badge-success" style="cursor:pointer; background: ${inst ? '#e6f7ff' : '#f5f5f5'}; color: ${inst ? '#52c41a' : '#86909c'}; border: 1px solid ${inst ? '#b7eb8f' : '#e5e6eb'};" onclick="toggleMokaAccordion()">${statusText} ›</span>
                     </div>
                 </div>
 
@@ -1311,10 +1302,10 @@
                 <div class="moka-card-box" style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
                         <div style="font-weight:600; font-size:14px; color:#1f2329; margin-bottom:4px;">${candName}的Offer (邮件)</div>
-                        <div style="font-size:12.5px; color:#86909c;">${createdAtStr} 发送</div>
+                        <div style="font-size:12.5px; color:#86909c;">${inst ? createdAtStr + ' 发送' : '尚未发送'}</div>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <span style="background:#e6ffec; color:#27a644; padding:4px 12px; border-radius:12px; font-size:12px; font-weight:600;">候选人接受了Offer</span>
+                        <span style="background:${inst ? '#e6ffec' : '#f5f5f5'}; color:${inst ? '#27a644' : '#86909c'}; padding:4px 12px; border-radius:12px; font-size:12px; font-weight:600;">${inst ? '候选人接受了Offer' : '未发送'}</span>
                         <span style="color:#86909c; cursor:pointer;" onclick="showToast('更多发送日志选项', 'info')">⋮</span>
                     </div>
                 </div>
@@ -1334,132 +1325,132 @@
                         
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">请判断该员工是否符合签署雪球基金的条件，详细合同签约指引请查看: https://nmrnpjdx89.feishu.cn/docs/doccnUFgITCiHbPcdwePIfHiY6Z</div>
-                            <div class="moka-kv-value-text">${details.compliance_pass || '否'}</div>
+                            <div class="moka-kv-value-text">${details.compliance_pass || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">合同主体</div>
-                            <div class="moka-kv-value-text">${details.contract_subject || '北京雪球私募基金管理有限公司'}</div>
+                            <div class="moka-kv-value-text">${details.contract_subject || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">入职部门</div>
-                            <div class="moka-kv-value-text">${details.department || '金融风控(雪球(北京)技术开发有限公司/法务合规部/金融合规/金融风控)'}</div>
+                            <div class="moka-kv-value-text">${details.department || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">职位级别</div>
-                            <div class="moka-kv-value-text">${details.job_level || 'X5'}</div>
+                            <div class="moka-kv-value-text">${details.job_level || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">预计入职时间</div>
-                            <div class="moka-kv-value-text">${details.proposed_start_date || '2026-08-03'}</div>
+                            <div class="moka-kv-value-text">${details.proposed_start_date || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">薪资待遇</div>
-                            <div class="moka-kv-value-text">月薪 ${details.base_salary || 19000}</div>
+                            <div class="moka-kv-value-text">${details.base_salary ? '月薪 ' + details.base_salary : '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">员工类型</div>
-                            <div class="moka-kv-value-text">${details.employee_type || '正式员工'}</div>
+                            <div class="moka-kv-value-text">${details.employee_type || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">绩效工资-私行适用</div>
-                            <div class="moka-kv-value-text">${details.perf_salary || '0'}</div>
+                            <div class="moka-kv-value-text">${details.perf_salary || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">私行适用-试用期工资发放比例</div>
-                            <div class="moka-kv-value-text">${details.probation_rate || '100%'}</div>
+                            <div class="moka-kv-value-text">${details.probation_rate || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">目标年终奖金月数</div>
-                            <div class="moka-kv-value-text">${details.target_bonus_months || 2}</div>
+                            <div class="moka-kv-value-text">${details.target_bonus_months || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">期权数</div>
-                            <div class="moka-kv-value-text">${details.stock_options || 0}</div>
+                            <div class="moka-kv-value-text">${details.stock_options || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">试用期（月）</div>
-                            <div class="moka-kv-value-text">${details.probation_months || 6}</div>
+                            <div class="moka-kv-value-text">${details.probation_months || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">上家公司月薪/元（月薪与并入税前月薪的其他现金类收入）</div>
-                            <div class="moka-kv-value-text">${details.prev_month_salary || 14000}</div>
+                            <div class="moka-kv-value-text">${details.prev_month_salary || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">上家公司年薪/元（年月薪总额，奖金与并入税前工资的其他现金类收入）</div>
-                            <div class="moka-kv-value-text">${details.prev_annual_salary || '14K*15M'}</div>
+                            <div class="moka-kv-value-text">${details.prev_annual_salary || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">职位类</div>
-                            <div class="moka-kv-value-text">${details.job_category || '职能支持类'}</div>
+                            <div class="moka-kv-value-text">${details.job_category || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">职位族</div>
-                            <div class="moka-kv-value-text">${details.job_family || '法务合规'}</div>
+                            <div class="moka-kv-value-text">${details.job_family || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">职位序列</div>
-                            <div class="moka-kv-value-text">${details.job_sequence || '风控合规'}</div>
+                            <div class="moka-kv-value-text">${details.job_sequence || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">基础岗位</div>
-                            <div class="moka-kv-value-text">${details.base_position || '风控合规'}</div>
+                            <div class="moka-kv-value-text">${details.base_position || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">合同职位</div>
-                            <div class="moka-kv-value-text">${details.contract_title || '高级风控合规'}</div>
+                            <div class="moka-kv-value-text">${details.contract_title || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">直属主管</div>
-                            <div class="moka-kv-value-text">${details.direct_manager || '代天娇'}</div>
+                            <div class="moka-kv-value-text">${details.direct_manager || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">性别</div>
-                            <div class="moka-kv-value-text">${details.gender || '女'}</div>
+                            <div class="moka-kv-value-text">${details.gender || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">电脑配置</div>
-                            <div class="moka-kv-value-text">${details.pc_config || 'Windows电脑'}</div>
+                            <div class="moka-kv-value-text">${details.pc_config || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">入职办理地点</div>
-                            <div class="moka-kv-value-text">${details.onboard_location || '北京市朝阳区来广营融新科技中心C座18层'}</div>
+                            <div class="moka-kv-value-text">${details.onboard_location || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">办公区</div>
-                            <div class="moka-kv-value-text">${details.work_area || '北京（融新）'}</div>
+                            <div class="moka-kv-value-text">${details.work_area || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">成本中心-财务</div>
-                            <div class="moka-kv-value-text">${details.cost_center || '资产管理'}</div>
+                            <div class="moka-kv-value-text">${details.cost_center || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">薪酬特殊说明（年现金涨幅超20%时，说明：年薪涨幅，横向对比，申请原因）</div>
-                            <div class="moka-kv-value-text">${details.salary_special_note || '目前就职于老虎，校招入职后未进行过调薪，故本次薪资涨幅略高。'}</div>
+                            <div class="moka-kv-value-text">${details.salary_special_note || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
@@ -1470,22 +1461,23 @@
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">发送附件给审批人</div>
                             <div class="moka-kv-value-text" style="display:flex; justify-content:space-between; align-items:center;">
-                                <span>${details.attachment_name || '薪酬与教育信息收集表-涂佳颖.xlsx'} (${details.attachment_size || '15.7MB'})</span>
+                                <span>${details.attachment_name ? details.attachment_name + ' (' + details.attachment_size + ')' : '-'}</span>
+                                ${details.attachment_name ? `
                                 <span style="display:flex; gap:12px; font-size:12.5px;">
                                     <a href="javascript:void(0)" onclick="showToast('正在调起附件表格在线预览...', 'info')" style="color:#165dff; text-decoration:none;">预览</a>
                                     <a href="javascript:void(0)" onclick="showToast('附件下载成功', 'success')" style="color:#165dff; text-decoration:none;">下载</a>
-                                </span>
+                                </span>` : ''}
                             </div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">备注（职级，HC（增或替），核心职责，优劣势总结，其他需要备注的事项）</div>
-                            <div class="moka-kv-value-text">${details.remarks || '离职替代，定级X5，汇报上级 天娇，base金融合规。'}</div>
+                            <div class="moka-kv-value-text">${details.remarks || '-'}</div>
                         </div>
 
                         <div class="moka-kv-row">
                             <div class="moka-kv-label-title">是否校招生</div>
-                            <div class="moka-kv-value-text">${details.is_campus_hire || '否'}</div>
+                            <div class="moka-kv-value-text">${details.is_campus_hire || '-'}</div>
                         </div>
                     </div>
                 </div>
@@ -1568,35 +1560,35 @@
             const container = document.getElementById('offer-approval-section');
             const details = existingDetails || (currentOfferApprovalInstance ? currentOfferApprovalInstance.offer_details : null) || {
                 compliance_pass: '否',
-                contract_subject: '北京雪球私募基金管理有限公司',
-                department: (currentCandidate ? (currentCandidate.department || currentCandidate.job || '金融风控(雪球(北京)技术开发有限公司/法务合规部/金融合规/金融风控)') : '金融风控'),
-                job_level: 'X5',
-                proposed_start_date: '2026-08-03',
-                base_salary: 19000,
+                contract_subject: '',
+                department: (currentCandidate ? (currentCandidate.department || currentCandidate.job || '') : '') || '',
+                job_level: '',
+                proposed_start_date: '',
+                base_salary: '',
                 employee_type: '正式员工',
-                perf_salary: '0',
-                probation_rate: '100%',
-                target_bonus_months: 2,
-                stock_options: '0',
-                probation_months: '6',
-                prev_month_salary: '14000',
-                prev_annual_salary: '14K*15M',
+                perf_salary: '',
+                probation_rate: '',
+                target_bonus_months: '',
+                stock_options: '',
+                probation_months: '',
+                prev_month_salary: '',
+                prev_annual_salary: '',
                 job_category: '职能支持类',
-                job_family: '法务合规',
-                job_sequence: '风控合规',
-                base_position: '风控合规',
-                contract_title: '高级风控合规',
-                direct_manager: '代天娇',
+                job_family: '',
+                job_sequence: '',
+                base_position: '',
+                contract_title: '',
+                direct_manager: '',
                 gender: '女',
                 pc_config: 'Windows电脑',
-                onboard_location: '北京市朝阳区来广营融新科技中心C座18层',
-                work_area: '北京（融新）',
-                cost_center: '资产管理',
-                salary_special_note: '目前就职于老虎，校招入职后未进行过调薪，故本次薪资涨幅略高。',
+                onboard_location: '',
+                work_area: '',
+                cost_center: '',
+                salary_special_note: '',
                 edu_special_note: '-',
-                attachment_name: '薪酬与教育信息收集表-涂佳颖.xlsx',
-                attachment_size: '15.7MB',
-                remarks: '离职替代，定级X5，汇报上级 天娇，base金融合规。',
+                attachment_name: '',
+                attachment_size: '',
+                remarks: '',
                 is_campus_hire: '否'
             };
 
