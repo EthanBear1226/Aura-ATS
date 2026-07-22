@@ -622,6 +622,103 @@
             font-weight: 500;
             word-break: break-all;
         }
+
+        /* 商业级表单控件与卡片重构 */
+        .moka-edit-card {
+            background: #ffffff;
+            border: 1px solid #f2f3f5;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.01);
+        }
+
+        .moka-edit-section-title {
+            font-size: 14.5px;
+            font-weight: 600;
+            color: #1f2329;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #f2f3f5;
+            padding-bottom: 10px;
+        }
+        .moka-edit-section-title::before {
+            content: '';
+            display: inline-block;
+            width: 3.5px;
+            height: 14px;
+            background: #165dff;
+            border-radius: 2px;
+        }
+
+        .moka-form-label {
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #4e5969;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .moka-input-clean {
+            width: 100%;
+            height: 38px;
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #1f2329;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+        .moka-input-clean:focus {
+            border-color: #165dff;
+            box-shadow: 0 0 0 2px rgba(22,93,255,0.1);
+            outline: none;
+        }
+
+        .moka-select-clean {
+            width: 100%;
+            height: 38px;
+            background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2386909c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center;
+            background-size: 12px;
+            border: 1px solid #e5e6eb;
+            border-radius: 6px;
+            padding: 8px 28px 8px 12px;
+            font-size: 13px;
+            color: #1f2329;
+            box-sizing: border-box;
+            appearance: none;
+            -webkit-appearance: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .moka-select-clean:focus {
+            border-color: #165dff;
+            box-shadow: 0 0 0 2px rgba(22,93,255,0.1);
+            outline: none;
+        }
+
+        .moka-textarea-clean {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #1f2329;
+            box-sizing: border-box;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.2s;
+        }
+        .moka-textarea-clean:focus {
+            border-color: #165dff;
+            box-shadow: 0 0 0 2px rgba(22,93,255,0.1);
+            outline: none;
+        }
     </style>
 </head>
 <body>
@@ -1504,189 +1601,187 @@
             };
 
             container.innerHTML = `
-                <div style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:24px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; border-bottom:1px solid #f2f3f5; padding-bottom:12px;">
-                        <h4 style="margin:0; font-size:16px; font-weight:700; color:#1f2329;">📝 编辑 Offer 详情（大厂 30 项全量字段对齐）</h4>
-                        <button class="moka-btn-gray" onclick="loadOfferApproval()" style="font-size:12px;">← 取消并返回预览</button>
+                <div style="background:#ffffff; border-radius:8px; padding:8px 0 24px 0;">
+                    
+                    <!-- 顶端头部 -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #f2f3f5; padding-bottom:14px;">
+                        <h4 style="margin:0; font-size:16px; font-weight:700; color:#1f2329; display:flex; align-items:center; gap:8px;">📝 编辑 Offer 详情</h4>
+                        <button class="moka-btn-gray" onclick="loadOfferApproval()" style="font-size:12px;">← 返回详情</button>
                     </div>
 
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 24px;">
-                        
-                        <div style="grid-column: span 2;">
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">请判断该员工是否符合签署雪球基金的条件</label>
-                            <select id="offerCompliancePass" class="form-control">
-                                <option value="否" ${details.compliance_pass === '否' ? 'selected' : ''}>否</option>
-                                <option value="是" ${details.compliance_pass === '是' ? 'selected' : ''}>是</option>
-                            </select>
+                    <!-- 分组 1: 基础录用与合规 -->
+                    <div class="moka-edit-card">
+                        <div class="moka-edit-section-title">基础录用与合规</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;">
+                            <div style="grid-column: span 2;">
+                                <label class="moka-form-label">请判断该员工是否符合签署雪球基金的条件</label>
+                                <select id="offerCompliancePass" class="moka-select-clean">
+                                    <option value="否" ${details.compliance_pass === '否' ? 'selected' : ''}>否</option>
+                                    <option value="是" ${details.compliance_pass === '是' ? 'selected' : ''}>是</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="moka-form-label">合同主体</label>
+                                <input type="text" id="offerContractSubject" class="moka-input-clean" value="${details.contract_subject}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">入职部门</label>
+                                <input type="text" id="offerDept" class="moka-input-clean" value="${details.department}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">拟录用职级</label>
+                                <input type="text" id="offerLevel" class="moka-input-clean" value="${details.job_level}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">预计入职日期</label>
+                                <input type="date" id="offerProposedStartDate" class="moka-input-clean" value="${details.proposed_start_date}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">员工类型</label>
+                                <select id="offerEmployeeType" class="moka-select-clean">
+                                    <option value="正式员工" ${details.employee_type === '正式员工' ? 'selected' : ''}>正式员工</option>
+                                    <option value="实习生" ${details.employee_type === '实习生' ? 'selected' : ''}>实习生</option>
+                                    <option value="外包人员" ${details.employee_type === '外包人员' ? 'selected' : ''}>外包人员</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="moka-form-label">是否校招生</label>
+                                <select id="offerIsCampusHire" class="moka-select-clean">
+                                    <option value="否" ${details.is_campus_hire === '否' ? 'selected' : ''}>否</option>
+                                    <option value="是" ${details.is_campus_hire === '是' ? 'selected' : ''}>是</option>
+                                </select>
+                            </div>
                         </div>
+                    </div>
 
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">合同主体</label>
-                            <input type="text" id="offerContractSubject" class="form-control" value="${details.contract_subject || '北京雪球私募基金管理有限公司'}">
+                    <!-- 分组 2: 薪酬考核与福利 -->
+                    <div class="moka-edit-card">
+                        <div class="moka-edit-section-title">薪酬考核与福利</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;">
+                            <div>
+                                <label class="moka-form-label">基础月薪（元）</label>
+                                <input type="number" id="offerBaseSalary" class="moka-input-clean" value="${details.base_salary}" oninput="calcTabAnnualSalary()">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">绩效工资-私行适用</label>
+                                <input type="text" id="offerPerfSalary" class="moka-input-clean" value="${details.perf_salary}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">私行适用-试用期工资发放比例</label>
+                                <input type="text" id="offerProbationRate" class="moka-input-clean" value="${details.probation_rate}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">目标年终奖金月数</label>
+                                <input type="number" id="offerTargetBonusMonths" class="moka-input-clean" value="${details.target_bonus_months}" oninput="calcTabAnnualSalary()">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">期权数</label>
+                                <input type="number" id="offerStockOptions" class="moka-input-clean" value="${details.stock_options}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">试用期（月）</label>
+                                <input type="number" id="offerProbationMonths" class="moka-input-clean" value="${details.probation_months}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">上家公司月薪（元）</label>
+                                <input type="text" id="offerPrevMonthSalary" class="moka-input-clean" value="${details.prev_month_salary}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">上家公司年薪（元）</label>
+                                <input type="text" id="offerPrevAnnualSalary" class="moka-input-clean" value="${details.prev_annual_salary}">
+                            </div>
                         </div>
+                    </div>
 
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">入职部门</label>
-                            <input type="text" id="offerDept" class="form-control" value="${details.department || '金融风控(雪球(北京)技术开发有限公司/法务合规部/金融合规/金融风控)'}">
+                    <!-- 分组 3: 架构序列与主管 -->
+                    <div class="moka-edit-card">
+                        <div class="moka-edit-section-title">架构序列与主管</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;">
+                            <div>
+                                <label class="moka-form-label">职位类</label>
+                                <select id="offerJobCategory" class="moka-select-clean">
+                                    <option value="职能支持类" ${details.job_category === '职能支持类' ? 'selected' : ''}>职能支持类</option>
+                                    <option value="技术研发类" ${details.job_category === '技术研发类' ? 'selected' : ''}>技术研发类</option>
+                                    <option value="产品运营类" ${details.job_category === '产品运营类' ? 'selected' : ''}>产品运营类</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="moka-form-label">职位族</label>
+                                <input type="text" id="offerJobFamily" class="moka-input-clean" value="${details.job_family}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">职位序列</label>
+                                <input type="text" id="offerJobSequence" class="moka-input-clean" value="${details.job_sequence}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">基础岗位</label>
+                                <input type="text" id="offerBasePosition" class="moka-input-clean" value="${details.base_position}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">合同职位</label>
+                                <input type="text" id="offerContractTitle" class="moka-input-clean" value="${details.contract_title}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">直属主管</label>
+                                <input type="text" id="offerDirectManager" class="moka-input-clean" value="${details.direct_manager}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">性别</label>
+                                <select id="offerGender" class="moka-select-clean">
+                                    <option value="女" ${details.gender === '女' ? 'selected' : ''}>女</option>
+                                    <option value="男" ${details.gender === '男' ? 'selected' : ''}>男</option>
+                                </select>
+                            </div>
                         </div>
+                    </div>
 
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">拟录用职级</label>
-                            <input type="text" id="offerLevel" class="form-control" value="${details.job_level || 'X5'}">
+                    <!-- 分组 4: 办公地点与成本 -->
+                    <div class="moka-edit-card">
+                        <div class="moka-edit-section-title">办公地点与成本</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;">
+                            <div>
+                                <label class="moka-form-label">电脑配置</label>
+                                <select id="offerPcConfig" class="moka-select-clean">
+                                    <option value="Windows电脑" ${details.pc_config === 'Windows电脑' ? 'selected' : ''}>Windows电脑</option>
+                                    <option value="MacBook Pro" ${details.pc_config === 'MacBook Pro' ? 'selected' : ''}>MacBook Pro</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="moka-form-label">办公区</label>
+                                <input type="text" id="offerWorkArea" class="moka-input-clean" value="${details.work_area}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">成本中心-财务</label>
+                                <input type="text" id="offerCostCenter" class="moka-input-clean" value="${details.cost_center}">
+                            </div>
+                            <div>
+                                <label class="moka-form-label">学历特殊说明</label>
+                                <input type="text" id="offerEduSpecialNote" class="moka-input-clean" value="${details.edu_special_note}">
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <label class="moka-form-label">入职办理地点</label>
+                                <input type="text" id="offerOnboardLocation" class="moka-input-clean" value="${details.onboard_location}">
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <label class="moka-form-label">薪酬特殊说明（年现金涨幅超20%时说明原因）</label>
+                                <textarea id="offerSalarySpecialNote" class="moka-textarea-clean" rows="2">${details.salary_special_note}</textarea>
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <label class="moka-form-label">备注（职级，HC，核心职责等）</label>
+                                <textarea id="offerRemarks" class="moka-textarea-clean" rows="2">${details.remarks}</textarea>
+                            </div>
                         </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">预计入职日期</label>
-                            <input type="date" id="offerProposedStartDate" class="form-control" value="${details.proposed_start_date || '2026-08-03'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">基础月薪（元）</label>
-                            <input type="number" id="offerBaseSalary" class="form-control" value="${details.base_salary || 19000}" oninput="calcTabAnnualSalary()">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">员工类型</label>
-                            <select id="offerEmployeeType" class="form-control">
-                                <option value="正式员工" ${details.employee_type === '正式员工' ? 'selected' : ''}>正式员工</option>
-                                <option value="实习生" ${details.employee_type === '实习生' ? 'selected' : ''}>实习生</option>
-                                <option value="外包人员" ${details.employee_type === '外包人员' ? 'selected' : ''}>外包人员</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">绩效工资-私行适用</label>
-                            <input type="text" id="offerPerfSalary" class="form-control" value="${details.perf_salary || '0'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">私行适用-试用期工资发放比例</label>
-                            <input type="text" id="offerProbationRate" class="form-control" value="${details.probation_rate || '100%'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">目标年终奖金月数</label>
-                            <input type="number" id="offerTargetBonusMonths" class="form-control" value="${details.target_bonus_months || 2}" oninput="calcTabAnnualSalary()">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">期权数</label>
-                            <input type="number" id="offerStockOptions" class="form-control" value="${details.stock_options || 0}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">试用期（月）</label>
-                            <input type="number" id="offerProbationMonths" class="form-control" value="${details.probation_months || 6}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">上家公司月薪（元）</label>
-                            <input type="text" id="offerPrevMonthSalary" class="form-control" value="${details.prev_month_salary || '14000'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">上家公司年薪（元）</label>
-                            <input type="text" id="offerPrevAnnualSalary" class="form-control" value="${details.prev_annual_salary || '14K*15M'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">职位类</label>
-                            <select id="offerJobCategory" class="form-control">
-                                <option value="职能支持类" ${details.job_category === '职能支持类' ? 'selected' : ''}>职能支持类</option>
-                                <option value="技术研发类" ${details.job_category === '技术研发类' ? 'selected' : ''}>技术研发类</option>
-                                <option value="产品运营类" ${details.job_category === '产品运营类' ? 'selected' : ''}>产品运营类</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">职位族</label>
-                            <input type="text" id="offerJobFamily" class="form-control" value="${details.job_family || '法务合规'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">职位序列</label>
-                            <input type="text" id="offerJobSequence" class="form-control" value="${details.job_sequence || '风控合规'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">基础岗位</label>
-                            <input type="text" id="offerBasePosition" class="form-control" value="${details.base_position || '风控合规'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">合同职位</label>
-                            <input type="text" id="offerContractTitle" class="form-control" value="${details.contract_title || '高级风控合规'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">直属主管</label>
-                            <input type="text" id="offerDirectManager" class="form-control" value="${details.direct_manager || '代天娇'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">性别</label>
-                            <select id="offerGender" class="form-control">
-                                <option value="女" ${details.gender === '女' ? 'selected' : ''}>女</option>
-                                <option value="男" ${details.gender === '男' ? 'selected' : ''}>男</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">电脑配置</label>
-                            <select id="offerPcConfig" class="form-control">
-                                <option value="Windows电脑" ${details.pc_config === 'Windows电脑' ? 'selected' : ''}>Windows电脑</option>
-                                <option value="MacBook Pro" ${details.pc_config === 'MacBook Pro' ? 'selected' : ''}>MacBook Pro</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">入职办理地点</label>
-                            <input type="text" id="offerOnboardLocation" class="form-control" value="${details.onboard_location || '北京市朝阳区来广营融新科技中心C座18层'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">办公区</label>
-                            <input type="text" id="offerWorkArea" class="form-control" value="${details.work_area || '北京（融新）'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">成本中心-财务</label>
-                            <input type="text" id="offerCostCenter" class="form-control" value="${details.cost_center || '资产管理'}">
-                        </div>
-
-                        <div style="grid-column: span 2;">
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">薪酬特殊说明（年现金涨幅超20%时说明原因）</label>
-                            <textarea id="offerSalarySpecialNote" class="form-control" rows="2">${details.salary_special_note || '目前就职于老虎，校招入职后未进行过调薪，故本次薪资涨幅略高。'}</textarea>
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">学历特殊说明</label>
-                            <input type="text" id="offerEduSpecialNote" class="form-control" value="${details.edu_special_note || '-'}">
-                        </div>
-
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">是否校招生</label>
-                            <select id="offerIsCampusHire" class="form-control">
-                                <option value="否" ${details.is_campus_hire === '否' ? 'selected' : ''}>否</option>
-                                <option value="是" ${details.is_campus_hire === '是' ? 'selected' : ''}>是</option>
-                            </select>
-                        </div>
-
-                        <div style="grid-column: span 2;">
-                            <label style="font-size:12px; font-weight:600; color:#4e5969; display:block; margin-bottom:4px;">备注（职级，HC，核心职责等）</label>
-                            <textarea id="offerRemarks" class="form-control" rows="2">${details.remarks || '离职替代，定级X5，汇报上级 天娇，base金融合规。'}</textarea>
-                        </div>
-
                     </div>
                     
-                    <div style="background:#f4f8ff; border:1px solid #d0e1ff; padding:12px 18px; border-radius:6px; margin-top:20px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:13px; font-weight:600; color:#1f2329;">保障年基本薪资合计 (折算):</span>
-                        <strong id="tabAnnualSalaryCalc" style="font-size:16px; color:#165dff;">¥266,000 / 年</strong>
+                    <!-- 保障年基本薪资折算 -->
+                    <div style="background:#f4f8ff; border:1px solid #d0e1ff; padding:14px 20px; border-radius:6px; margin-top:24px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:13px; font-weight:600; color:#4e5969;">保障年基本薪资合计 (折算):</span>
+                        <strong id="tabAnnualSalaryCalc" style="font-size:16px; color:#165dff;">¥0 / 年</strong>
                     </div>
 
                     <div style="display:flex; gap:16px;">
-                        <button class="moka-btn-gray" style="flex:1;" onclick="loadOfferApproval()">取消</button>
-                        <button class="btn btn-primary" style="flex:2; padding:10px; font-weight:600; background:#165dff;" onclick="submitTabOfferLaunch()">保存 Offer 详情并提交</button>
+                        <button class="moka-btn-gray" style="flex:1; height:38px;" onclick="loadOfferApproval()">取消</button>
+                        <button class="btn btn-primary" style="flex:2; height:38px; font-weight:600; background:#165dff; border-radius:6px;" onclick="submitTabOfferLaunch()">保存并提交</button>
                     </div>
                 </div>
             `;

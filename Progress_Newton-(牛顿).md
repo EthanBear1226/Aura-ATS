@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.34
+- **当前版本**: Newton-(牛顿)-v1.22.35
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.35**: 美化Offer编辑页面UI，使其符合系统整体现代极简商业设计调性 (2026-07-22 09:42:41)
 - **v1.22.34**: 彻底重构Offer编辑表单renderOfferForm，实现与30项大厂全量字段1:1完全对齐与数据联动 (2026-07-21 18:13:20)
 - **v1.22.33**: 1:1依照Moka最新5张截图落实无小图标30项Offer全量属性展框及邮件短信仿真模块 (2026-07-21 17:21:25)
 - **v1.22.32**: 1:1依照Moka真实截图（图二图三图四）重塑候选人详情页Offer/录用Tab (2026-07-21 16:49:08)
@@ -167,3 +168,4 @@
 - [2026-07-21 16:49:08] 在candidate-detail.html中，引入了moka-section-title蓝色竖杠标题、导出offer信息/发起背调组合按钮、入职记录卡片、背调信息进度Timeline卡片、Offer审批卡片、Offer发送记录卡片、以及Key-Value展框的Offer详情折叠卡片，完全消除了原来直接显示生硬Input表单的粗糙视觉
 - [2026-07-21 17:21:25] 在candidate-detail.html中，全面去除了干扰视觉的小图标，以极简大厂商务风落成了30项全量Offer属性纵向/双列名值对（Key-Value），并新上线了带伪浏览器三圆点窗头的【Offer邮件预览】与带模拟卡片的【Offer短信预览】模块
 - [2026-07-21 18:13:20] 在candidate-detail.html中，重构了renderOfferForm与submitTabOfferLaunch，消除了department空值undefined的显示BUG，全面接入了30项大厂字段输入控件与←取消并返回预览导航，实现了编辑页面与预览展框100%数据完全对齐与实时同步
+- [2026-07-22 09:42:41] 在candidate-detail.html中，为编辑表单新增了.moka-input-clean、.moka-select-clean与.moka-textarea-clean等一系列无原生黑粗框与灰色按钮的精细自定义控件样式，并通过.moka-edit-card四分类微卡片包覆所有30项表单控件，全面升级了编辑页面的商业级排版设计调性
