@@ -578,27 +578,25 @@
                         <table class="table-container" style="margin:0;">
                             <thead>
                                 <tr>
-                                    <th style="width:25%;">字段名称</th>
-                                    <th style="width:15%; text-align:center;">在 Offer 中启用</th>
-                                    <th style="width:12%; text-align:center;">设为必填项</th>
-                                    <th style="width:48%;">提前预设选项 / 预填模板 (以逗号隔开)</th>
+                                    <th style="width:28%;">字段名称</th>
+                                    <th style="width:16%; text-align:center;">在 Offer 中启用</th>
+                                    <th style="width:14%; text-align:center;">设为必填项</th>
+                                    <th style="width:24%; text-align:center;">当前控件形态</th>
+                                    <th style="width:18%; text-align:center;">操作</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${catFields.map(f => {
-                                    let optionCtrlHtml = '';
-                                    if (f.field_key === 'department') {
-                                        optionCtrlHtml = `
-                                            <label style="cursor:pointer; font-size:12.5px; color:#165dff; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
-                                                <input type="checkbox" id="chk-depttree-${f.field_key}" ${f.use_dept_tree !== false ? 'checked' : ''} onchange="toggleDeptTreeUse('${f.field_key}')" style="accent-color:#165dff; width:15px; height:15px;">
-                                                🌳 自动调取系统部门架构树
-                                            </label>
-                                        `;
+                                    let badgeHtml = '';
+                                    const ctrlType = f.control_type || (f.use_dept_tree ? 'dept_tree' : ((f.options && f.options.length > 0) ? 'select' : 'input'));
+                                    
+                                    if (ctrlType === 'dept_tree' || f.field_key === 'department') {
+                                        badgeHtml = `<span style="background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe; padding:4px 10px; border-radius:12px; font-size:11.5px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">🌳 组织架构树调取</span>`;
+                                    } else if (ctrlType === 'select' || (f.options && f.options.length > 0)) {
+                                        const count = (f.options || []).length;
+                                        badgeHtml = `<span style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:4px 10px; border-radius:12px; font-size:11.5px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">📋 预设下拉 (${count}项)</span>`;
                                     } else {
-                                        const optVal = (f.options || []).join(', ');
-                                        optionCtrlHtml = `
-                                            <input type="text" id="input-options-${f.field_key}" class="form-control" style="font-size:12px; padding:4px 10px; height:32px; border-radius:6px;" value="${optVal}" placeholder="如: 选项A, 选项B (留空则为自由输入框)" onchange="updateFieldOptions('${f.field_key}', this.value)">
-                                        `;
+                                        badgeHtml = `<span style="background:#f3f4f6; color:#4b5563; border:1px solid #e5e7eb; padding:4px 10px; border-radius:12px; font-size:11.5px; font-weight:500; display:inline-flex; align-items:center; gap:4px;">📝 自由填空</span>`;
                                     }
 
                                     return `
@@ -616,7 +614,10 @@
                                                 <span style="font-size:12px; color:${f.required ? '#FF3B30' : '#86909c'}; font-weight:${f.required ? '600' : 'normal'};">${f.required ? '必填' : '选填'}</span>
                                             </label>
                                         </td>
-                                        <td>${optionCtrlHtml}</td>
+                                        <td style="text-align:center;">${badgeHtml}</td>
+                                        <td style="text-align:center;">
+                                            <button type="button" class="btn btn-secondary" onclick="openOfferFieldConfigModal('${f.field_key}')" style="font-size:12px; padding:3px 10px; height:28px; border-radius:6px; background:#f4f5f7; border:1px solid #d0d5dd; color:#1f2329; font-weight:600; cursor:pointer;">⚙️ 规则与预设</button>
+                                        </td>
                                     </tr>
                                     `;
                                 }).join('')}
@@ -629,18 +630,128 @@
             container.innerHTML = html;
         }
 
-        function updateFieldOptions(key, valueStr) {
-            const item = offerFieldsConfigList.find(f => f.field_key === key);
-            if (item) {
-                item.options = valueStr ? valueStr.split(/[,，]/).map(s => s.trim()).filter(Boolean) : [];
+        let currentEditingFieldKey = null;
+
+        function openOfferFieldConfigModal(key) {
+            const field = offerFieldsConfigList.find(f => f.field_key === key);
+            if (!field) return;
+
+            currentEditingFieldKey = key;
+            const modal = document.getElementById('offerFieldConfigModal');
+            if (!modal) return;
+
+            document.getElementById('modal-field-title').innerText = `${field.field_name} (${field.field_key})`;
+            
+            let curType = field.control_type || (field.use_dept_tree ? 'dept_tree' : ((field.options && field.options.length > 0) ? 'select' : 'input'));
+            
+            // 如果不是部门字段，禁用部门树单选
+            const rdept = document.getElementById('radio-type-depttree');
+            if (rdept) {
+                rdept.disabled = (key !== 'department');
+                if (key !== 'department' && curType === 'dept_tree') curType = 'input';
+            }
+
+            const rinput = document.getElementById('radio-type-input');
+            const rselect = document.getElementById('radio-type-select');
+
+            if (curType === 'dept_tree' && rdept) rdept.checked = true;
+            else if (curType === 'select' && rselect) rselect.checked = true;
+            else if (rinput) rinput.checked = true;
+
+            switchFieldTypePhase(curType);
+
+            // 还原选项池
+            const optionsList = field.options || [];
+            const container = document.getElementById('modal-options-list-container');
+            container.innerHTML = '';
+            if (optionsList.length > 0) {
+                optionsList.forEach(opt => addFieldOptionItem(opt));
+            } else {
+                addFieldOptionItem('');
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeOfferFieldConfigModal() {
+            const modal = document.getElementById('offerFieldConfigModal');
+            if (modal) modal.style.display = 'none';
+            currentEditingFieldKey = null;
+        }
+
+        function switchFieldTypePhase(type) {
+            const secInput = document.getElementById('phase-sec-input');
+            const secSelect = document.getElementById('phase-sec-select');
+            const secDept = document.getElementById('phase-sec-dept');
+
+            if (secInput) secInput.style.display = (type === 'input') ? 'block' : 'none';
+            if (secSelect) secSelect.style.display = (type === 'select') ? 'block' : 'none';
+            if (secDept) secDept.style.display = (type === 'dept_tree') ? 'block' : 'none';
+        }
+
+        function addFieldOptionItem(val = '') {
+            const container = document.getElementById('modal-options-list-container');
+            if (!container) return;
+
+            const div = document.createElement('div');
+            div.style.cssText = "display:flex; align-items:center; gap:8px; margin-bottom:8px;";
+            div.className = "opt-item-row";
+            div.innerHTML = `
+                <span style="color:#86909c; font-size:12px;">•</span>
+                <input type="text" class="form-control opt-item-input" style="font-size:12px; height:32px; flex:1; border-radius:6px;" value="${val}" placeholder="输入选项值，例如: 北京雪球私募基金管理有限公司">
+                <button type="button" onclick="this.parentElement.remove()" style="border:none; background:transparent; color:#FF3B30; font-size:16px; cursor:pointer; padding:0 4px;">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function batchParseOptions() {
+            const area = document.getElementById('modal-batch-options-area');
+            if (!area || !area.value.trim()) return;
+
+            const arr = area.value.split(/[,，\n]/).map(s => s.trim()).filter(Boolean);
+            if (arr.length > 0) {
+                const container = document.getElementById('modal-options-list-container');
+                container.innerHTML = '';
+                arr.forEach(opt => addFieldOptionItem(opt));
+                area.value = '';
+                showToast(`已批量导入 ${arr.length} 个预设选项`, 'success');
             }
         }
 
-        function toggleDeptTreeUse(key) {
-            const item = offerFieldsConfigList.find(f => f.field_key === key);
-            if (item) {
-                item.use_dept_tree = !item.use_dept_tree;
+        function saveSingleFieldConfigModal() {
+            if (!currentEditingFieldKey) return;
+            const field = offerFieldsConfigList.find(f => f.field_key === currentEditingFieldKey);
+            if (!field) return;
+
+            const rinput = document.getElementById('radio-type-input');
+            const rselect = document.getElementById('radio-type-select');
+            const rdept = document.getElementById('radio-type-depttree');
+
+            let chosenType = 'input';
+            if (rselect && rselect.checked) chosenType = 'select';
+            else if (rdept && rdept.checked) chosenType = 'dept_tree';
+
+            field.control_type = chosenType;
+
+            if (chosenType === 'select') {
+                const inputs = document.querySelectorAll('.opt-item-input');
+                const newOpts = [];
+                inputs.forEach(inp => {
+                    if (inp.value.trim()) newOpts.push(inp.value.trim());
+                });
+                field.options = newOpts;
+                field.use_dept_tree = false;
+            } else if (chosenType === 'dept_tree') {
+                field.use_dept_tree = true;
+                field.options = [];
+            } else {
+                field.use_dept_tree = false;
+                field.options = [];
             }
+
+            renderOfferFieldsConfig();
+            closeOfferFieldConfigModal();
+            showToast(`🎉 ${field.field_name} 的字段规则与预设模板配置已更新！点击右上角【保存字段配置】即可生效。`, 'success');
         }
 
         function toggleFieldEnabled(key) {
@@ -1750,6 +1861,91 @@
             }
         }
     </script>
+    <!-- 独立 Offer 字段规则与预设配置 Modal 弹窗 -->
+    <div class="modal-overlay" id="offerFieldConfigModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+        <div class="modal-card" style="background:#fff; width:560px; border-radius:14px; padding:28px; box-shadow:0 16px 40px rgba(0,0,0,0.18); max-height:85vh; display:flex; flex-direction:column;">
+            
+            <!-- 头部 -->
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f2f3f5; padding-bottom:14px; margin-bottom:20px;">
+                <h3 style="margin:0; font-size:16px; font-weight:700; color:#1f2329; display:flex; align-items:center; gap:8px;">
+                    ⚙️ 规则与预设配置：<span id="modal-field-title" style="color:#165dff;">合同主体</span>
+                </h3>
+                <span style="cursor:pointer; font-size:20px; color:#86909c;" onclick="closeOfferFieldConfigModal()">✕</span>
+            </div>
+
+            <!-- 第一阶段：选择控件输入形态 -->
+            <div style="margin-bottom:20px;">
+                <label style="font-size:13px; font-weight:700; color:#1f2329; display:block; margin-bottom:10px;">第一步：选择发起 Offer 时的填写形态</label>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+                    <label style="cursor:pointer; border:1px solid #e5e6eb; border-radius:8px; padding:12px 10px; text-align:center; transition:all 0.2s;" onmouseover="this.style.borderColor='#165dff'" onmouseout="this.style.borderColor='#e5e6eb'">
+                        <input type="radio" name="ctrlTypeRadio" id="radio-type-input" value="input" onchange="switchFieldTypePhase('input')" style="accent-color:#165dff; margin-right:4px;">
+                        <span style="font-size:12.5px; font-weight:600; color:#1f2329;">📝 自由填空</span>
+                        <div style="font-size:11px; color:#86909c; margin-top:2px;">发起人自由打字</div>
+                    </label>
+                    <label style="cursor:pointer; border:1px solid #e5e6eb; border-radius:8px; padding:12px 10px; text-align:center; transition:all 0.2s;" onmouseover="this.style.borderColor='#165dff'" onmouseout="this.style.borderColor='#e5e6eb'">
+                        <input type="radio" name="ctrlTypeRadio" id="radio-type-select" value="select" onchange="switchFieldTypePhase('select')" style="accent-color:#165dff; margin-right:4px;">
+                        <span style="font-size:12.5px; font-weight:600; color:#165dff;">📋 预设下拉</span>
+                        <div style="font-size:11px; color:#86909c; margin-top:2px;">下拉快捷点选</div>
+                    </label>
+                    <label style="cursor:pointer; border:1px solid #e5e6eb; border-radius:8px; padding:12px 10px; text-align:center; transition:all 0.2s;" onmouseover="this.style.borderColor='#7e22ce'" onmouseout="this.style.borderColor='#e5e6eb'">
+                        <input type="radio" name="ctrlTypeRadio" id="radio-type-depttree" value="dept_tree" onchange="switchFieldTypePhase('dept_tree')" style="accent-color:#7e22ce; margin-right:4px;">
+                        <span style="font-size:12.5px; font-weight:600; color:#7e22ce;">🌳 部门架构树</span>
+                        <div style="font-size:11px; color:#86909c; margin-top:2px;">一键调取组织树</div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 第二阶段：二次动态内容填报区 -->
+            <div style="flex:1; overflow-y:auto; border-top:1px solid #f2f3f5; padding-top:16px;">
+                
+                <!-- 1. 自由填空配置 -->
+                <div id="phase-sec-input" style="display:none;">
+                    <div style="font-size:13px; font-weight:700; color:#1f2329; margin-bottom:8px;">第二步：填空二次属性说明</div>
+                    <div style="background:#f8f9fa; border:1px solid #e5e6eb; border-radius:8px; padding:14px; font-size:12.5px; color:#4e5969;">
+                        选中自由填空后，发起人在填写 Offer 时将呈现为标准的自由输入框，可任意打字填入。
+                    </div>
+                </div>
+
+                <!-- 2. 下拉选择预设选项池 -->
+                <div id="phase-sec-select" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <div style="font-size:13px; font-weight:700; color:#1f2329;">第二步：配置预设下拉选项池</div>
+                        <button type="button" class="btn btn-primary" onclick="addFieldOptionItem('')" style="font-size:11.5px; padding:3px 10px; height:28px; border-radius:6px;">+ 添加一个选项</button>
+                    </div>
+
+                    <!-- 选项逐行池 -->
+                    <div id="modal-options-list-container" style="max-height:180px; overflow-y:auto; margin-bottom:14px; padding-right:4px;">
+                        <!-- 动态插入 rows -->
+                    </div>
+
+                    <!-- 批量导入组 -->
+                    <div style="background:#f8f9fa; border:1px dashed #c9cdd4; border-radius:8px; padding:12px;">
+                        <div style="font-size:11.5px; color:#4e5969; margin-bottom:6px; font-weight:600;">⚡ 批量快速粘贴 (使用逗号或换行分隔多个选项):</div>
+                        <div style="display:flex; gap:8px;">
+                            <textarea id="modal-batch-options-area" class="form-control" rows="2" style="font-size:12px; flex:1;" placeholder="例如: 公司A, 公司B, 公司C"></textarea>
+                            <button type="button" class="btn btn-secondary" onclick="batchParseOptions()" style="white-space:nowrap; font-size:12px; height:auto; align-self:stretch;">解析导入</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 部门架构树配置 -->
+                <div id="phase-sec-dept" style="display:none;">
+                    <div style="font-size:13px; font-weight:700; color:#7e22ce; margin-bottom:8px;">第二步：部门树调取模式已启用</div>
+                    <div style="background:#f3e8ff; border:1px solid #d8b4fe; border-radius:8px; padding:14px; font-size:12.5px; color:#6b21a8;">
+                        🌳 开启此选项后，HR 在发起/编辑 Offer 详情时，入职部门右侧将自动出现 <b>[🌳 调取部门树]</b> 按钮，可直接点击弹窗调取公司全量组织架构。
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 底部提交操作 -->
+            <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px; border-top:1px solid #f2f3f5; padding-top:16px;">
+                <button type="button" class="btn btn-secondary" onclick="closeOfferFieldConfigModal()" style="font-size:12.5px; height:36px; padding:0 16px;">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveSingleFieldConfigModal()" style="font-size:12.5px; height:36px; padding:0 20px;">保存此字段配置</button>
+            </div>
+
+        </div>
+    </div>
 </body>
 
 </html>

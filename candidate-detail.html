@@ -1210,23 +1210,27 @@
             if (!isFieldEnabled(key)) return '';
             const requiredMark = isFieldRequired(key) ? '<span style="color:#FF3B30; font-weight:bold;">*</span>' : '';
             const config = getFieldConfig(key);
+
+            const ctrlType = (config && config.control_type) 
+                ? config.control_type 
+                : ((key === 'department' && config && config.use_dept_tree !== false) 
+                    ? 'dept_tree' 
+                    : ((config && config.options && config.options.length > 0) ? 'select' : 'input'));
+
             const options = (config && config.options && config.options.length > 0) ? config.options : defaultOptions;
-            
             const ctrlId = getOfferControlId(key);
 
             let ctrlHtml = '';
-            if (key === 'department') {
-                const showTreeBtn = (config && config.use_dept_tree !== false);
+            if (ctrlType === 'dept_tree' || key === 'department') {
                 ctrlHtml = `
                     <div style="display:flex; gap:8px;">
                         <input type="text" id="${ctrlId}" class="moka-input-clean" value="${currentValue || ''}" placeholder="如: 金融风控或从部门树调取">
-                        ${showTreeBtn ? `
                         <button type="button" onclick="openOfferDeptTreeModal()" style="white-space:nowrap; font-size:12.5px; height:38px; padding:0 12px; border-radius:6px; background:#e8f4fd; color:#165dff; border:1px solid #b6e0fe; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
                             🌳 调取部门树
-                        </button>` : ''}
+                        </button>
                     </div>
                 `;
-            } else if (options && options.length > 0) {
+            } else if (ctrlType === 'select') {
                 ctrlHtml = `
                     <select id="${ctrlId}" class="moka-select-clean">
                         <option value="">-- 请下拉点选常用预填模板 --</option>

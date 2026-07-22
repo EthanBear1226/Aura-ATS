@@ -1801,42 +1801,42 @@ def action_offer_approval(id: int, req: schemas.OfferApprovalActionRequest, db: 
 # Offer 详情字段填报配置 (默认全量 30 项大厂字段定义与预填模板配置)
 DEFAULT_OFFER_FIELDS_CONFIG = [
     # 1. 基础与合规类
-    {"field_key": "compliance_pass", "field_name": "请判断该员工是否符合签署雪球基金的条件", "category": "基础与合规", "enabled": True, "required": False, "options": ["是", "否"]},
-    {"field_key": "contract_subject", "field_name": "合同主体", "category": "基础与合规", "enabled": True, "required": True, "options": ["北京雪球私募基金管理有限公司", "雪球(北京)技术开发有限公司", "上海雪球信息科技有限公司", "香港雪球金融服务有限公司"]},
-    {"field_key": "department", "field_name": "入职部门", "category": "基础与合规", "enabled": True, "required": True, "use_dept_tree": True, "options": []},
-    {"field_key": "job_level", "field_name": "拟录用职级", "category": "基础与合规", "enabled": True, "required": False, "options": ["X4", "X5", "X6", "X7", "P5", "P6", "P7", "P8", "M1", "M2"]},
-    {"field_key": "proposed_start_date", "field_name": "预计入职日期", "category": "基础与合规", "enabled": True, "required": True, "options": []},
-    {"field_key": "employee_type", "field_name": "员工类型", "category": "基础与合规", "enabled": True, "required": False, "options": ["正式员工", "实习生", "外包人员", "顾问/兼职"]},
-    {"field_key": "is_campus_hire", "field_name": "是否校招生", "category": "基础与合规", "enabled": True, "required": False, "options": ["否", "是"]},
+    {"field_key": "compliance_pass", "field_name": "请判断该员工是否符合签署雪球基金的条件", "category": "基础与合规", "enabled": True, "required": False, "control_type": "select", "options": ["是", "否"]},
+    {"field_key": "contract_subject", "field_name": "合同主体", "category": "基础与合规", "enabled": True, "required": True, "control_type": "select", "options": ["北京雪球私募基金管理有限公司", "雪球(北京)技术开发有限公司", "上海雪球信息科技有限公司", "香港雪球金融服务有限公司"]},
+    {"field_key": "department", "field_name": "入职部门", "category": "基础与合规", "enabled": True, "required": True, "control_type": "dept_tree", "use_dept_tree": True, "options": []},
+    {"field_key": "job_level", "field_name": "拟录用职级", "category": "基础与合规", "enabled": True, "required": False, "control_type": "select", "options": ["X4", "X5", "X6", "X7", "P5", "P6", "P7", "P8", "M1", "M2"]},
+    {"field_key": "proposed_start_date", "field_name": "预计入职日期", "category": "基础与合规", "enabled": True, "required": True, "control_type": "input", "options": []},
+    {"field_key": "employee_type", "field_name": "员工类型", "category": "基础与合规", "enabled": True, "required": False, "control_type": "select", "options": ["正式员工", "实习生", "外包人员", "顾问/兼职"]},
+    {"field_key": "is_campus_hire", "field_name": "是否校招生", "category": "基础与合规", "enabled": True, "required": False, "control_type": "select", "options": ["否", "是"]},
 
     # 2. 薪酬考核与福利类
-    {"field_key": "base_salary", "field_name": "基础月薪（元）", "category": "薪酬考核与福利", "enabled": True, "required": True, "options": []},
-    {"field_key": "perf_salary", "field_name": "绩效工资-私行适用", "category": "薪酬考核与福利", "enabled": True, "required": False, "options": ["0", "2000", "5000", "8000"]},
-    {"field_key": "probation_rate", "field_name": "私行适用-试用期工资发放比例", "category": "薪酬考核与福利", "enabled": True, "required": False, "options": ["100%", "80%", "90%"]},
-    {"field_key": "target_bonus_months", "field_name": "目标年终奖金月数", "category": "薪酬考核与福利", "enabled": True, "required": False, "options": ["2", "3", "4", "6"]},
-    {"field_key": "stock_options", "field_name": "期权数", "category": "薪酬考核与福利", "enabled": True, "required": False, "options": ["0", "5000", "10000", "20000"]},
-    {"field_key": "probation_months", "field_name": "试用期（月）", "category": "薪酬考核与福利", "enabled": True, "required": False, "options": ["6", "3", "1"]},
-    {"field_key": "prev_month_salary", "field_name": "上家公司月薪（元）", "category": "薪酬考核与福利", "enabled": True, "required": False, "options": []},
-    {"field_key": "prev_annual_salary", "field_name": "上家公司年薪（元）", "category": "薪酬考核与福利", "enabled": True, "required": False, "options": []},
+    {"field_key": "base_salary", "field_name": "基础月薪（元）", "category": "薪酬考核与福利", "enabled": True, "required": True, "control_type": "input", "options": []},
+    {"field_key": "perf_salary", "field_name": "绩效工资-私行适用", "category": "薪酬考核与福利", "enabled": True, "required": False, "control_type": "select", "options": ["0", "2000", "5000", "8000"]},
+    {"field_key": "probation_rate", "field_name": "私行适用-试用期工资发放比例", "category": "薪酬考核与福利", "enabled": True, "required": False, "control_type": "select", "options": ["100%", "80%", "90%"]},
+    {"field_key": "target_bonus_months", "field_name": "目标年终奖金月数", "category": "薪酬考核与福利", "enabled": True, "required": False, "control_type": "select", "options": ["2", "3", "4", "6"]},
+    {"field_key": "stock_options", "field_name": "期权数", "category": "薪酬考核与福利", "enabled": True, "required": False, "control_type": "select", "options": ["0", "5000", "10000", "20000"]},
+    {"field_key": "probation_months", "field_name": "试用期（月）", "category": "薪酬考核与福利", "enabled": True, "required": False, "control_type": "select", "options": ["6", "3", "1"]},
+    {"field_key": "prev_month_salary", "field_name": "上家公司月薪（元）", "category": "薪酬考核与福利", "enabled": True, "required": False, "control_type": "input", "options": []},
+    {"field_key": "prev_annual_salary", "field_name": "上家公司年薪（元）", "category": "薪酬考核与福利", "enabled": True, "required": False, "control_type": "input", "options": []},
 
     # 3. 架构序列与主管类
-    {"field_key": "job_category", "field_name": "职位类", "category": "架构序列与主管", "enabled": True, "required": False, "options": ["职能支持类", "技术研发类", "产品运营类", "市场销售类"]},
-    {"field_key": "job_family", "field_name": "职位族", "category": "架构序列与主管", "enabled": True, "required": False, "options": ["法务合规", "软件工程", "产品设计", "人力资源", "财务风控"]},
-    {"field_key": "job_sequence", "field_name": "职位序列", "category": "架构序列与主管", "enabled": True, "required": False, "options": ["风控合规", "后端开发", "前端开发", "数据分析"]},
-    {"field_key": "base_position", "field_name": "基础岗位", "category": "架构序列与主管", "enabled": True, "required": False, "options": ["风控合规专家", "高级软件工程师", "资深HRBP", "财务经理"]},
-    {"field_key": "contract_title", "field_name": "合同职位", "category": "架构序列与主管", "enabled": True, "required": False, "options": ["高级风控合规", "资深开发工程师", "高级产品经理"]},
-    {"field_key": "direct_manager", "field_name": "直属主管", "category": "架构序列与主管", "enabled": True, "required": False, "options": ["代天娇", "孟繁拙", "曹一雄"]},
-    {"field_key": "gender", "field_name": "性别", "category": "架构序列与主管", "enabled": True, "required": False, "options": ["女", "男"]},
+    {"field_key": "job_category", "field_name": "职位类", "category": "架构序列与主管", "enabled": True, "required": False, "control_type": "select", "options": ["职能支持类", "技术研发类", "产品运营类", "市场销售类"]},
+    {"field_key": "job_family", "field_name": "职位族", "category": "架构序列与主管", "enabled": True, "required": False, "control_type": "select", "options": ["法务合规", "软件工程", "产品设计", "人力资源", "财务风控"]},
+    {"field_key": "job_sequence", "field_name": "职位序列", "category": "架构序列与主管", "enabled": True, "required": False, "control_type": "select", "options": ["风控合规", "后端开发", "前端开发", "数据分析"]},
+    {"field_key": "base_position", "field_name": "基础岗位", "category": "架构序列与主管", "enabled": True, "required": False, "control_type": "select", "options": ["风控合规专家", "高级软件工程师", "资深HRBP", "财务经理"]},
+    {"field_key": "contract_title", "field_name": "合同职位", "category": "架构序列与主管", "enabled": True, "required": False, "control_type": "select", "options": ["高级风控合规", "资深开发工程师", "高级产品经理"]},
+    {"field_key": "direct_manager", "field_name": "直属主管", "category": "架构序列与主管", "enabled": True, "required": False, "control_type": "select", "options": ["代天娇", "孟繁拙", "曹一雄"]},
+    {"field_key": "gender", "field_name": "性别", "category": "架构序列与主管", "enabled": True, "required": False, "control_type": "select", "options": ["女", "男"]},
 
     # 4. 办公地点与成本类
-    {"field_key": "pc_config", "field_name": "电脑配置", "category": "办公地点与成本", "enabled": True, "required": False, "options": ["Windows 笔记本 (Standard)", "MacBook Pro 14 (M3)", "MacBook Pro 16 (M3 Max)", "自带设备 (BYOD)"]},
-    {"field_key": "onboard_location", "field_name": "入职办理地点", "category": "办公地点与成本", "enabled": True, "required": False, "options": ["北京市朝阳区融新科技中心C座18层", "上海市静安区嘉里中心22层", "深圳市南山区腾讯大厦B座"]},
-    {"field_key": "work_area", "field_name": "办公区", "category": "办公地点与成本", "enabled": True, "required": False, "options": ["北京（融新）", "北京（朝阳）", "上海（嘉里）", "深圳（南山）", "成都（高新）"]},
-    {"field_key": "cost_center", "field_name": "成本中心-财务", "category": "办公地点与成本", "enabled": True, "required": False, "options": ["资产管理", "技术研发部", "市场营销部", "法务合规部", "行政人事部"]},
-    {"field_key": "salary_special_note", "field_name": "薪酬特殊说明（年现金涨幅超20%时说明原因）", "category": "办公地点与成本", "enabled": True, "required": False, "options": []},
-    {"field_key": "edu_special_note", "field_name": "学历特殊说明", "category": "办公地点与成本", "enabled": True, "required": False, "options": ["-", "统招本科双学士", "QS前50海归硕士"]},
-    {"field_key": "attachment_name", "field_name": "发送附件给审批人", "category": "办公地点与成本", "enabled": True, "required": False, "options": []},
-    {"field_key": "remarks", "field_name": "备注（职级，HC，核心职责等）", "category": "办公地点与成本", "enabled": True, "required": False, "options": []}
+    {"field_key": "pc_config", "field_name": "电脑配置", "category": "办公地点与成本", "enabled": True, "required": False, "control_type": "select", "options": ["Windows 笔记本 (Standard)", "MacBook Pro 14 (M3)", "MacBook Pro 16 (M3 Max)", "自带设备 (BYOD)"]},
+    {"field_key": "onboard_location", "field_name": "入职办理地点", "category": "办公地点与成本", "enabled": True, "required": False, "control_type": "select", "options": ["北京市朝阳区融新科技中心C座18层", "上海市静安区嘉里中心22层", "深圳市南山区腾讯大厦B座"]},
+    {"field_key": "work_area", "field_name": "办公区", "category": "办公地点与成本", "enabled": True, "required": False, "control_type": "select", "options": ["北京（融新）", "北京（朝阳）", "上海（嘉里）", "深圳（南山）", "成都（高新）"]},
+    {"field_key": "cost_center", "field_name": "成本中心-财务", "category": "办公地点与成本", "enabled": True, "required": False, "control_type": "select", "options": ["资产管理", "技术研发部", "市场营销部", "法务合规部", "行政人事部"]},
+    {"field_key": "salary_special_note", "field_name": "薪酬特殊说明（年现金涨幅超20%时说明原因）", "category": "办公地点与成本", "enabled": True, "required": False, "control_type": "input", "options": []},
+    {"field_key": "edu_special_note", "field_name": "学历特殊说明", "category": "办公地点与成本", "enabled": True, "required": False, "control_type": "select", "options": ["-", "统招本科双学士", "QS前50海归硕士"]},
+    {"field_key": "attachment_name", "field_name": "发送附件给审批人", "category": "办公地点与成本", "enabled": True, "required": False, "control_type": "input", "options": []},
+    {"field_key": "remarks", "field_name": "备注（职级，HC，核心职责等）", "category": "办公地点与成本", "enabled": True, "required": False, "control_type": "input", "options": []}
 ]
 
 offer_fields_config_db = [dict(item) for item in DEFAULT_OFFER_FIELDS_CONFIG]
