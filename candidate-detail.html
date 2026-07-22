@@ -1201,6 +1201,87 @@
             return item ? (item.enabled && item.required) : false;
         }
 
+        function getFieldConfig(key) {
+            if (!offerFieldsConfigList || offerFieldsConfigList.length === 0) return null;
+            return offerFieldsConfigList.find(f => f.field_key === key) || null;
+        }
+
+        function renderSmartControl(key, labelText, currentValue, inputType = 'text', defaultOptions = []) {
+            if (!isFieldEnabled(key)) return '';
+            const requiredMark = isFieldRequired(key) ? '<span style="color:#FF3B30; font-weight:bold;">*</span>' : '';
+            const config = getFieldConfig(key);
+            const options = (config && config.options && config.options.length > 0) ? config.options : defaultOptions;
+            
+            const ctrlId = getOfferControlId(key);
+
+            let ctrlHtml = '';
+            if (key === 'department') {
+                const showTreeBtn = (config && config.use_dept_tree !== false);
+                ctrlHtml = `
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="${ctrlId}" class="moka-input-clean" value="${currentValue || ''}" placeholder="如: 金融风控或从部门树调取">
+                        ${showTreeBtn ? `
+                        <button type="button" onclick="openOfferDeptTreeModal()" style="white-space:nowrap; font-size:12.5px; height:38px; padding:0 12px; border-radius:6px; background:#e8f4fd; color:#165dff; border:1px solid #b6e0fe; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                            🌳 调取部门树
+                        </button>` : ''}
+                    </div>
+                `;
+            } else if (options && options.length > 0) {
+                ctrlHtml = `
+                    <select id="${ctrlId}" class="moka-select-clean">
+                        <option value="">-- 请下拉点选常用预填模板 --</option>
+                        ${options.map(opt => `<option value="${opt}" ${currentValue === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>
+                `;
+            } else if (inputType === 'textarea') {
+                ctrlHtml = `<textarea id="${ctrlId}" class="moka-textarea-clean" rows="2">${currentValue || ''}</textarea>`;
+            } else {
+                ctrlHtml = `<input type="${inputType}" id="${ctrlId}" class="moka-input-clean" value="${currentValue || ''}">`;
+            }
+
+            return `
+                <div>
+                    <label class="moka-form-label">${labelText} ${requiredMark}</label>
+                    ${ctrlHtml}
+                </div>
+            `;
+        }
+
+        function getOfferControlId(key) {
+            const map = {
+                compliance_pass: 'offerCompliancePass',
+                contract_subject: 'offerContractSubject',
+                department: 'offerDept',
+                job_level: 'offerLevel',
+                proposed_start_date: 'offerProposedStartDate',
+                base_salary: 'offerBaseSalary',
+                employee_type: 'offerEmployeeType',
+                perf_salary: 'offerPerfSalary',
+                probation_rate: 'offerProbationRate',
+                target_bonus_months: 'offerTargetBonusMonths',
+                stock_options: 'offerStockOptions',
+                probation_months: 'offerProbationMonths',
+                prev_month_salary: 'offerPrevMonthSalary',
+                prev_annual_salary: 'offerPrevAnnualSalary',
+                job_category: 'offerJobCategory',
+                job_family: 'offerJobFamily',
+                job_sequence: 'offerJobSequence',
+                base_position: 'offerBasePosition',
+                contract_title: 'offerContractTitle',
+                direct_manager: 'offerDirectManager',
+                gender: 'offerGender',
+                pc_config: 'offerPcConfig',
+                onboard_location: 'offerOnboardLocation',
+                work_area: 'offerWorkArea',
+                cost_center: 'offerCostCenter',
+                salary_special_note: 'offerSalarySpecialNote',
+                edu_special_note: 'offerEduSpecialNote',
+                remarks: 'offerRemarks',
+                is_campus_hire: 'offerIsCampusHire'
+            };
+            return map[key] || `offer_${key}`;
+        }
+
         async function loadOfferApproval() {
             if (!currentCandidate) return;
             const container = document.getElementById('offer-approval-section');
@@ -1505,44 +1586,15 @@
                     <div class="moka-edit-card">
                         <div class="moka-edit-section-title">基础录用与合规</div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;">
-                            <div style="grid-column: span 2; display: ${isFieldEnabled('compliance_pass') ? 'block' : 'none'};">
-                                <label class="moka-form-label">请判断该员工是否符合签署雪球基金的条件 ${isFieldRequired('compliance_pass') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <select id="offerCompliancePass" class="moka-select-clean">
-                                    <option value="否" ${details.compliance_pass === '否' ? 'selected' : ''}>否</option>
-                                    <option value="是" ${details.compliance_pass === '是' ? 'selected' : ''}>是</option>
-                                </select>
+                            <div style="grid-column: span 2;">
+                                ${renderSmartControl('compliance_pass', '请判断该员工是否符合签署雪球基金的条件', details.compliance_pass, 'select', ['否', '是'])}
                             </div>
-                            <div style="display: ${isFieldEnabled('contract_subject') ? 'block' : 'none'};">
-                                <label class="moka-form-label">合同主体 ${isFieldRequired('contract_subject') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerContractSubject" class="moka-input-clean" value="${details.contract_subject}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('department') ? 'block' : 'none'};">
-                                <label class="moka-form-label">入职部门 ${isFieldRequired('department') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerDept" class="moka-input-clean" value="${details.department}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('job_level') ? 'block' : 'none'};">
-                                <label class="moka-form-label">拟录用职级 ${isFieldRequired('job_level') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerLevel" class="moka-input-clean" value="${details.job_level}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('proposed_start_date') ? 'block' : 'none'};">
-                                <label class="moka-form-label">预计入职日期 ${isFieldRequired('proposed_start_date') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="date" id="offerProposedStartDate" class="moka-input-clean" value="${details.proposed_start_date}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('employee_type') ? 'block' : 'none'};">
-                                <label class="moka-form-label">员工类型 ${isFieldRequired('employee_type') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <select id="offerEmployeeType" class="moka-select-clean">
-                                    <option value="正式员工" ${details.employee_type === '正式员工' ? 'selected' : ''}>正式员工</option>
-                                    <option value="实习生" ${details.employee_type === '实习生' ? 'selected' : ''}>实习生</option>
-                                    <option value="外包人员" ${details.employee_type === '外包人员' ? 'selected' : ''}>外包人员</option>
-                                </select>
-                            </div>
-                            <div style="display: ${isFieldEnabled('is_campus_hire') ? 'block' : 'none'};">
-                                <label class="moka-form-label">是否校招生 ${isFieldRequired('is_campus_hire') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <select id="offerIsCampusHire" class="moka-select-clean">
-                                    <option value="否" ${details.is_campus_hire === '否' ? 'selected' : ''}>否</option>
-                                    <option value="是" ${details.is_campus_hire === '是' ? 'selected' : ''}>是</option>
-                                </select>
-                            </div>
+                            ${renderSmartControl('contract_subject', '合同主体', details.contract_subject, 'text', ['北京雪球私募基金管理有限公司', '雪球(北京)技术开发有限公司', '上海雪球信息科技有限公司', '香港雪球金融服务有限公司'])}
+                            ${renderSmartControl('department', '入职部门', details.department, 'text')}
+                            ${renderSmartControl('job_level', '拟录用职级', details.job_level, 'text', ['X4', 'X5', 'X6', 'X7', 'P5', 'P6', 'P7', 'P8'])}
+                            ${renderSmartControl('proposed_start_date', '预计入职日期', details.proposed_start_date, 'date')}
+                            ${renderSmartControl('employee_type', '员工类型', details.employee_type, 'select', ['正式员工', '实习生', '外包人员', '顾问/兼职'])}
+                            ${renderSmartControl('is_campus_hire', '是否校招生', details.is_campus_hire, 'select', ['否', '是'])}
                         </div>
                     </div>
 
@@ -1550,38 +1602,14 @@
                     <div class="moka-edit-card">
                         <div class="moka-edit-section-title">薪酬考核与福利</div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;">
-                            <div style="display: ${isFieldEnabled('base_salary') ? 'block' : 'none'};">
-                                <label class="moka-form-label">基础月薪（元） ${isFieldRequired('base_salary') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="number" id="offerBaseSalary" class="moka-input-clean" value="${details.base_salary}" oninput="calcTabAnnualSalary()">
-                            </div>
-                            <div style="display: ${isFieldEnabled('perf_salary') ? 'block' : 'none'};">
-                                <label class="moka-form-label">绩效工资-私行适用 ${isFieldRequired('perf_salary') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerPerfSalary" class="moka-input-clean" value="${details.perf_salary}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('probation_rate') ? 'block' : 'none'};">
-                                <label class="moka-form-label">私行适用-试用期工资发放比例 ${isFieldRequired('probation_rate') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerProbationRate" class="moka-input-clean" value="${details.probation_rate}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('target_bonus_months') ? 'block' : 'none'};">
-                                <label class="moka-form-label">目标年终奖金月数 ${isFieldRequired('target_bonus_months') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="number" id="offerTargetBonusMonths" class="moka-input-clean" value="${details.target_bonus_months}" oninput="calcTabAnnualSalary()">
-                            </div>
-                            <div style="display: ${isFieldEnabled('stock_options') ? 'block' : 'none'};">
-                                <label class="moka-form-label">期权数 ${isFieldRequired('stock_options') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="number" id="offerStockOptions" class="moka-input-clean" value="${details.stock_options}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('probation_months') ? 'block' : 'none'};">
-                                <label class="moka-form-label">试用期（月） ${isFieldRequired('probation_months') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="number" id="offerProbationMonths" class="moka-input-clean" value="${details.probation_months}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('prev_month_salary') ? 'block' : 'none'};">
-                                <label class="moka-form-label">上家公司月薪（元） ${isFieldRequired('prev_month_salary') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerPrevMonthSalary" class="moka-input-clean" value="${details.prev_month_salary}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('prev_annual_salary') ? 'block' : 'none'};">
-                                <label class="moka-form-label">上家公司年薪（元） ${isFieldRequired('prev_annual_salary') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerPrevAnnualSalary" class="moka-input-clean" value="${details.prev_annual_salary}">
-                            </div>
+                            ${renderSmartControl('base_salary', '基础月薪（元）', details.base_salary, 'number')}
+                            ${renderSmartControl('perf_salary', '绩效工资-私行适用', details.perf_salary, 'text')}
+                            ${renderSmartControl('probation_rate', '私行适用-试用期工资发放比例', details.probation_rate, 'text', ['100%', '80%', '90%'])}
+                            ${renderSmartControl('target_bonus_months', '目标年终奖金月数', details.target_bonus_months, 'number', ['2', '3', '4', '6'])}
+                            ${renderSmartControl('stock_options', '期权数', details.stock_options, 'number', ['0', '5000', '10000', '20000'])}
+                            ${renderSmartControl('probation_months', '试用期（月）', details.probation_months, 'number', ['6', '3', '1'])}
+                            ${renderSmartControl('prev_month_salary', '上家公司月薪（元）', details.prev_month_salary, 'text')}
+                            ${renderSmartControl('prev_annual_salary', '上家公司年薪（元）', details.prev_annual_salary, 'text')}
                         </div>
                     </div>
 
@@ -1589,41 +1617,13 @@
                     <div class="moka-edit-card">
                         <div class="moka-edit-section-title">架构序列与主管</div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;">
-                            <div style="display: ${isFieldEnabled('job_category') ? 'block' : 'none'};">
-                                <label class="moka-form-label">职位类 ${isFieldRequired('job_category') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <select id="offerJobCategory" class="moka-select-clean">
-                                    <option value="职能支持类" ${details.job_category === '职能支持类' ? 'selected' : ''}>职能支持类</option>
-                                    <option value="技术研发类" ${details.job_category === '技术研发类' ? 'selected' : ''}>技术研发类</option>
-                                    <option value="产品运营类" ${details.job_category === '产品运营类' ? 'selected' : ''}>产品运营类</option>
-                                </select>
-                            </div>
-                            <div style="display: ${isFieldEnabled('job_family') ? 'block' : 'none'};">
-                                <label class="moka-form-label">职位族 ${isFieldRequired('job_family') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerJobFamily" class="moka-input-clean" value="${details.job_family}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('job_sequence') ? 'block' : 'none'};">
-                                <label class="moka-form-label">职位序列 ${isFieldRequired('job_sequence') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerJobSequence" class="moka-input-clean" value="${details.job_sequence}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('base_position') ? 'block' : 'none'};">
-                                <label class="moka-form-label">基础岗位 ${isFieldRequired('base_position') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerBasePosition" class="moka-input-clean" value="${details.base_position}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('contract_title') ? 'block' : 'none'};">
-                                <label class="moka-form-label">合同职位 ${isFieldRequired('contract_title') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerContractTitle" class="moka-input-clean" value="${details.contract_title}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('direct_manager') ? 'block' : 'none'};">
-                                <label class="moka-form-label">直属主管 ${isFieldRequired('direct_manager') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerDirectManager" class="moka-input-clean" value="${details.direct_manager}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('gender') ? 'block' : 'none'};">
-                                <label class="moka-form-label">性别 ${isFieldRequired('gender') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <select id="offerGender" class="moka-select-clean">
-                                    <option value="女" ${details.gender === '女' ? 'selected' : ''}>女</option>
-                                    <option value="男" ${details.gender === '男' ? 'selected' : ''}>男</option>
-                                </select>
-                            </div>
+                            ${renderSmartControl('job_category', '职位类', details.job_category, 'select', ['职能支持类', '技术研发类', '产品运营类', '市场销售类'])}
+                            ${renderSmartControl('job_family', '职位族', details.job_family, 'text', ['法务合规', '软件工程', '产品设计', '人力资源'])}
+                            ${renderSmartControl('job_sequence', '职位序列', details.job_sequence, 'text', ['风控合规', '后端开发', '前端开发'])}
+                            ${renderSmartControl('base_position', '基础岗位', details.base_position, 'text')}
+                            ${renderSmartControl('contract_title', '合同职位', details.contract_title, 'text')}
+                            ${renderSmartControl('direct_manager', '直属主管', details.direct_manager, 'text')}
+                            ${renderSmartControl('gender', '性别', details.gender, 'select', ['女', '男'])}
                         </div>
                     </div>
 
@@ -1631,36 +1631,18 @@
                     <div class="moka-edit-card">
                         <div class="moka-edit-section-title">办公地点与成本</div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;">
-                            <div style="display: ${isFieldEnabled('pc_config') ? 'block' : 'none'};">
-                                <label class="moka-form-label">电脑配置 ${isFieldRequired('pc_config') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <select id="offerPcConfig" class="moka-select-clean">
-                                    <option value="Windows电脑" ${details.pc_config === 'Windows电脑' ? 'selected' : ''}>Windows电脑</option>
-                                    <option value="MacBook Pro" ${details.pc_config === 'MacBook Pro' ? 'selected' : ''}>MacBook Pro</option>
-                                </select>
+                            ${renderSmartControl('pc_config', '电脑配置', details.pc_config, 'select', ['Windows 笔记本 (Standard)', 'MacBook Pro 14 (M3)', 'MacBook Pro 16 (M3 Max)'])}
+                            ${renderSmartControl('work_area', '办公区', details.work_area, 'text', ['北京（融新）', '北京（朝阳）', '上海（嘉里）', '深圳（南山）'])}
+                            ${renderSmartControl('cost_center', '成本中心-财务', details.cost_center, 'text', ['资产管理', '技术研发部', '市场营销部', '法务合规部'])}
+                            ${renderSmartControl('edu_special_note', '学历特殊说明', details.edu_special_note, 'text')}
+                            <div style="grid-column: span 2;">
+                                ${renderSmartControl('onboard_location', '入职办理地点', details.onboard_location, 'text', ['北京市朝阳区融新科技中心C座18层', '上海市静安区嘉里中心22层'])}
                             </div>
-                            <div style="display: ${isFieldEnabled('work_area') ? 'block' : 'none'};">
-                                <label class="moka-form-label">办公区 ${isFieldRequired('work_area') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerWorkArea" class="moka-input-clean" value="${details.work_area}">
+                            <div style="grid-column: span 2;">
+                                ${renderSmartControl('salary_special_note', '薪酬特殊说明（年现金涨幅超20%时说明原因）', details.salary_special_note, 'textarea')}
                             </div>
-                            <div style="display: ${isFieldEnabled('cost_center') ? 'block' : 'none'};">
-                                <label class="moka-form-label">成本中心-财务 ${isFieldRequired('cost_center') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerCostCenter" class="moka-input-clean" value="${details.cost_center}">
-                            </div>
-                            <div style="display: ${isFieldEnabled('edu_special_note') ? 'block' : 'none'};">
-                                <label class="moka-form-label">学历特殊说明 ${isFieldRequired('edu_special_note') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerEduSpecialNote" class="moka-input-clean" value="${details.edu_special_note}">
-                            </div>
-                            <div style="grid-column: span 2; display: ${isFieldEnabled('onboard_location') ? 'block' : 'none'};">
-                                <label class="moka-form-label">入职办理地点 ${isFieldRequired('onboard_location') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <input type="text" id="offerOnboardLocation" class="moka-input-clean" value="${details.onboard_location}">
-                            </div>
-                            <div style="grid-column: span 2; display: ${isFieldEnabled('salary_special_note') ? 'block' : 'none'};">
-                                <label class="moka-form-label">薪酬特殊说明（年现金涨幅超20%时说明原因） ${isFieldRequired('salary_special_note') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <textarea id="offerSalarySpecialNote" class="moka-textarea-clean" rows="2">${details.salary_special_note}</textarea>
-                            </div>
-                            <div style="grid-column: span 2; display: ${isFieldEnabled('remarks') ? 'block' : 'none'};">
-                                <label class="moka-form-label">备注（职级，HC，核心职责等） ${isFieldRequired('remarks') ? '<span style="color:#FF3B30;">*</span>' : ''}</label>
-                                <textarea id="offerRemarks" class="moka-textarea-clean" rows="2">${details.remarks}</textarea>
+                            <div style="grid-column: span 2;">
+                                ${renderSmartControl('remarks', '备注（职级，HC，核心职责等）', details.remarks, 'textarea')}
                             </div>
                         </div>
                     </div>
@@ -1782,15 +1764,84 @@
             if (viewer.requestFullscreen) viewer.requestFullscreen();
         }
 
-        function downloadResumePdf() {
-            if (currentCandidate && currentCandidate.pdf_path) {
-                window.open(currentCandidate.pdf_path, '_blank');
+        async function openOfferDeptTreeModal() {
+            const modal = document.getElementById('offerDeptTreeModal');
+            if (modal) modal.style.display = 'flex';
+            
+            const container = document.getElementById('offer-dept-tree-container');
+            if (!container) return;
+
+            try {
+                const res = await authFetch('/api/departments/tree');
+                if (res.ok) {
+                    const treeData = await res.json();
+                    if (Array.isArray(treeData) && treeData.length > 0) {
+                        container.innerHTML = renderOfferDeptTreeHtml(treeData);
+                    } else {
+                        container.innerHTML = '<div style="color:#86909c; text-align:center; padding:20px;">暂无组织架构数据</div>';
+                    }
+                } else {
+                    container.innerHTML = '<div style="color:#FF3B30; text-align:center; padding:20px;">无法获取部门架构树</div>';
+                }
+            } catch(e) {
+                container.innerHTML = '<div style="color:#FF3B30; text-align:center; padding:20px;">加载部门树失败</div>';
             }
+        }
+
+        function closeOfferDeptTreeModal() {
+            const modal = document.getElementById('offerDeptTreeModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function renderOfferDeptTreeHtml(nodes, parentPath = '') {
+            return `<ul style="list-style:none; padding-left:14px; margin:0;">` + nodes.map(node => {
+                const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+                const hasChildren = node.children && node.children.length > 0;
+                return `
+                    <li style="margin:6px 0;">
+                        <div style="display:flex; align-items:center; gap:6px; cursor:pointer; padding:6px 10px; border-radius:6px; border:1px solid #f0f0f0; background:#fff; transition:all 0.2s;" onmouseover="this.style.background='#e8f4fd'; this.style.borderColor='#b6e0fe';" onmouseout="this.style.background='#fff'; this.style.borderColor='#f0f0f0';" onclick="selectOfferDeptPath('${fullPath}')">
+                            <span style="font-size:14px;">${hasChildren ? '🏢' : '📁'}</span>
+                            <span style="font-size:13px; font-weight:600; color:#1f2329;">${node.name}</span>
+                            ${node.code ? `<span style="font-size:11px; color:#86909c; font-family:monospace;">(${node.code})</span>` : ''}
+                            <span style="margin-left:auto; font-size:11.5px; color:#165dff; font-weight:600; background:#f0f7ff; padding:2px 8px; border-radius:4px;">点选此部门 ›</span>
+                        </div>
+                        ${hasChildren ? renderOfferDeptTreeHtml(node.children, fullPath) : ''}
+                    </li>
+                `;
+            }).join('') + `</ul>`;
+        }
+
+        function selectOfferDeptPath(path) {
+            const deptInput = document.getElementById('offerDept');
+            if (deptInput) {
+                deptInput.value = path;
+                showToast(`🎉 已自动选取部门架构：${path}`, 'success');
+            }
+            closeOfferDeptTreeModal();
         }
 
         document.addEventListener("DOMContentLoaded", () => {
             loadDetail();
         });
     </script>
+
+    <!-- 调取系统部门架构树 Modal 弹窗 -->
+    <div class="modal-overlay" id="offerDeptTreeModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+        <div class="modal-card" style="background:#fff; width:540px; border-radius:12px; padding:24px; box-shadow:0 12px 32px rgba(0,0,0,0.15); max-height:80vh; display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f2f3f5; padding-bottom:14px; margin-bottom:16px;">
+                <h3 style="margin:0; font-size:16px; font-weight:700; color:#1f2329; display:flex; align-items:center; gap:8px;">
+                    🌳 调取系统部门架构树
+                </h3>
+                <span style="cursor:pointer; font-size:18px; color:#86909c;" onclick="closeOfferDeptTreeModal()">✕</span>
+            </div>
+            <div style="font-size:12.5px; color:#86909c; margin-bottom:12px;">点击下方架构树中的任意部门节点，即可自动精准回填入职部门：</div>
+            <div id="offer-dept-tree-container" style="flex:1; overflow-y:auto; border:1px solid #e5e6eb; border-radius:8px; padding:16px; background:#fafafa;">
+                <div style="color:#86909c; text-align:center; padding:20px;">正在加载部门架构树...</div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+                <button class="moka-btn-gray" onclick="closeOfferDeptTreeModal()">取消</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

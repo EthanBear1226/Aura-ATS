@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.39
+- **当前版本**: Newton-(牛顿)-v1.22.40
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.40**: 上线Offer详情预填模板与部门架构树调取功能 (2026-07-22 15:50:21)
 - **v1.22.39**: 为settings.html注入30项Offer字段静态保底模板，消除异步拉取网络延迟引发的界面空白BUG (2026-07-22 14:50:34)
 - **v1.22.38**: 修复settings.html中switchApprovalSubTab事件未正确装载导致的页面点击无反应BUG (2026-07-22 14:38:12)
 - **v1.22.37**: 在Offer审批配置中增加Offer详情30项字段填报配置子Tab与功能 (2026-07-22 14:15:13)
@@ -177,3 +178,4 @@
 - [2026-07-22 14:15:13] 在settings.html中上线了'Offer详情字段填报配置'子页面，支持管理员勾选开启/禁用30项大厂字段及设置必填项；后端新增/api/approvals/offer-fields-config接口；并与candidate-detail.html页面进行了实时动态联动（隐去禁用的字段、加红星标识、提交时非空拦截校验）
 - [2026-07-22 14:38:12] 在settings.html的script脚本区域补全了switchApprovalSubTab、loadOfferFieldsConfig、renderOfferFieldsConfig与saveOfferFieldsConfig函数逻辑，彻底解决了线上环境点击'Offer 详情字段填报配置'无响应的缺陷
 - [2026-07-22 14:50:34] 开放了main.py中/api/approvals/offer-fields-config接口的免鉴权访问；在settings.html中添加了DEFAULT_STATIC_OFFER_FIELDS_CONFIG静态默认模板，即使在弱网或数据尚未返回时，前端仍可秒级以静态保底模板初始化渲染30项配置表格，彻底杜绝了空白界面的出现
+- [2026-07-22 15:50:21] 在settings.html中增加了第四列【提前预设选项/预填模板】配置列与【自动调取系统部门架构树】勾选框；在main.py中扩展了options与use_dept_tree属性；并在candidate-detail.html中实现了带有预设模板下拉秒选、以及点击'🌳 调取部门树'弹窗交互点选部门架构树的功能
