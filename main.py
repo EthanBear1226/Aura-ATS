@@ -1798,12 +1798,63 @@ def action_offer_approval(id: int, req: schemas.OfferApprovalActionRequest, db: 
     db.refresh(inst)
     return inst
 
+# Offer 详情字段填报配置 (默认全量 30 项大厂字段定义)
+DEFAULT_OFFER_FIELDS_CONFIG = [
+    # 1. 基础与合规类
+    {"field_key": "compliance_pass", "field_name": "请判断该员工是否符合签署雪球基金的条件", "category": "基础与合规", "enabled": True, "required": False},
+    {"field_key": "contract_subject", "field_name": "合同主体", "category": "基础与合规", "enabled": True, "required": True},
+    {"field_key": "department", "field_name": "入职部门", "category": "基础与合规", "enabled": True, "required": True},
+    {"field_key": "job_level", "field_name": "拟录用职级", "category": "基础与合规", "enabled": True, "required": False},
+    {"field_key": "proposed_start_date", "field_name": "预计入职日期", "category": "基础与合规", "enabled": True, "required": True},
+    {"field_key": "employee_type", "field_name": "员工类型", "category": "基础与合规", "enabled": True, "required": False},
+    {"field_key": "is_campus_hire", "field_name": "是否校招生", "category": "基础与合规", "enabled": True, "required": False},
+
+    # 2. 薪酬考核与福利类
+    {"field_key": "base_salary", "field_name": "基础月薪（元）", "category": "薪酬考核与福利", "enabled": True, "required": True},
+    {"field_key": "perf_salary", "field_name": "绩效工资-私行适用", "category": "薪酬考核与福利", "enabled": True, "required": False},
+    {"field_key": "probation_rate", "field_name": "私行适用-试用期工资发放比例", "category": "薪酬考核与福利", "enabled": True, "required": False},
+    {"field_key": "target_bonus_months", "field_name": "目标年终奖金月数", "category": "薪酬考核与福利", "enabled": True, "required": False},
+    {"field_key": "stock_options", "field_name": "期权数", "category": "薪酬考核与福利", "enabled": True, "required": False},
+    {"field_key": "probation_months", "field_name": "试用期（月）", "category": "薪酬考核与福利", "enabled": True, "required": False},
+    {"field_key": "prev_month_salary", "field_name": "上家公司月薪（元）", "category": "薪酬考核与福利", "enabled": True, "required": False},
+    {"field_key": "prev_annual_salary", "field_name": "上家公司年薪（元）", "category": "薪酬考核与福利", "enabled": True, "required": False},
+
+    # 3. 架构序列与主管类
+    {"field_key": "job_category", "field_name": "职位类", "category": "架构序列与主管", "enabled": True, "required": False},
+    {"field_key": "job_family", "field_name": "职位族", "category": "架构序列与主管", "enabled": True, "required": False},
+    {"field_key": "job_sequence", "field_name": "职位序列", "category": "架构序列与主管", "enabled": True, "required": False},
+    {"field_key": "base_position", "field_name": "基础岗位", "category": "架构序列与主管", "enabled": True, "required": False},
+    {"field_key": "contract_title", "field_name": "合同职位", "category": "架构序列与主管", "enabled": True, "required": False},
+    {"field_key": "direct_manager", "field_name": "直属主管", "category": "架构序列与主管", "enabled": True, "required": False},
+    {"field_key": "gender", "field_name": "性别", "category": "架构序列与主管", "enabled": True, "required": False},
+
+    # 4. 办公地点与成本类
+    {"field_key": "pc_config", "field_name": "电脑配置", "category": "办公地点与成本", "enabled": True, "required": False},
+    {"field_key": "onboard_location", "field_name": "入职办理地点", "category": "办公地点与成本", "enabled": True, "required": False},
+    {"field_key": "work_area", "field_name": "办公区", "category": "办公地点与成本", "enabled": True, "required": False},
+    {"field_key": "cost_center", "field_name": "成本中心-财务", "category": "办公地点与成本", "enabled": True, "required": False},
+    {"field_key": "salary_special_note", "field_name": "薪酬特殊说明（年现金涨幅超20%时说明原因）", "category": "办公地点与成本", "enabled": True, "required": False},
+    {"field_key": "edu_special_note", "field_name": "学历特殊说明", "category": "办公地点与成本", "enabled": True, "required": False},
+    {"field_key": "attachment_name", "field_name": "发送附件给审批人", "category": "办公地点与成本", "enabled": True, "required": False},
+    {"field_key": "remarks", "field_name": "备注（职级，HC，核心职责等）", "category": "办公地点与成本", "enabled": True, "required": False}
+]
+
+offer_fields_config_db = [dict(item) for item in DEFAULT_OFFER_FIELDS_CONFIG]
+
+@app.get("/api/approvals/offer-fields-config")
+def get_offer_fields_config(current_user: models.User = Depends(get_current_user_optional)):
+    return offer_fields_config_db
+
+@app.post("/api/approvals/offer-fields-config")
+def save_offer_fields_config(payload: list[dict], current_user: models.User = Depends(get_current_user_optional)):
+    global offer_fields_config_db
+    offer_fields_config_db = payload
+    return {"status": "ok", "msg": "Offer 详情字段填报配置保存成功", "config": offer_fields_config_db}
+
 @app.post("/api/feishu/approval-callback")
 def feishu_approval_callback(payload: dict, db: Session = Depends(get_db)):
     # 飞书消息卡片交互回调WebHook占位接口 (优先无需跳转直接响应)
     print("Received Feishu approval callback payload:", payload)
-    # 1. 模拟解析 payload 中的 action, comment, email, instance_id 等参数
-    # 2. 推进状态并进行卡片刷新同步更新
     return {"status": "ok", "msg": "飞书卡片数据已实时刷新"}
 
 if __name__ == "__main__":
