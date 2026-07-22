@@ -456,8 +456,164 @@
         // ==============================================================================
         let approvalRulesList = [];
         let systemUsersList = [];
-        let isApprovalRuleEdit = false;
         let approvalRuleEditId = null;
+        let offerFieldsConfigList = [];
+
+        function switchApprovalSubTab(tabName) {
+            const btnRules = document.getElementById('subtab-btn-rules');
+            const btnFields = document.getElementById('subtab-btn-fields');
+            const panelRules = document.getElementById('subpanel-approval-rules');
+            const panelFields = document.getElementById('subpanel-approval-fields');
+            const actionsRules = document.getElementById('approval-rules-actions');
+            const actionsFields = document.getElementById('approval-fields-actions');
+
+            if (tabName === 'rules') {
+                if (btnRules) {
+                    btnRules.style.background = '#165dff';
+                    btnRules.style.color = '#fff';
+                    btnRules.style.fontWeight = '600';
+                }
+                if (btnFields) {
+                    btnFields.style.background = 'transparent';
+                    btnFields.style.color = 'var(--text-primary)';
+                    btnFields.style.fontWeight = 'normal';
+                }
+                if (panelRules) panelRules.style.display = 'block';
+                if (panelFields) panelFields.style.display = 'none';
+                if (actionsRules) actionsRules.style.display = 'block';
+                if (actionsFields) actionsFields.style.display = 'none';
+            } else {
+                if (btnFields) {
+                    btnFields.style.background = '#165dff';
+                    btnFields.style.color = '#fff';
+                    btnFields.style.fontWeight = '600';
+                }
+                if (btnRules) {
+                    btnRules.style.background = 'transparent';
+                    btnRules.style.color = 'var(--text-primary)';
+                    btnRules.style.fontWeight = 'normal';
+                }
+                if (panelFields) panelFields.style.display = 'block';
+                if (panelRules) panelRules.style.display = 'none';
+                if (actionsFields) actionsFields.style.display = 'flex';
+                if (actionsRules) actionsRules.style.display = 'none';
+
+                loadOfferFieldsConfig();
+            }
+        }
+
+        async function loadOfferFieldsConfig() {
+            try {
+                const res = await fetch('/api/approvals/offer-fields-config');
+                if (res.ok) {
+                    offerFieldsConfigList = await res.json();
+                    renderOfferFieldsConfig();
+                }
+            } catch(e) {
+                console.error("加载 Offer 字段配置失败:", e);
+            }
+        }
+
+        function renderOfferFieldsConfig() {
+            const container = document.getElementById('offer-fields-categories-container');
+            if (!container) return;
+
+            const categories = ["基础与合规", "薪酬考核与福利", "架构序列与主管", "办公地点与成本"];
+            
+            let html = '';
+            categories.forEach(cat => {
+                const catFields = offerFieldsConfigList.filter(f => f.category === cat);
+                if (catFields.length === 0) return;
+
+                html += `
+                    <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.01);">
+                        <div style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+                            <span style="display:inline-block; width:3.5px; height:14px; background:#165dff; border-radius:2px;"></span>
+                            ${cat}类字段 (${catFields.length}项)
+                        </div>
+                        <table class="table-container" style="margin:0;">
+                            <thead>
+                                <tr>
+                                    <th style="width:40%;">字段名称</th>
+                                    <th style="width:30%; text-align:center;">在 Offer 中启用 (展示)</th>
+                                    <th style="width:30%; text-align:center;">设为必填项</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${catFields.map(f => `
+                                    <tr>
+                                        <td style="font-weight:500; color:var(--text-primary); font-size:13px;">${f.field_name} <span style="color:#86909c; font-size:11px; font-family:monospace;">(${f.field_key})</span></td>
+                                        <td style="text-align:center;">
+                                            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                                                <input type="checkbox" id="chk-enabled-${f.field_key}" ${f.enabled ? 'checked' : ''} onchange="toggleFieldEnabled('${f.field_key}')" style="width:16px; height:16px; accent-color:#165dff;">
+                                                <span style="font-size:12px; color:${f.enabled ? '#165dff' : '#86909c'}; font-weight:${f.enabled ? '600' : 'normal'};">${f.enabled ? '已启用' : '已禁用'}</span>
+                                            </label>
+                                        </td>
+                                        <td style="text-align:center;">
+                                            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                                                <input type="checkbox" id="chk-required-${f.field_key}" ${f.required ? 'checked' : ''} ${!f.enabled ? 'disabled' : ''} onchange="toggleFieldRequired('${f.field_key}')" style="width:16px; height:16px; accent-color:#FF3B30;">
+                                                <span style="font-size:12px; color:${f.required ? '#FF3B30' : '#86909c'}; font-weight:${f.required ? '600' : 'normal'};">${f.required ? '必填' : '选填'}</span>
+                                            </label>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function toggleFieldEnabled(key) {
+            const item = offerFieldsConfigList.find(f => f.field_key === key);
+            if (item) {
+                item.enabled = !item.enabled;
+                if (!item.enabled) item.required = false;
+                renderOfferFieldsConfig();
+            }
+        }
+
+        function toggleFieldRequired(key) {
+            const item = offerFieldsConfigList.find(f => f.field_key === key);
+            if (item) {
+                item.required = !item.required;
+                renderOfferFieldsConfig();
+            }
+        }
+
+        async function saveOfferFieldsConfig() {
+            try {
+                const res = await fetch('/api/approvals/offer-fields-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(offerFieldsConfigList)
+                });
+                if (res.ok) {
+                    showToast('🎉 Offer 详情字段填报配置保存成功！', 'success');
+                } else {
+                    showToast('保存配置失败，请检查网络', 'error');
+                }
+            } catch(e) {
+                showToast('保存配置异常', 'error');
+            }
+        }
+
+        function resetOfferFieldsConfig() {
+            showConfirm('确定要恢复大厂默认全量 30 项字段配置吗？', () => {
+                offerFieldsConfigList.forEach(f => {
+                    f.enabled = true;
+                    if (['contract_subject', 'department', 'proposed_start_date', 'base_salary'].includes(f.field_key)) {
+                        f.required = true;
+                    } else {
+                        f.required = false;
+                    }
+                });
+                renderOfferFieldsConfig();
+                showToast('已重置为大厂默认配置，请点击“保存字段配置”生效', 'info');
+            });
+        }
 
         async function loadOfferApprovalRules() {
             try {

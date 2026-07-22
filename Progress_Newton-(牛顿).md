@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.37
+- **当前版本**: Newton-(牛顿)-v1.22.38
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.38**: 修复settings.html中switchApprovalSubTab事件未正确装载导致的页面点击无反应BUG (2026-07-22 14:38:12)
 - **v1.22.37**: 在Offer审批配置中增加Offer详情30项字段填报配置子Tab与功能 (2026-07-22 14:15:13)
 - **v1.22.36**: 全面剥离Offer详情与编辑表单的涂佳颖写死模拟数据并置为空白 (2026-07-22 10:47:27)
 - **v1.22.35**: 美化Offer编辑页面UI，使其符合系统整体现代极简商业设计调性 (2026-07-22 09:42:41)
@@ -173,3 +174,4 @@
 - [2026-07-22 09:42:41] 在candidate-detail.html中，为编辑表单新增了.moka-input-clean、.moka-select-clean与.moka-textarea-clean等一系列无原生黑粗框与灰色按钮的精细自定义控件样式，并通过.moka-edit-card四分类微卡片包覆所有30项表单控件，全面升级了编辑页面的商业级排版设计调性
 - [2026-07-22 10:47:27] 在candidate-detail.html中，重构了renderOfferStatusCard与renderOfferForm，当候选人未发起审批时，将所有30项属性的默认对象值置为空白，并清除了预览区所有绑定的硬编码回退值。至此，不同候选人的Offer数据完美隔离，新候选人的档案呈现出干净纯洁的待输入与留白状态
 - [2026-07-22 14:15:13] 在settings.html中上线了'Offer详情字段填报配置'子页面，支持管理员勾选开启/禁用30项大厂字段及设置必填项；后端新增/api/approvals/offer-fields-config接口；并与candidate-detail.html页面进行了实时动态联动（隐去禁用的字段、加红星标识、提交时非空拦截校验）
+- [2026-07-22 14:38:12] 在settings.html的script脚本区域补全了switchApprovalSubTab、loadOfferFieldsConfig、renderOfferFieldsConfig与saveOfferFieldsConfig函数逻辑，彻底解决了线上环境点击'Offer 详情字段填报配置'无响应的缺陷
