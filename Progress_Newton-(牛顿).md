@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.44
+- **当前版本**: Newton-(牛顿)-v1.22.45
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.45**: 修复候选人详情页Offer提单联动渲染下拉框降级为填空框的缺陷 (2026-07-22 17:05:19)
 - **v1.22.44**: 清除配置界面所有Emoji图标并升华极简商用UI质感 (2026-07-22 16:49:27)
 - **v1.22.43**: 重构Offer字段填报配置为独立高保真Modal配置弹窗与极简主表格交互 (2026-07-22 16:42:09)
 - **v1.22.42**: 彻底清除settings.html中同名const变量重复声明导致的Uncaught SyntaxError重大崩溃缺陷 (2026-07-22 16:31:56)
@@ -187,3 +188,4 @@
 - [2026-07-22 16:31:56] 删除了settings.html中重复定义的旧DEFAULT_STATIC_OFFER_FIELDS_CONFIG const变量声明，彻底消除了SyntaxError异常，恢复了系统设置页面全量按钮与部门架构树的加载响应
 - [2026-07-22 16:42:09] 在settings.html中将主表格重构为精简的Badge徽章与⚙️规则与预设配置操作按键；制作了独立Modal弹窗offerFieldConfigModal，包含【第一步: 选择填写形态(填空/下拉/部门树)】与【第二步: 二次动态预设选项池填报与批量导入】的顶级商业交互形态
 - [2026-07-22 16:49:27] 在settings.html与candidate-detail.html中全面去除了Emoji图标；将控件形态Badge提升为莫兰迪胶囊标签，操作按钮修饰为飞书/钉钉平滑商用控件，全界面更加典雅、和谐、舒适
+- [2026-07-22 17:05:19] 在candidate-detail.html中植入了与settings.html一致的30项DEFAULT_STATIC_OFFER_FIELDS_CONFIG静态保底配置，并在renderSmartControl中加强了只要字段包含有效options选项列表一律100%优先渲染为下拉选择框的强逻辑，确保系统设置与候选人详情提单页100%完全对应
