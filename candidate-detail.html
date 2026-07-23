@@ -788,15 +788,25 @@
         
         <!-- 左侧 70% 沉浸式展示区 -->
         <div class="left-main-pane">
-            <!-- 上方简历工具栏 -->
+            <!-- 上方简历工具栏 (新增全比例满铺自适应放大) -->
             <div class="pdf-toolbar-header">
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <span>原始简历</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-weight:600; color:#1f2329;">原始简历预览</span>
+                    <span id="pdf-zoom-badge" style="font-size:11.5px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:1px 8px; border-radius:10px; font-weight:600;">自适应宽屏 135%</span>
                 </div>
-                <div class="toolbar-action-icons">
-                    <span class="toolbar-icon-btn" title="全屏查看" onclick="togglePdfFullScreen()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></span>
-                    <span class="toolbar-icon-btn" title="适应宽度"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline></svg></span>
+                <div class="toolbar-action-icons" style="gap:12px;">
+                    <span class="toolbar-icon-btn" title="缩小视窗" onclick="zoomPdfOut()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                    </span>
+                    <span class="toolbar-icon-btn" title="放大简历" onclick="zoomPdfIn()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                    </span>
+                    <span class="toolbar-icon-btn" title="一键铺满/适应宽度" onclick="fitPdfWidth()" style="background:#e8f3ff; color:#165dff; font-weight:bold; width:auto; padding:0 8px; font-size:12px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:3px;"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                        拉宽铺满
+                    </span>
+                    <span style="height:14px; width:1px; background:#e5e6eb; margin:0 2px;"></span>
+                    <span class="toolbar-icon-btn" title="全屏沉浸查看" onclick="togglePdfFullScreen()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></span>
                     <span class="toolbar-icon-btn" title="下载简历 PDF" onclick="downloadResumePdf()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
                     <span class="toolbar-icon-btn" title="打印简历"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></span>
                 </div>
@@ -807,10 +817,10 @@
                 
                 <!-- Tab 0: 基本信息 (沉浸式原始简历视窗，用于与右侧 AI 解析比对) -->
                 <div id="tab-pane-0" class="tab-pane-content active">
-                    <!-- 原始 PDF 沉浸视窗 -->
-                    <div style="height: 850px; border: 1px solid #e5e6eb; border-radius: 8px; overflow: hidden; background: #fafafa; box-shadow: 0 1px 4px rgba(0,0,0,0.02);">
-                        <div id="pdf-loading-fallback" style="padding:60px 40px; text-align:center; color:#86909c; font-size:13px;">正在加载候选人原始简历附件...</div>
-                        <iframe id="pdf-viewer" style="width:100%; height:100%; border:none;" onload="document.getElementById('pdf-loading-fallback').style.display='none';"></iframe>
+                    <!-- 原始 PDF 沉浸视窗 (自适应充满容器) -->
+                    <div id="pdf-viewer-wrapper" style="height: 860px; border: 1px solid #e5e6eb; border-radius: 8px; overflow: auto; background: #ffffff; position:relative; box-shadow: 0 1px 4px rgba(0,0,0,0.02); display:flex; justify-content:center; align-items:flex-start;">
+                        <div id="pdf-loading-fallback" style="padding:60px 40px; text-align:center; color:#86909c; font-size:13px; position:absolute; top:40%; left:50%; transform:translate(-50%, -50%);">正在加载候选人原始简历附件...</div>
+                        <iframe id="pdf-viewer" style="width:100%; height:100%; border:none; transition:transform 0.2s ease;" onload="document.getElementById('pdf-loading-fallback').style.display='none';"></iframe>
                     </div>
                 </div>
 
@@ -1038,6 +1048,42 @@
             if (confirm(msg)) onOk();
         }
 
+        // ==============================================================================
+        //           ▎ 原始简历自适应拉宽放缩控制引擎 (解决 A4 PDF 在宽屏下偏窄问题)
+        // ==============================================================================
+        let currentPdfZoom = 135; // 默认拉宽放大大尺寸比例 135%
+
+        function applyPdfZoom(zoomVal) {
+            currentPdfZoom = Math.min(200, Math.max(80, zoomVal));
+            const iframe = document.getElementById('pdf-viewer');
+            const badge = document.getElementById('pdf-zoom-badge');
+            
+            if (badge) {
+                badge.innerText = `宽屏自适应 ${currentPdfZoom}%`;
+            }
+            
+            if (iframe) {
+                const scale = currentPdfZoom / 100;
+                iframe.style.transform = `scale(${scale})`;
+                iframe.style.transformOrigin = 'top center';
+                iframe.style.width = `${100 / scale}%`;
+                iframe.style.height = `${100 / scale}%`;
+            }
+        }
+
+        function zoomPdfIn() {
+            applyPdfZoom(currentPdfZoom + 15);
+        }
+
+        function zoomPdfOut() {
+            applyPdfZoom(currentPdfZoom - 15);
+        }
+
+        function fitPdfWidth() {
+            applyPdfZoom(140);
+            showToast('已一键铺满大屏视窗宽度', 'success');
+        }
+
         // 格式化 AI 深度解析文本（将 bare <br> 解析为高颜值结构卡片）
         function renderFormattedAiAnalysis(rawText) {
             if (!rawText) return '<div style="color:#86909c; font-size:12px;">暂无深度解析建议</div>';
@@ -1246,13 +1292,16 @@
                     document.getElementById('ai-skills').innerHTML = '<span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">财务分析与精细化管理</span><span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">跨国多税区税务筹划</span>';
                 }
 
-                // 渲染 PDF 预览器 (拼接自适应宽度与隐藏默认黑边工具条)
+                // 渲染 PDF 预览器 (拼接自适应宽度与隐藏默认黑边工具条，并触发 135% 自适应拉宽铺满)
                 if (candidate.pdf_path) {
                     let pdfUrl = candidate.pdf_path;
                     if (pdfUrl.includes('.pdf') && !pdfUrl.includes('#')) {
-                        pdfUrl += '#toolbar=0&navpanes=0&view=FitH';
+                        pdfUrl += '#toolbar=0&navpanes=0&view=FitH,top&zoom=140';
                     }
                     document.getElementById('pdf-viewer').src = pdfUrl;
+                    setTimeout(() => {
+                        applyPdfZoom(135);
+                    }, 350);
                 } else {
                     document.getElementById('pdf-loading-fallback').innerHTML = '<div style="padding:40px; text-align:center; color:#86909c;">演示视窗：已成功匹配并载入候选人简历面板</div>';
                 }
