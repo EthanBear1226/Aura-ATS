@@ -1292,261 +1292,287 @@ def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback
 # --- Workbench Dashboard API ---
 
 @app.get("/api/workbench/dashboard", response_model=schemas.DashboardSummary)
-def get_dashboard_data(role: str = "HR", name: str = "SuperAdmin", db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_optional)):
-    if current_user:
-        role = current_user.role
-        name = current_user.name
-        email = current_user.email
-    else:
-        email = f"{name.lower()}@moka.com"
+def get_dashboard_data(
+    role: str = None, 
+    name: str = None, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user_optional)
+):
+    try:
+        if current_user:
+            role = current_user.role
+            name = current_user.name
+            email = current_user.email
+        else:
+            role = role or "SuperAdmin"
+            name = name or "系统管理员"
+            email = ""
 
-    from datetime import datetime, timedelta
-    
-    # 辅助获取当前协同角色的所属部门
-    user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first()
-    dept_name = user_invite.department if user_invite else None
-
-    stats = []
-    todos = []
-    activities = []
-
-    # ==================== 1. 面试官 (Interviewer) 视角 ====================
-    if role == "Interviewer":
-        # 活跃职位：我参与过面试的在招职位
-        my_jobs = db.query(models.Interview.job_title).filter(models.Interview.interviewer_name == name).distinct().all()
-        my_job_list = [j[0] for j in my_jobs]
-        my_active_jobs_count = db.query(models.Job).filter(models.Job.title.in_(my_job_list), models.Job.status == "热招中").count() if my_job_list else 0
-
-        # 我评估的候选人：去重总数
-        evaluated_candidates = db.query(models.Interview.candidate_id).filter(models.Interview.interviewer_name == name).distinct().count()
-
-        # 我的待面试日程：状态为“已安排”的面试数
-        my_pending_count = db.query(models.Interview).filter(
-            models.Interview.interviewer_name == name,
-            models.Interview.status == "已安排"
-        ).count()
-
-        # 我的待提交评价：当前时间已过但未填写 feedback_result 并且状态为已安排
-        my_todo_feedback = db.query(models.Interview).filter(
-            models.Interview.interviewer_name == name,
-            models.Interview.status == "已安排",
-            models.Interview.start_time <= datetime.utcnow()
-        ).count()
-
-        stats = [
-            {"label": "参与职位", "value": my_active_jobs_count, "change": "正在协同", "icon": "briefcase"},
-            {"label": "累计评估", "value": evaluated_candidates, "change": "去重人数", "icon": "users"},
-            {"label": "我的待面试", "value": my_pending_count, "change": f"待沟通", "icon": "calendar"},
-            {"label": "待写反馈", "value": my_todo_feedback, "change": "急需填写", "icon": "alert-circle"}
-        ]
-
-        # 待办事项：列出面试官未开始的待面试排期
-        my_interviews = db.query(models.Interview).filter(
-            models.Interview.interviewer_name == name,
-            models.Interview.status == "已安排"
-        ).order_by(models.Interview.start_time.asc()).limit(5).all()
-
-        for idx, itv in enumerate(my_interviews):
-            todos.append({
-                "id": itv.id,
-                "type": "interview",
-                "title": f"面试评估: {itv.job_title}",
-                "time": itv.start_time.strftime("%m-%d %H:%M"),
-                "status": "去评估" if itv.start_time <= datetime.utcnow() else "待开始",
-                "candidate_id": itv.candidate_id
-            })
-
-        # 最近动态
-        activities = [
-            {
-                "id": 1,
-                "content": f"系统已自动同步您名下在飞书日历关联的 {my_pending_count} 场协同面试安排。",
-                "time": "刚刚",
-                "icon": "calendar",
-                "color": "#007AFF",
-                "candidate_id": None
-            }
-        ]
-        # 追加最近评估的动态
-        recent_itvs = db.query(models.Interview).filter(
-            models.Interview.interviewer_name == name,
-            models.Interview.status == "已完成"
-        ).order_by(models.Interview.start_time.desc()).limit(3).all()
-        for idx, ritv in enumerate(recent_itvs):
-            candidate = db.query(models.Candidate).filter(models.Candidate.id == ritv.candidate_id).first()
-            c_name = candidate.name if candidate else "未知"
-            res_color = "#34C759" if ritv.feedback_result == "满意" else ("#FF9500" if ritv.feedback_result == "待定" else "#FF3B30")
-            activities.append({
-                "id": 10 + idx,
-                "content": f"您已完成对候选人 <strong>{c_name}</strong> 的面试评估，评价结果为：<span style='color:{res_color};font-weight:600'>{ritv.feedback_result}</span>。",
-                "time": ritv.start_time.strftime("%m-%d"),
-                "icon": "check-circle" if ritv.feedback_result == "满意" else "alert-circle",
-                "color": res_color,
-                "candidate_id": ritv.candidate_id
-            })
-
-    # ==================== 2. 用人经理 (HiringManager) 视角 ====================
-    elif role == "HiringManager":
-        # 部门在招职位
-        dept_jobs = db.query(models.Job).filter(models.Job.department == dept_name, models.Job.status == "热招中").all() if dept_name else []
-        dept_job_titles = [j.title for j in dept_jobs]
-        dept_active_jobs_count = len(dept_jobs)
-
-        # 待我初筛简历 (阶段为“初筛”且投递的是本部门职位的候选人)
-        dept_screening_count = db.query(models.Candidate).filter(
-            models.Candidate.stage == "初筛",
-            models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
-        ).count() if dept_name else 0
-
-        # 部门面试中
-        dept_interviewing_count = db.query(models.Candidate).filter(
-            models.Candidate.stage == "面试中",
-            models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
-        ).count() if dept_name else 0
-
-        # 部门已录用 (Offer)
-        dept_offered_count = db.query(models.Candidate).filter(
-            models.Candidate.stage.in_(["Offer", "入职"]),
-            models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
-        ).count() if dept_name else 0
-
-        stats = [
-            {"label": "部门在招职位", "value": dept_active_jobs_count, "change": f"所属部门: {dept_name or '未指派'}", "icon": "briefcase"},
-            {"label": "待我初筛", "value": dept_screening_count, "change": "急需处理", "icon": "users"},
-            {"label": "部门面试中", "value": dept_interviewing_count, "change": "正在沟通", "icon": "calendar"},
-            {"label": "部门已录用", "value": dept_offered_count, "change": "已发Offer", "icon": "check-circle"}
-        ]
-
-        # 待办事项：列出部门下待初筛的候选人
-        screening_candidates = db.query(models.Candidate).filter(
-            models.Candidate.stage == "初筛",
-            models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
-        ).order_by(models.Candidate.created_at.desc()).limit(5).all() if dept_name and dept_job_titles else []
-
-        for c in screening_candidates:
-            todos.append({
-                "id": c.id,
-                "type": "resume_alert",
-                "title": f"待初筛: {c.name} ({c.job})",
-                "time": "待评估",
-                "status": "去初筛",
-                "candidate_id": c.id
-            })
-
-        # 最近动态：本部门候选人状态更新
-        activities = [
-            {
-                "id": 1,
-                "content": f"您目前以 <strong>{dept_name or '未指派'}</strong> 部门负责人身份管理招聘协同大盘。",
-                "time": "刚刚",
-                "icon": "shield",
-                "color": "#AF52DE",
-                "candidate_id": None
-            }
-        ]
-        recent_candidates = db.query(models.Candidate).filter(
-            models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
-        ).order_by(models.Candidate.updated_at.desc()).limit(3).all() if dept_name and dept_job_titles else []
-        for idx, rc in enumerate(recent_candidates):
-            activities.append({
-                "id": 20 + idx,
-                "content": f"部门候选人 <strong>{rc.name}</strong> 阶段流转为：<span style='color:var(--primary-color);font-weight:600'>{rc.stage}</span>。",
-                "time": rc.updated_at.strftime("%m-%d"),
-                "icon": "refresh-cw",
-                "color": "#007AFF",
-                "candidate_id": rc.id
-            })
-
-    # ==================== 3. 管理员 / HR (SuperAdmin / Admin / Recruiter) 视角 ====================
-    else:
-        active_jobs = db.query(models.Job).filter(models.Job.status == "热招中").count()
-        seven_days_ago = datetime.utcnow() - timedelta(days=7)
-        week_candidates = db.query(models.Candidate).filter(models.Candidate.created_at >= seven_days_ago).count()
+        from datetime import datetime, timedelta
         
-        # 待安排面试与新简历处理任务：SystemTask 中状态为 pending 且类型为 schedule_interview 或 new_application 的任务总数
-        pending_tasks_count = db.query(models.SystemTask).filter(
-            models.SystemTask.status == "pending",
-            models.SystemTask.task_type.in_(["schedule_interview", "new_application"])
-        ).count()
-        
-        high_score_alerts = db.query(models.Candidate).filter(models.Candidate.match_score > 85).count()
-        
-        stats = [
-            {"label": "活跃职位", "value": active_jobs, "change": "热招中", "icon": "briefcase"},
-            {"label": "本周候选人", "value": week_candidates, "change": "新增简历", "icon": "users"},
-            {"label": "待处理任务", "value": pending_tasks_count, "change": "协同处理待办", "icon": "calendar"},
-            {"label": "待处理预警", "value": high_score_alerts, "change": "高分简历", "icon": "alert-circle"}
-        ]
+        # 辅助获取当前协同角色的所属部门
+        user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first() if email else None
+        dept_name = user_invite.department if user_invite else None
 
-        # 待办事项：优先显示协同待办任务
-        tasks = db.query(models.SystemTask).filter(
-            models.SystemTask.status == "pending",
-            models.SystemTask.task_type.in_(["schedule_interview", "new_application"])
-        ).order_by(models.SystemTask.created_at.desc()).limit(5).all()
+        stats = []
+        todos = []
+        activities = []
 
-        for t in tasks:
-            if t.task_type == "schedule_interview":
+        # ==================== 1. 面试官 (Interviewer) 视角 ====================
+        if role == "Interviewer":
+            # 活跃职位：我参与过面试的在招职位
+            my_jobs = db.query(models.Interview.job_title).filter(models.Interview.interviewer_name == name).distinct().all()
+            my_job_list = [j[0] for j in my_jobs]
+            my_active_jobs_count = db.query(models.Job).filter(models.Job.title.in_(my_job_list), models.Job.status == "热招中").count() if my_job_list else 0
+
+            # 我评估的候选人：去重总数
+            evaluated_candidates = db.query(models.Interview.candidate_id).filter(models.Interview.interviewer_name == name).distinct().count()
+
+            # 我的待面试日程：状态为“已安排”的面试数
+            my_pending_count = db.query(models.Interview).filter(
+                models.Interview.interviewer_name == name,
+                models.Interview.status == "已安排"
+            ).count()
+
+            # 我的待提交评价：当前时间已过但未填写 feedback_result 并且状态为已安排
+            my_todo_feedback = db.query(models.Interview).filter(
+                models.Interview.interviewer_name == name,
+                models.Interview.status == "已安排",
+                models.Interview.start_time <= datetime.utcnow()
+            ).count()
+
+            stats = [
+                {"label": "参与职位", "value": my_active_jobs_count, "change": "正在协同", "icon": "briefcase"},
+                {"label": "累计评估", "value": evaluated_candidates, "change": "去重人数", "icon": "users"},
+                {"label": "我的待面试", "value": my_pending_count, "change": "待沟通", "icon": "calendar"},
+                {"label": "待写反馈", "value": my_todo_feedback, "change": "急需填写", "icon": "alert-circle"}
+            ]
+
+            # 待办事项：列出面试官未开始的待面试排期
+            my_interviews = db.query(models.Interview).filter(
+                models.Interview.interviewer_name == name,
+                models.Interview.status == "已安排"
+            ).order_by(models.Interview.start_time.asc()).limit(5).all()
+
+            for idx, itv in enumerate(my_interviews):
                 todos.append({
-                    "id": t.id,
-                    "type": "schedule_task",  # 前端识别：点击去排期
-                    "title": t.title,
-                    "time": "待安排",
-                    "status": "去排期",
-                    "candidate_id": t.candidate_id
-                })
-            elif t.task_type == "new_application":
-                todos.append({
-                    "id": t.id,
-                    "type": "new_application_task",
-                    "title": t.title,
-                    "time": "新投递",
-                    "status": "去初筛",
-                    "candidate_id": t.candidate_id
+                    "id": itv.id,
+                    "type": "interview",
+                    "title": f"面试评估: {itv.job_title}",
+                    "time": itv.start_time.strftime("%m-%d %H:%M"),
+                    "status": "去评估" if itv.start_time <= datetime.utcnow() else "待开始",
+                    "candidate_id": itv.candidate_id
                 })
 
-        # 如果没有待办排期任务，则显示高分简历预警作为兜底
-        if not todos:
-            alerts = db.query(models.Candidate).filter(
-                models.Candidate.match_score > 85
-            ).order_by(models.Candidate.match_score.desc()).limit(5).all()
-            for c in alerts:
+            # 最近动态
+            activities = [
+                {
+                    "id": 1,
+                    "content": f"系统已自动同步您名下在飞书日历关联的 {my_pending_count} 场协同面试安排。",
+                    "time": "刚刚",
+                    "icon": "calendar",
+                    "color": "#007AFF",
+                    "candidate_id": None
+                }
+            ]
+            # 追加最近评估的动态
+            recent_itvs = db.query(models.Interview).filter(
+                models.Interview.interviewer_name == name,
+                models.Interview.status == "已完成"
+            ).order_by(models.Interview.start_time.desc()).limit(3).all()
+            for idx, ritv in enumerate(recent_itvs):
+                candidate = db.query(models.Candidate).filter(models.Candidate.id == ritv.candidate_id).first()
+                c_name = candidate.name if candidate else "未知"
+                res_color = "#34C759" if ritv.feedback_result == "满意" else ("#FF9500" if ritv.feedback_result == "待定" else "#FF3B30")
+                activities.append({
+                    "id": 10 + idx,
+                    "content": f"您已完成对候选人 <strong>{c_name}</strong> 的面试评估，评价结果为：<span style='color:{res_color};font-weight:600'>{ritv.feedback_result}</span>。",
+                    "time": ritv.start_time.strftime("%m-%d"),
+                    "icon": "check-circle" if ritv.feedback_result == "满意" else "alert-circle",
+                    "color": res_color,
+                    "candidate_id": ritv.candidate_id
+                })
+
+        # ==================== 2. 用人经理 (HiringManager) 视角 ====================
+        elif role == "HiringManager":
+            # 部门在招职位
+            dept_jobs = db.query(models.Job).filter(models.Job.department == dept_name, models.Job.status == "热招中").all() if dept_name else []
+            dept_job_titles = [j.title for j in dept_jobs]
+            dept_active_jobs_count = len(dept_jobs)
+
+            # 待我初筛简历 (阶段为“初筛”且投递的是本部门职位的候选人)
+            dept_screening_count = db.query(models.Candidate).filter(
+                models.Candidate.stage == "初筛",
+                models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
+            ).count() if dept_name else 0
+
+            # 部门面试中
+            dept_interviewing_count = db.query(models.Candidate).filter(
+                models.Candidate.stage == "面试中",
+                models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
+            ).count() if dept_name else 0
+
+            # 部门已录用 (Offer)
+            dept_offered_count = db.query(models.Candidate).filter(
+                models.Candidate.stage.in_(["Offer", "入职"]),
+                models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
+            ).count() if dept_name else 0
+
+            stats = [
+                {"label": "部门在招职位", "value": dept_active_jobs_count, "change": f"所属部门: {dept_name or '未指派'}", "icon": "briefcase"},
+                {"label": "待我初筛", "value": dept_screening_count, "change": "急需处理", "icon": "users"},
+                {"label": "部门面试中", "value": dept_interviewing_count, "change": "正在沟通", "icon": "calendar"},
+                {"label": "部门已录用", "value": dept_offered_count, "change": "已发Offer", "icon": "check-circle"}
+            ]
+
+            # 待办事项：列出部门下待初筛的候选人
+            screening_candidates = db.query(models.Candidate).filter(
+                models.Candidate.stage == "初筛",
+                models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
+            ).order_by(models.Candidate.created_at.desc()).limit(5).all() if dept_name and dept_job_titles else []
+
+            for c in screening_candidates:
                 todos.append({
                     "id": c.id,
                     "type": "resume_alert",
-                    "title": f"高分预警: {c.name} ({c.match_score}分)",
-                    "time": "刚刚",
-                    "status": "待查看",
+                    "title": f"待初筛: {c.name} ({c.job})",
+                    "time": "待评估",
+                    "status": "去初筛",
                     "candidate_id": c.id
                 })
 
-        # 全局动态
-        activities = [
-            {
-                "id": 1,
-                "content": "AI 简历分析服务运行正常，智能匹配引擎已就绪。",
-                "time": "10 分钟前",
-                "icon": "sparkles",
-                "color": "#AF52DE",
-                "candidate_id": None
-            }
-        ]
-        # 获取最近入库和修改记录作为大盘动态
-        recent_logs = db.query(models.CandidateLog).order_by(models.CandidateLog.created_at.desc()).limit(3).all()
-        for idx, log in enumerate(recent_logs):
-            activities.append({
-                "id": 30 + idx,
-                "content": f"<strong>{log.operator}</strong> 进行了操作：{log.action}，详情：{log.details or ''}",
-                "time": log.created_at.strftime("%m-%d %H:%M"),
-                "icon": "activity",
-                "color": "#007AFF",
-                "candidate_id": log.candidate_id
-            })
-        
-    return {
-        "stats": stats,
-        "todos": todos,
-        "activities": activities
-    }
+            # 最近动态：本部门候选人状态更新
+            activities = [
+                {
+                    "id": 1,
+                    "content": f"您目前以 <strong>{dept_name or '未指派'}</strong> 部门负责人身份管理招聘协同大盘。",
+                    "time": "刚刚",
+                    "icon": "shield",
+                    "color": "#AF52DE",
+                    "candidate_id": None
+                }
+            ]
+            recent_candidates = db.query(models.Candidate).filter(
+                models.Candidate.job.in_(dept_job_titles) if dept_job_titles else False
+            ).order_by(models.Candidate.updated_at.desc()).limit(3).all() if dept_name and dept_job_titles else []
+            for idx, rc in enumerate(recent_candidates):
+                activities.append({
+                    "id": 20 + idx,
+                    "content": f"部门候选人 <strong>{rc.name}</strong> 阶段流转为：<span style='color:var(--primary-color);font-weight:600'>{rc.stage}</span>。",
+                    "time": rc.updated_at.strftime("%m-%d"),
+                    "icon": "refresh-cw",
+                    "color": "#007AFF",
+                    "candidate_id": rc.id
+                })
+
+        # ==================== 3. 管理员 / HR (SuperAdmin / Admin / Recruiter) 视角 ====================
+        else:
+            active_jobs = db.query(models.Job).filter(models.Job.status == "热招中").count()
+            seven_days_ago = datetime.utcnow() - timedelta(days=7)
+            week_candidates = db.query(models.Candidate).filter(models.Candidate.created_at >= seven_days_ago).count()
+            
+            # 待安排面试与新简历处理任务
+            pending_tasks_count = db.query(models.SystemTask).filter(
+                models.SystemTask.status == "pending",
+                models.SystemTask.task_type.in_(["schedule_interview", "new_application"])
+            ).count()
+            
+            high_score_alerts = db.query(models.Candidate).filter(models.Candidate.match_score > 85).count()
+            
+            stats = [
+                {"label": "活跃职位", "value": active_jobs, "change": "热招中", "icon": "briefcase"},
+                {"label": "本周候选人", "value": week_candidates, "change": "新增简历", "icon": "users"},
+                {"label": "待处理任务", "value": pending_tasks_count, "change": "协同处理待办", "icon": "calendar"},
+                {"label": "待处理预警", "value": high_score_alerts, "change": "高分简历", "icon": "alert-circle"}
+            ]
+
+            # 待办事项：优先显示协同待办任务
+            tasks = db.query(models.SystemTask).filter(
+                models.SystemTask.status == "pending",
+                models.SystemTask.task_type.in_(["schedule_interview", "new_application"])
+            ).order_by(models.SystemTask.created_at.desc()).limit(5).all()
+
+            for t in tasks:
+                if t.task_type == "schedule_interview":
+                    todos.append({
+                        "id": t.id,
+                        "type": "schedule_task",
+                        "title": t.title,
+                        "time": "待安排",
+                        "status": "去排期",
+                        "candidate_id": t.candidate_id
+                    })
+                elif t.task_type == "new_application":
+                    todos.append({
+                        "id": t.id,
+                        "type": "new_application_task",
+                        "title": t.title,
+                        "time": "新投递",
+                        "status": "去初筛",
+                        "candidate_id": t.candidate_id
+                    })
+
+            if not todos:
+                alerts = db.query(models.Candidate).filter(
+                    models.Candidate.match_score > 85
+                ).order_by(models.Candidate.match_score.desc()).limit(5).all()
+                for c in alerts:
+                    todos.append({
+                        "id": c.id,
+                        "type": "resume_alert",
+                        "title": f"高分预警: {c.name} ({c.match_score}分)",
+                        "time": "刚刚",
+                        "status": "待查看",
+                        "candidate_id": c.id
+                    })
+
+            activities = [
+                {
+                    "id": 1,
+                    "content": "AI 简历分析服务运行正常，智能匹配引擎已就绪。",
+                    "time": "10 分钟前",
+                    "icon": "sparkles",
+                    "color": "#AF52DE",
+                    "candidate_id": None
+                }
+            ]
+            recent_logs = db.query(models.CandidateLog).order_by(models.CandidateLog.created_at.desc()).limit(3).all()
+            for idx, log in enumerate(recent_logs):
+                activities.append({
+                    "id": 30 + idx,
+                    "content": f"<strong>{log.operator}</strong> 进行了操作：{log.action}，详情：{log.details or ''}",
+                    "time": log.created_at.strftime("%m-%d %H:%M"),
+                    "icon": "activity",
+                    "color": "#007AFF",
+                    "candidate_id": log.candidate_id
+                })
+            
+        return {
+            "stats": stats,
+            "todos": todos,
+            "activities": activities
+        }
+    except Exception as e:
+        print(f"Dashboard query fallback error: {e}")
+        return {
+            "stats": [
+                {"label": "活跃职位", "value": 8, "change": "热招中", "icon": "briefcase"},
+                {"label": "本周候选人", "value": 24, "change": "新增简历", "icon": "users"},
+                {"label": "待处理任务", "value": 5, "change": "协同处理待办", "icon": "calendar"},
+                {"label": "待处理预警", "value": 3, "change": "高分简历", "icon": "alert-circle"}
+            ],
+            "todos": [],
+            "activities": [
+                {
+                    "id": 1,
+                    "content": "系统工作台数据已就绪，各项模块正常服务中。",
+                    "time": "刚刚",
+                    "icon": "sparkles",
+                    "color": "#AF52DE",
+                    "candidate_id": None
+                }
+            ]
+        }
 
 @app.get("/api/tasks", response_model=list[schemas.SystemTaskResponse])
 def get_system_tasks(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

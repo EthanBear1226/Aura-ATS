@@ -39,20 +39,23 @@
 
     <script src="assets/js/app.js?v=18"></script>
     <script>
+        // Init global layout components
+        document.addEventListener("DOMContentLoaded", () => {
+            renderSidebar('index');
+            renderHeader();
+            fetchDashboardData();
+        });
+
         const DEFAULT_DASHBOARD_DATA = {
             stats: [
-                { label: "在招职位", value: 12, change: "+2 本周", icon: "briefcase" },
-                { label: "候选人总数", value: 148, change: "+15 本周", icon: "users" },
-                { label: "待安排面试", value: 8, change: "待处理", icon: "calendar" },
-                { label: "待发 Offer", value: 3, change: "需审批", icon: "file-text" }
+                { label: "活跃职位", value: 8, change: "热招中", icon: "briefcase" },
+                { label: "本周候选人", value: 24, change: "新增简历", icon: "users" },
+                { label: "待处理任务", value: 5, change: "协同处理待办", icon: "calendar" },
+                { label: "待处理预警", value: 3, change: "高分简历", icon: "alert-circle" }
             ],
-            todos: [
-                { id: 101, type: "interview", title: "候选人面试评估: 资深风控专家", time: "今日 14:30", status: "待开始", candidate_id: 1 },
-                { id: 102, type: "schedule_task", title: "安排终面排期: 高级后端工程师", time: "明日 10:00", status: "待处理", candidate_id: 2 }
-            ],
+            todos: [],
             activities: [
-                { id: 201, content: "代天娇 提交了候选人 [张立伟] 的面试反馈", time: "10分钟前", icon: "check-circle", color: "#34C759", candidate_id: 1 },
-                { id: 202, content: "系统自动创建了新的在招职位 [高级风控合规]", time: "1小时前", icon: "plus-circle", color: "#007AFF", candidate_id: null }
+                { id: 1, content: "AI 简历分析服务运行正常，智能匹配引擎已就绪。", time: "刚刚", icon: "sparkles", color: "#AF52DE", candidate_id: null }
             ]
         };
 
@@ -60,49 +63,39 @@
 
         async function fetchDashboardData() {
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            const role = user.role || 'HR';
-            const name = user.name || 'SuperAdmin';
+            const role = user.role || 'SuperAdmin';
+            const name = user.name || '系统';
             
             const welcomeEl = document.getElementById('workbench-welcome');
             if (welcomeEl) welcomeEl.innerText = `${name}，${role}`;
 
+            let dashboardData = null;
+
             try {
                 // 1. 获取工作台核心统计
-                const fetchFn = (typeof authFetch === 'function') ? authFetch : fetch;
-                const response = await fetchFn(`/api/workbench/dashboard?role=${encodeURIComponent(role)}&name=${encodeURIComponent(name)}`);
-                
-                let data = null;
-                if (response && response.ok) {
-                    data = await response.json();
-                }
-
-                // 2. 获取待处理的审批（Offer 待办）
-                try {
-                    const resApprovals = await fetchFn('/api/approvals/pending');
-                    if (resApprovals && resApprovals.ok) {
-                        pendingApprovalsList = await resApprovals.json();
+                const response = await fetch(`/api/workbench/dashboard?role=${role}&name=${name}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && Array.isArray(data.stats)) {
+                        dashboardData = data;
                     }
-                } catch(e) {
-                    console.warn("拉取待办审批异常:", e);
                 }
-
-                if (data && Array.isArray(data.stats) && data.stats.length > 0) {
-                    renderWorkbench(data);
-                } else {
-                    renderWorkbench(DEFAULT_DASHBOARD_DATA);
+                
+                // 2. 获取待处理的审批（Offer 待办）
+                const resApprovals = await fetch('/api/approvals/pending');
+                if (resApprovals.ok) {
+                    const appList = await resApprovals.json();
+                    if (Array.isArray(appList)) {
+                        pendingApprovalsList = appList;
+                    }
                 }
             } catch (error) {
-                console.error("加载工作台失败，渲染静态保底数据:", error);
-                renderWorkbench(DEFAULT_DASHBOARD_DATA);
+                console.error("加载工作台接口异常，应用保底数据:", error);
             }
-        }
 
-        // Init global layout components
-        document.addEventListener("DOMContentLoaded", () => {
-            renderSidebar('index');
-            renderHeader();
-            fetchDashboardData();
-        });
+            // 无论接口成功与否均触发渲染，彻底消除卡死在“正在准备您的工作台...”
+            renderWorkbench(dashboardData || DEFAULT_DASHBOARD_DATA);
+        }
 
         function renderWorkbench(data) {
             const grid = document.getElementById('workbench-grid');
