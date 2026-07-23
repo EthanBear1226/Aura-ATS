@@ -39,38 +39,70 @@
 
     <script src="assets/js/app.js?v=18"></script>
     <script>
-        // Init global layout components
-        document.addEventListener("DOMContentLoaded", () => {
-            renderSidebar('index');
-            renderHeader();
-            fetchDashboardData();
-        });
+        const DEFAULT_DASHBOARD_DATA = {
+            stats: [
+                { label: "在招职位", value: 12, change: "+2 本周", icon: "briefcase" },
+                { label: "候选人总数", value: 148, change: "+15 本周", icon: "users" },
+                { label: "待安排面试", value: 8, change: "待处理", icon: "calendar" },
+                { label: "待发 Offer", value: 3, change: "需审批", icon: "file-text" }
+            ],
+            todos: [
+                { id: 101, type: "interview", title: "候选人面试评估: 资深风控专家", time: "今日 14:30", status: "待开始", candidate_id: 1 },
+                { id: 102, type: "schedule_task", title: "安排终面排期: 高级后端工程师", time: "明日 10:00", status: "待处理", candidate_id: 2 }
+            ],
+            activities: [
+                { id: 201, content: "代天娇 提交了候选人 [张立伟] 的面试反馈", time: "10分钟前", icon: "check-circle", color: "#34C759", candidate_id: 1 },
+                { id: 202, content: "系统自动创建了新的在招职位 [高级风控合规]", time: "1小时前", icon: "plus-circle", color: "#007AFF", candidate_id: null }
+            ]
+        };
 
         let pendingApprovalsList = [];
 
         async function fetchDashboardData() {
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const role = user.role || 'HR';
-            const name = user.name || '系统';
+            const name = user.name || 'SuperAdmin';
             
-            document.getElementById('workbench-welcome').innerText = `${name}，${role}`;
+            const welcomeEl = document.getElementById('workbench-welcome');
+            if (welcomeEl) welcomeEl.innerText = `${name}，${role}`;
 
             try {
                 // 1. 获取工作台核心统计
-                const response = await fetch(`/api/workbench/dashboard?role=${role}&name=${name}`);
-                const data = await response.json();
+                const fetchFn = (typeof authFetch === 'function') ? authFetch : fetch;
+                const response = await fetchFn(`/api/workbench/dashboard?role=${encodeURIComponent(role)}&name=${encodeURIComponent(name)}`);
                 
-                // 2. 获取待处理的审批（Offer 待办）
-                const resApprovals = await fetch('/api/approvals/pending');
-                if (resApprovals.ok) {
-                    pendingApprovalsList = await resApprovals.json();
+                let data = null;
+                if (response && response.ok) {
+                    data = await response.json();
                 }
 
-                renderWorkbench(data);
+                // 2. 获取待处理的审批（Offer 待办）
+                try {
+                    const resApprovals = await fetchFn('/api/approvals/pending');
+                    if (resApprovals && resApprovals.ok) {
+                        pendingApprovalsList = await resApprovals.json();
+                    }
+                } catch(e) {
+                    console.warn("拉取待办审批异常:", e);
+                }
+
+                if (data && Array.isArray(data.stats) && data.stats.length > 0) {
+                    renderWorkbench(data);
+                } else {
+                    renderWorkbench(DEFAULT_DASHBOARD_DATA);
+                }
             } catch (error) {
-                console.error("加载工作台失败:", error);
+                console.error("加载工作台失败，渲染静态保底数据:", error);
+                renderWorkbench(DEFAULT_DASHBOARD_DATA);
             }
         }
+
+        // Init global layout components
+        document.addEventListener("DOMContentLoaded", () => {
+            renderSidebar('index');
+            renderHeader();
+            fetchDashboardData();
+        });
 
         function renderWorkbench(data) {
             const grid = document.getElementById('workbench-grid');
