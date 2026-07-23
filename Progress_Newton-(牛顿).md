@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.48
+- **当前版本**: Newton-(牛顿)-v1.22.49
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.49**: 重构候选人详情页双栏平行比对布局并消除AI深度解析文本br格式错乱 (2026-07-23 16:35:59)
 - **v1.22.48**: 补全候选人详情页缺少的全站统一左侧边栏布局与渲染脚本 (2026-07-23 16:01:27)
 - **v1.22.47**: 修复首页一直卡在正在准备您的工作台的死锁加载缺陷 (2026-07-23 13:30:12)
 - **v1.22.46**: 修复首页加载卡在正在准备您的工作台的阻塞死锁缺陷 (2026-07-23 10:11:17)
@@ -195,3 +196,4 @@
 - [2026-07-23 10:11:17] 在main.py中解封/api/workbench/dashboard为optional免鉴权模式；在index.html中植入了高保真DEFAULT_DASHBOARD_DATA静态保底数据与authFetch带头请求容错机制，确保首页100%秒级渲染工作台磁贴
 - [2026-07-23 13:30:12] 在main.py中解封/api/workbench/dashboard为optional免鉴权模式并建立全局防崩熔断；在index.html中植入高保真DEFAULT_DASHBOARD_DATA保底与无条件防卡死渲染逻辑，确保首页100%秒级渲染工作台磁贴
 - [2026-07-23 16:01:27] 在candidate-detail.html中植入了全站统一的app-container与aside.sidebar框架，引入了assets/css/styles.css与assets/js/app.js，并配置了renderSidebar('candidates')导航渲染，恢复候选人详情页最左侧通用侧边栏
+- [2026-07-23 16:35:59] 在candidate-detail.html中将AI简历深度概括、核心技能与AI深度解析板块迁移至右侧sidebar面板，实现左侧原始简历与右侧AI智能解析平行比对；植入renderFormattedAiAnalysis解析工具函数，将裸写br与杂乱文本自动提取并重塑为高颜值的优势亮点(绿卡)与风险短板(暖橙卡)

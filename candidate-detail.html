@@ -806,29 +806,11 @@
             <!-- 卡片承载容器 -->
             <div class="left-content-card">
                 
-                <!-- Tab 0: 基本信息 (AI 解析概括 + 沉浸式 PDF 预览) -->
+                <!-- Tab 0: 基本信息 (沉浸式原始简历视窗，用于与右侧 AI 解析比对) -->
                 <div id="tab-pane-0" class="tab-pane-content active">
-                    <div style="background: #f4f8ff; border: 1px solid #d0e1ff; padding: 18px 20px; border-radius: 8px; margin-bottom: 24px;">
-                        <h4 style="margin: 0 0 8px 0; color: #165dff; display: flex; align-items: center; gap: 8px; font-size: 15px;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                            AI 简历深度概括
-                        </h4>
-                        <div id="ai-summary" style="font-size: 14px; color: #333; line-height: 1.6;">加载中...</div>
-                    </div>
-
-                    <h4 style="font-size: 15px; margin: 0 0 12px 0;">💡 核心技能提取</h4>
-                    <div id="ai-skills" style="margin-bottom: 24px; display:flex; gap:8px; flex-wrap:wrap;">
-                        <span class="skill-tag">加载中...</span>
-                    </div>
-
-                    <h4 style="font-size: 15px; margin: 0 0 12px 0;">📊 AI 深度解析与建议</h4>
-                    <div style="background: #fdfaf6; border: 1px solid #f2e6d9; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px;">
-                        <div id="ai-analysis" style="font-size: 14px; color: #555; line-height: 1.6;">加载中...</div>
-                    </div>
-
                     <!-- 原始 PDF 沉浸视窗 -->
-                    <div style="height: 750px; border: 1px solid #e5e6eb; border-radius: 8px; overflow: hidden; background: #fafafa;">
-                        <div id="pdf-loading-fallback" style="padding:40px; text-align:center; color:#86909c;">正在加载简历附件...</div>
+                    <div style="height: 850px; border: 1px solid #e5e6eb; border-radius: 8px; overflow: hidden; background: #fafafa; box-shadow: 0 1px 4px rgba(0,0,0,0.02);">
+                        <div id="pdf-loading-fallback" style="padding:60px 40px; text-align:center; color:#86909c; font-size:13px;">正在加载候选人原始简历附件...</div>
                         <iframe id="pdf-viewer" style="width:100%; height:100%; border:none;" onload="document.getElementById('pdf-loading-fallback').style.display='none';"></iframe>
                     </div>
                 </div>
@@ -972,6 +954,37 @@
                     </button>
                 </div>
 
+            <!-- 侧边栏卡片: AI 智能解析助手 (与左侧简历平行比对) -->
+            <div class="sidebar-card-box" style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,0.02);">
+                <div style="font-size:14px; font-weight:700; color:#1f2329; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
+                    <span style="display:flex; align-items:center; gap:6px;">
+                        <span style="display:inline-block; width:3.5px; height:14px; background:#165dff; border-radius:2px;"></span>
+                        AI 智能解析助手
+                    </span>
+                    <span style="font-size:11px; background:#e8f3ff; color:#165dff; padding:2px 8px; border-radius:4px; font-weight:500;">简历平行比对</span>
+                </div>
+
+                <!-- 1. AI 简历深度概括 -->
+                <div style="background:#f4f8ff; border:1px solid #d0e1ff; padding:14px 16px; border-radius:6px; margin-bottom:16px;">
+                    <div style="font-size:12.5px; font-weight:600; color:#165dff; margin-bottom:6px;">AI 简历深度概括</div>
+                    <div id="ai-summary" style="font-size:12.5px; color:#1f2329; line-height:1.6;">加载中...</div>
+                </div>
+
+                <!-- 2. 核心技能提取 -->
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:12.5px; font-weight:600; color:#1f2329; margin-bottom:8px;">核心技能提取</div>
+                    <div id="ai-skills" style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <span class="skill-tag">加载中...</span>
+                    </div>
+                </div>
+
+                <!-- 3. AI 深度解析与建议 (结构化卡片渲染) -->
+                <div>
+                    <div style="font-size:12.5px; font-weight:600; color:#1f2329; margin-bottom:8px;">AI 深度解析与建议</div>
+                    <div id="ai-analysis-container">
+                        <div id="ai-analysis" style="font-size:12.5px; color:#86909c;">加载中...</div>
+                    </div>
+                </div>
             </div>
 
             <!-- 侧边栏卡片 2: 候选人所有者与自定义标签 -->
@@ -1023,6 +1036,86 @@
 
         function showConfirm(msg, onOk) {
             if (confirm(msg)) onOk();
+        }
+
+        // 格式化 AI 深度解析文本（将 bare <br> 解析为高颜值结构卡片）
+        function renderFormattedAiAnalysis(rawText) {
+            if (!rawText) return '<div style="color:#86909c; font-size:12px;">暂无深度解析建议</div>';
+            
+            let cleaned = rawText.replace(/<br\s*\/?>/gi, '\n');
+            
+            let pros = [];
+            let cons = [];
+            let general = [];
+
+            const lines = cleaned.split('\n').map(s => s.trim()).filter(Boolean);
+            let currentCategory = 'general';
+
+            lines.forEach(line => {
+                const isProsHeader = line.includes('亮点') || line.includes('优势') || line.includes('✅');
+                const isConsHeader = line.includes('风险') || line.includes('劣势') || line.includes('短板') || line.includes('⚠️');
+
+                if (isProsHeader) {
+                    currentCategory = 'pros';
+                    let content = line.replace(/^[✅\s]*亮点[（\(]候选人优势[）\)]*[:：]?/g, '').replace(/^[✅\s]*/g, '').trim();
+                    if (content && !content.includes('亮点（候选人优势）')) {
+                        pros.push(content);
+                    }
+                } else if (isConsHeader) {
+                    currentCategory = 'cons';
+                    let content = line.replace(/^[⚠️\s]*风险[（\(]劣势项或经验短板[）\)]*[:：]?/g, '').replace(/^[⚠️\s]*/g, '').trim();
+                    if (content && !content.includes('风险（劣势项或经验短板）')) {
+                        cons.push(content);
+                    }
+                } else {
+                    if (currentCategory === 'pros') pros.push(line);
+                    else if (currentCategory === 'cons') cons.push(line);
+                    else general.push(line);
+                }
+            });
+
+            let html = '';
+
+            // 1. 优势亮点卡片 (绿底/精细分条)
+            if (pros.length > 0) {
+                html += `
+                    <div style="background:#f6ffed; border:1px solid #b7eb8f; border-radius:6px; padding:12px 14px; margin-bottom:12px;">
+                        <div style="font-size:12.5px; font-weight:700; color:#389e0d; display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            候选人优势与亮点
+                        </div>
+                        <div style="font-size:12px; color:#274916; line-height:1.6; display:flex; flex-direction:column; gap:6px;">
+                            ${pros.map(item => `<div>• ${item}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 2. 风险预警卡片 (暖橙底/精细分条)
+            if (cons.length > 0) {
+                html += `
+                    <div style="background:#fff7e6; border:1px solid #ffd591; border-radius:6px; padding:12px 14px; margin-bottom:12px;">
+                        <div style="font-size:12.5px; font-weight:700; color:#d46b08; display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            风险预警与短板评估
+                        </div>
+                        <div style="font-size:12px; color:#613400; line-height:1.6; display:flex; flex-direction:column; gap:6px;">
+                            ${cons.map(item => `<div>• ${item}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 3. 通用兜底
+            if (pros.length === 0 && cons.length === 0 && general.length > 0) {
+                html += `
+                    <div style="background:#f8f9fa; border:1px solid #e5e6eb; border-radius:6px; padding:12px 14px; font-size:12px; color:#4e5969; line-height:1.6;">
+                        ${general.map(item => `<div style="margin-bottom:4px;">${item}</div>`).join('')}
+                    </div>
+                `;
+            }
+
+            return html;
         }
 
         // 切换 7 大 Tab
@@ -1137,15 +1230,20 @@
                     progressLine.style.width = `${(stageIdx / (STAGES.length - 1)) * 100}%`;
                 }
 
-                // AI 概括渲染
+                // AI 概括与格式化深度解析渲染
                 document.getElementById('ai-summary').innerText = candidate.ai_summary || "候选人具备丰富的行业经验与扎实的专业背景，综合能力强劲。";
-                document.getElementById('ai-analysis').innerText = candidate.ai_analysis || "候选人项目经历契合岗位诉求，推荐进入下一阶段面试。";
+                
+                const rawAnalysis = candidate.ai_analysis || "✅ 亮点（候选人优势）：\n1. 具备扎实的业务背景与项目经验。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 需面试官进一步确认项目深度的匹配度。";
+                const analysisContainer = document.getElementById('ai-analysis-container');
+                if (analysisContainer) {
+                    analysisContainer.innerHTML = renderFormattedAiAnalysis(rawAnalysis);
+                }
                 
                 if (candidate.skills) {
                     const skillsArr = Array.isArray(candidate.skills) ? candidate.skills : candidate.skills.split(/[,，]/);
-                    document.getElementById('ai-skills').innerHTML = skillsArr.map(s => `<span class="pill-badge">${s.trim()}</span>`).join('');
+                    document.getElementById('ai-skills').innerHTML = skillsArr.map(s => `<span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">${s.trim()}</span>`).join('');
                 } else {
-                    document.getElementById('ai-skills').innerHTML = '<span class="pill-badge">综合项目研发</span><span class="pill-badge">团队协作</span>';
+                    document.getElementById('ai-skills').innerHTML = '<span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">财务分析与精细化管理</span><span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">跨国多税区税务筹划</span>';
                 }
 
                 // 渲染 PDF 预览器
