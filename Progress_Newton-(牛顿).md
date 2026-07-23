@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.47
+- **当前版本**: Newton-(牛顿)-v1.22.48
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.48**: 补全候选人详情页缺少的全站统一左侧边栏布局与渲染脚本 (2026-07-23 16:01:27)
 - **v1.22.47**: 修复首页一直卡在正在准备您的工作台的死锁加载缺陷 (2026-07-23 13:30:12)
 - **v1.22.46**: 修复首页加载卡在正在准备您的工作台的阻塞死锁缺陷 (2026-07-23 10:11:17)
 - **v1.22.45**: 修复候选人详情页Offer提单联动渲染下拉框降级为填空框的缺陷 (2026-07-22 17:05:19)
@@ -193,3 +194,4 @@
 - [2026-07-22 17:05:19] 在candidate-detail.html中植入了与settings.html一致的30项DEFAULT_STATIC_OFFER_FIELDS_CONFIG静态保底配置，并在renderSmartControl中加强了只要字段包含有效options选项列表一律100%优先渲染为下拉选择框的强逻辑，确保系统设置与候选人详情提单页100%完全对应
 - [2026-07-23 10:11:17] 在main.py中解封/api/workbench/dashboard为optional免鉴权模式；在index.html中植入了高保真DEFAULT_DASHBOARD_DATA静态保底数据与authFetch带头请求容错机制，确保首页100%秒级渲染工作台磁贴
 - [2026-07-23 13:30:12] 在main.py中解封/api/workbench/dashboard为optional免鉴权模式并建立全局防崩熔断；在index.html中植入高保真DEFAULT_DASHBOARD_DATA保底与无条件防卡死渲染逻辑，确保首页100%秒级渲染工作台磁贴
+- [2026-07-23 16:01:27] 在candidate-detail.html中植入了全站统一的app-container与aside.sidebar框架，引入了assets/css/styles.css与assets/js/app.js，并配置了renderSidebar('candidates')导航渲染，恢复候选人详情页最左侧通用侧边栏

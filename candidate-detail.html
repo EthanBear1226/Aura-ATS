@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>候选人详情 - Aura ATS</title>
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="assets/css/styles.css?v=17">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { 
@@ -722,9 +722,15 @@
     </style>
 </head>
 <body>
+    <div class="app-container">
+        <!-- 侧边栏 Sidebar -->
+        <aside class="sidebar" id="sidebar-container"></aside>
 
-    <!-- 顶部通栏 Sticky Header (1:1 参考大厂图) -->
-    <div class="candidate-header-sticky">
+        <!-- 主内容区域 Main Content -->
+        <main class="main-content" style="padding:0; overflow-y:auto; display:flex; flex-direction:column; flex:1; min-width:0; background:#f5f7fa;">
+
+            <!-- 顶部通栏 Sticky Header (1:1 参考大厂图) -->
+            <div class="candidate-header-sticky">
         <div class="header-first-line">
             <div class="header-title-group">
                 <span style="cursor:pointer; color:#86909c; font-size:14px; margin-right:4px;" onclick="window.location.href='candidates.html'">← 候选人列表</span>
@@ -1872,6 +1878,7 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
+            if (window.renderSidebar) renderSidebar('candidates');
             loadDetail();
         });
     </script>
@@ -1894,5 +1901,10 @@
             </div>
         </div>
     </div>
+
+        </main>
+    </div>
+
+    <script src="assets/js/app.js?v=18"></script>
 </body>
 </html>
