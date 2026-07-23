@@ -178,25 +178,25 @@
             color: #165dff;
         }
 
-        /* 主体双栏 Layout (7:3 比例) */
+        /* 主体双栏 Layout (黄金比例) */
         .detail-body-container {
             display: flex;
-            gap: 24px;
-            padding: 24px 32px 40px 32px;
-            max-width: 1650px;
+            gap: 20px;
+            padding: 20px 28px 40px 28px;
+            max-width: 1750px;
             margin: 0 auto;
         }
 
-        /* 左侧沉浸式展示区 (70% 宽) */
+        /* 左侧沉浸式展示区 */
         .left-main-pane {
-            flex: 7;
+            flex: 1;
             display: flex;
             flex-direction: column;
             min-width: 0;
         }
 
         .pdf-toolbar-header {
-            background: #f2f3f5;
+            background: #f7f8fa;
             border: 1px solid #e5e6eb;
             border-radius: 8px 8px 0 0;
             padding: 10px 18px;
@@ -204,7 +204,7 @@
             justify-content: space-between;
             align-items: center;
             font-size: 13px;
-            color: #4e5969;
+            color: #1f2329;
             font-weight: 600;
         }
 
@@ -235,15 +235,14 @@
             border: 1px solid #e5e6eb;
             border-top: none;
             border-radius: 0 0 8px 8px;
-            padding: 28px;
-            min-height: 700px;
+            padding: 16px;
+            min-height: 800px;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
-        /* 右侧侧边栏 (30% 宽) */
+        /* 右侧侧边栏 (控制台 + AI 助手比对面板) */
         .right-control-sidebar {
-            flex: 3;
-            width: 360px;
+            width: 380px;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
@@ -866,10 +865,43 @@
             </div>
         </div>
 
-        <!-- 右侧 30% 控制侧边栏 (1:1 参考大厂排版) -->
+        <!-- 右侧控制侧边栏 (控制台 + AI 助手比对面板) -->
         <div class="right-control-sidebar">
             
-            <!-- 侧边栏卡片 1: 流程进度与核心流转按钮 -->
+            <!-- 侧边栏卡片 1: AI 智能解析助手 (第一视角与左侧简历平行比对) -->
+            <div class="sidebar-card-box" style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,0.02);">
+                <div style="font-size:14px; font-weight:700; color:#1f2329; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
+                    <span style="display:flex; align-items:center; gap:6px;">
+                        <span style="display:inline-block; width:3.5px; height:14px; background:#165dff; border-radius:2px;"></span>
+                        AI 智能解析助手
+                    </span>
+                    <span style="font-size:11px; background:#e8f3ff; color:#165dff; padding:2px 8px; border-radius:4px; font-weight:500;">简历平行比对</span>
+                </div>
+
+                <!-- 1. AI 简历深度概括 -->
+                <div style="background:#f4f8ff; border:1px solid #d0e1ff; padding:14px 16px; border-radius:6px; margin-bottom:16px;">
+                    <div style="font-size:12.5px; font-weight:600; color:#165dff; margin-bottom:6px;">AI 简历深度概括</div>
+                    <div id="ai-summary" style="font-size:12.5px; color:#1f2329; line-height:1.6;">加载中...</div>
+                </div>
+
+                <!-- 2. 核心技能提取 -->
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:12.5px; font-weight:600; color:#1f2329; margin-bottom:8px;">核心技能提取</div>
+                    <div id="ai-skills" style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <span class="skill-tag">加载中...</span>
+                    </div>
+                </div>
+
+                <!-- 3. AI 深度解析与建议 (结构化卡片渲染) -->
+                <div>
+                    <div style="font-size:12.5px; font-weight:600; color:#1f2329; margin-bottom:8px;">AI 深度解析与建议</div>
+                    <div id="ai-analysis-container">
+                        <div id="ai-analysis" style="font-size:12.5px; color:#86909c;">加载中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 侧边栏卡片 2: 流程进度与核心流转按钮 -->
             <div class="sidebar-card-box">
                 
                 <!-- 数字节点步进器 Stepper Header -->
@@ -952,38 +984,6 @@
                     <button class="btn-white-action" onclick="switchNavTab(4)">
                         备注
                     </button>
-                </div>
-
-            <!-- 侧边栏卡片: AI 智能解析助手 (与左侧简历平行比对) -->
-            <div class="sidebar-card-box" style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,0.02);">
-                <div style="font-size:14px; font-weight:700; color:#1f2329; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
-                    <span style="display:flex; align-items:center; gap:6px;">
-                        <span style="display:inline-block; width:3.5px; height:14px; background:#165dff; border-radius:2px;"></span>
-                        AI 智能解析助手
-                    </span>
-                    <span style="font-size:11px; background:#e8f3ff; color:#165dff; padding:2px 8px; border-radius:4px; font-weight:500;">简历平行比对</span>
-                </div>
-
-                <!-- 1. AI 简历深度概括 -->
-                <div style="background:#f4f8ff; border:1px solid #d0e1ff; padding:14px 16px; border-radius:6px; margin-bottom:16px;">
-                    <div style="font-size:12.5px; font-weight:600; color:#165dff; margin-bottom:6px;">AI 简历深度概括</div>
-                    <div id="ai-summary" style="font-size:12.5px; color:#1f2329; line-height:1.6;">加载中...</div>
-                </div>
-
-                <!-- 2. 核心技能提取 -->
-                <div style="margin-bottom:16px;">
-                    <div style="font-size:12.5px; font-weight:600; color:#1f2329; margin-bottom:8px;">核心技能提取</div>
-                    <div id="ai-skills" style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <span class="skill-tag">加载中...</span>
-                    </div>
-                </div>
-
-                <!-- 3. AI 深度解析与建议 (结构化卡片渲染) -->
-                <div>
-                    <div style="font-size:12.5px; font-weight:600; color:#1f2329; margin-bottom:8px;">AI 深度解析与建议</div>
-                    <div id="ai-analysis-container">
-                        <div id="ai-analysis" style="font-size:12.5px; color:#86909c;">加载中...</div>
-                    </div>
                 </div>
             </div>
 
@@ -1246,9 +1246,13 @@
                     document.getElementById('ai-skills').innerHTML = '<span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">财务分析与精细化管理</span><span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">跨国多税区税务筹划</span>';
                 }
 
-                // 渲染 PDF 预览器
+                // 渲染 PDF 预览器 (拼接自适应宽度与隐藏默认黑边工具条)
                 if (candidate.pdf_path) {
-                    document.getElementById('pdf-viewer').src = candidate.pdf_path;
+                    let pdfUrl = candidate.pdf_path;
+                    if (pdfUrl.includes('.pdf') && !pdfUrl.includes('#')) {
+                        pdfUrl += '#toolbar=0&navpanes=0&view=FitH';
+                    }
+                    document.getElementById('pdf-viewer').src = pdfUrl;
                 } else {
                     document.getElementById('pdf-loading-fallback').innerHTML = '<div style="padding:40px; text-align:center; color:#86909c;">演示视窗：已成功匹配并载入候选人简历面板</div>';
                 }
