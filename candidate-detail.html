@@ -178,18 +178,18 @@
             color: #165dff;
         }
 
-        /* 主体双栏 Layout (黄金比例) */
+        /* 主体三栏黄金平铺 Layout (左: 原始简历 | 中: AI 智能解析 | 右: 候选人操作界面) */
         .detail-body-container {
             display: flex;
-            gap: 20px;
-            padding: 20px 28px 40px 28px;
-            max-width: 1750px;
+            gap: 16px;
+            padding: 16px 24px 40px 24px;
+            max-width: 100%;
             margin: 0 auto;
         }
 
-        /* 左侧沉浸式展示区 */
+        /* 栏 1: 原始简历预览区 (46% 宽) */
         .left-main-pane {
-            flex: 1;
+            flex: 4.6;
             display: flex;
             flex-direction: column;
             min-width: 0;
@@ -240,9 +240,17 @@
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
-        /* 右侧侧边栏 (控制台 + AI 助手比对面板) */
+        /* 栏 2: 中间 AI 智能解析助手沉浸区 (32% 宽) */
+        .middle-ai-pane {
+            flex: 3.4;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        /* 栏 3: 右侧候选人操作界面 (22% / 310px 宽) */
         .right-control-sidebar {
-            width: 380px;
+            width: 310px;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
@@ -875,11 +883,9 @@
             </div>
         </div>
 
-        <!-- 右侧控制侧边栏 (控制台 + AI 助手比对面板) -->
-        <div class="right-control-sidebar">
-            
-            <!-- 侧边栏卡片 1: AI 智能解析助手 (第一视角与左侧简历平行比对) -->
-            <div class="sidebar-card-box" style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,0.02);">
+        <!-- 栏 2: AI 智能解析助手沉浸区 (位于中间) -->
+        <div class="middle-ai-pane">
+            <div class="sidebar-card-box" style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,0.02); min-height:860px; height:100%; display:flex; flex-direction:column;">
                 <div style="font-size:14px; font-weight:700; color:#1f2329; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
                     <span style="display:flex; align-items:center; gap:6px;">
                         <span style="display:inline-block; width:3.5px; height:14px; background:#165dff; border-radius:2px;"></span>
@@ -903,15 +909,19 @@
                 </div>
 
                 <!-- 3. AI 深度解析与建议 (结构化卡片渲染) -->
-                <div>
+                <div style="flex:1; overflow-y:auto;">
                     <div style="font-size:12.5px; font-weight:600; color:#1f2329; margin-bottom:8px;">AI 深度解析与建议</div>
                     <div id="ai-analysis-container">
                         <div id="ai-analysis" style="font-size:12.5px; color:#86909c;">加载中...</div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- 侧边栏卡片 2: 流程进度与核心流转按钮 -->
+        <!-- 栏 3: 候选人操作界面 (位于最右侧) -->
+        <div class="right-control-sidebar">
+            
+            <!-- 侧边栏卡片: 流程进度与核心流转控制台 -->
             <div class="sidebar-card-box">
                 
                 <!-- 数字节点步进器 Stepper Header -->
