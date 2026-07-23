@@ -239,19 +239,19 @@
             border-top: none;
             border-radius: 0 0 8px 8px;
             padding: 16px;
-            height: 858px;
+            height: 640px;
             box-sizing: border-box;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
             overflow: hidden;
         }
 
-        /* 栏 2: 中间 AI 智能解析助手沉浸区 (32% 宽，总高度严格898px对齐左栏) */
+        /* 栏 2: 中间 AI 智能解析助手沉浸区 (32% 宽，总高度严格与右侧对齐) */
         .middle-ai-pane {
             flex: 3.4;
             display: flex;
             flex-direction: column;
             min-width: 0;
-            height: 898px;
+            height: 680px;
         }
 
         .middle-ai-card {
@@ -1100,6 +1100,24 @@
             if (confirm(msg)) onOk();
         }
 
+        // 动态测量右侧操作模块物理高度，并精准100%吸附平齐左栏与中间栏的底部
+        function alignThreeColumnsHeight() {
+            const rightSidebar = document.querySelector('.right-control-sidebar');
+            if (!rightSidebar) return;
+            const rightHeight = rightSidebar.offsetHeight;
+            if (!rightHeight || rightHeight < 400) return;
+
+            const middlePane = document.querySelector('.middle-ai-pane');
+            if (middlePane) {
+                middlePane.style.height = `${rightHeight}px`;
+            }
+
+            const leftCard = document.querySelector('.left-content-card');
+            if (leftCard) {
+                leftCard.style.height = `${rightHeight - 40}px`; // 减去40px工具栏高度
+            }
+        }
+
         // ==============================================================================
         //           ▎ 原始简历自适应拉宽放缩控制引擎 (解决 A4 PDF 在宽屏下偏窄问题)
         // ==============================================================================
@@ -1395,10 +1413,10 @@
                     document.getElementById('timeline-logs').innerHTML = '<div style="color:#86909c;">暂无历史流转记录</div>';
                 }
 
-                // 如果带参 active_tab=3
-                if (urlParams.get('active_tab') === '3') {
-                    switchNavTab(3);
-                }
+                // 渲染后立即精准吸附平齐三栏底部与右侧操作模块
+                setTimeout(() => {
+                    alignThreeColumnsHeight();
+                }, 150);
 
             } catch (e) {
                 console.error(e);
@@ -2108,6 +2126,8 @@
         document.addEventListener("DOMContentLoaded", () => {
             if (window.renderSidebar) renderSidebar('candidates');
             loadDetail();
+            setTimeout(alignThreeColumnsHeight, 200);
+            window.addEventListener('resize', alignThreeColumnsHeight);
         });
     </script>
 
