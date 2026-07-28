@@ -1398,22 +1398,34 @@
             }, 150);
         }
 
-        // 加载候选人详情主函数 (带强力无条件防卡死自愈逻辑)
+        // 加载候选人详情主函数 (0毫秒极速同步渲染 + 后台静默热更新，彻底杜绝网络挂起死锁)
         async function loadDetail() {
+            // 1. 第 0 毫秒：无条件立刻完成保底全量数据的同步渲染，消除任何“加载中...”文案
+            renderCandidateData(currentCandidate || DEFAULT_FALLBACK_CANDIDATE);
+
             const urlParams = new URLSearchParams(window.location.search);
             let id = urlParams.get('id');
             let candidateData = null;
 
+            // 带有 2500ms 强制超时的安全 Fetch (解决浏览器网络挂起死锁)
+            const safeFetch = (url, timeoutMs = 2500) => {
+                return Promise.race([
+                    authFetch(url),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs))
+                ]);
+            };
+
+            // 2. 后台静默并发拉取真实数据库数据
             if (id) {
                 try {
-                    const res = await authFetch(`/api/candidates/${id}`);
+                    const res = await safeFetch(`/api/candidates/${id}`);
                     if (res.ok) candidateData = await res.json();
                 } catch(e) {}
             }
 
             if (!candidateData) {
                 try {
-                    const allRes = await authFetch('/api/candidates');
+                    const allRes = await safeFetch('/api/candidates');
                     if (allRes.ok) {
                         const list = await allRes.json();
                         if (list && list.length > 0) candidateData = list[0];
@@ -1421,8 +1433,10 @@
                 } catch(e) {}
             }
 
-            // 强力无条件渲染：即使接口失败或参数为空，100% 渲染展示档案，彻底杜绝死锁
-            renderCandidateData(candidateData || DEFAULT_FALLBACK_CANDIDATE);
+            // 3. 如果后台成功拉取到了真实候选人，平滑更新页面
+            if (candidateData) {
+                renderCandidateData(candidateData);
+            }
 
             if (urlParams.get('active_tab') === '3') {
                 switchNavTab(3);
