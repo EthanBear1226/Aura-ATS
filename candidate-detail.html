@@ -1187,6 +1187,22 @@
             }
         }
 
+        // 智能简历文本解析格式化引擎 (将挤在一坨的纯文本解析为格式清晰、段落规范的高保真排版)
+        function formatRawResumeText(rawText) {
+            if (!rawText) return '';
+
+            let cleaned = rawText.replace(/<br\s*\/?>/gi, '\n');
+            const headers = ['教育经历', '教育背景', '工作经历', '实习经历', '工作/实习经历', '项目经历', '项目经验', '语言水平', '专业技能', '自我评价', '个人优势', '获奖荣誉', '资格证书'];
+            
+            let formatted = cleaned;
+            headers.forEach(h => {
+                const reg = new RegExp(`(${h}[:：]?)`, 'g');
+                formatted = formatted.replace(reg, '\n<div style="font-weight:700; color:#1f2329; font-size:13.5px; margin-top:14px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:3px; height:12px; background:#165dff; border-radius:2px;"></span> $1</div>');
+            });
+
+            return `<div style="white-space: pre-wrap; word-break: break-word; line-height: 1.85; color: #333842; font-size: 13px;">${formatted.trim()}</div>`;
+        }
+
         function showFallbackResumeView(candidate) {
             const cand = candidate || currentCandidate || DEFAULT_FALLBACK_CANDIDATE;
             const iframe = document.getElementById('pdf-viewer');
@@ -1202,8 +1218,11 @@
                     skillsHtml = skillsArr.map(s => `<span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:4px 12px; border-radius:4px; margin-right:6px; margin-bottom:8px; display:inline-block; font-weight:500;">${s.trim()}</span>`).join('');
                 }
 
+                const formattedBody = cand.raw_text ? formatRawResumeText(cand.raw_text) : formatRawResumeText(cand.ai_summary);
+
                 fallbackCard.innerHTML = `
                     <div style="padding:28px 32px; background:#fff; min-height:600px; color:#1f2329; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">
+                        <!-- 简历主头部卡片 -->
                         <div style="border-bottom:2px solid #165dff; padding-bottom:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-end;">
                             <div>
                                 <h1 style="margin:0; font-size:22px; font-weight:700; color:#1f2329;">${cand.name || '候选人'}</h1>
@@ -1212,32 +1231,24 @@
                             <span style="font-size:11.5px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 12px; border-radius:12px; font-weight:600;">高保真结构化简历档案</span>
                         </div>
 
-                        <div style="margin-bottom:24px;">
-                            <div style="font-size:14px; font-weight:700; color:#1f2329; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                        <!-- 技能胶囊标签 -->
+                        ${skillsHtml ? `
+                        <div style="margin-bottom:20px;">
+                            <div style="font-size:13.5px; font-weight:700; color:#1f2329; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
                                 <span style="display:inline-block; width:3.5px; height:13px; background:#165dff; border-radius:2px;"></span>
-                                个人优势与核心概况
+                                核心标签与技能
                             </div>
-                            <div style="font-size:13px; color:#4e5969; line-height:1.7; background:#fafafa; padding:12px 16px; border-radius:6px; border:1px solid #f2f3f5;">
-                                ${cand.raw_text || cand.ai_summary || '候选人具备扎实的专业背景与丰富的项目落地经验，综合能力突出。'}
-                            </div>
-                        </div>
+                            <div>${skillsHtml}</div>
+                        </div>` : ''}
 
+                        <!-- 结构化格式化简历正文区 (保持保留段落与空行) -->
                         <div style="margin-bottom:24px;">
                             <div style="font-size:14px; font-weight:700; color:#1f2329; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
                                 <span style="display:inline-block; width:3.5px; height:13px; background:#165dff; border-radius:2px;"></span>
-                                专业技能与工具链
+                                详细履历与个人概况
                             </div>
-                            <div>${skillsHtml || '<span style="font-size:12px; color:#86909c;">已具备岗位核心专业技能</span>'}</div>
-                        </div>
-
-                        <div>
-                            <div style="font-size:14px; font-weight:700; color:#1f2329; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-                                <span style="display:inline-block; width:3.5px; height:13px; background:#165dff; border-radius:2px;"></span>
-                                工作与项目经历摘要
-                            </div>
-                            <div style="font-size:13px; color:#4e5969; line-height:1.8; background:#fafafa; padding:14px 16px; border-radius:6px; border:1px solid #f2f3f5;">
-                                • <strong>核心项目开发</strong>：主导核心业务模块的架构重构与性能调优，显著降低部署延时与内存占用。<br>
-                                • <strong>工程化与质量交付</strong>：具备严谨的代码规范与工程化思维，高效推动敏捷迭代与项目落地。
+                            <div style="background:#fafafa; padding:16px 20px; border-radius:8px; border:1px solid #e5e6eb;">
+                                ${formattedBody || '<div style="color:#86909c;">暂无详细履历文本</div>'}
                             </div>
                         </div>
                     </div>
