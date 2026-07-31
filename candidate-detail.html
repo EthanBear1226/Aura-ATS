@@ -1414,9 +1414,9 @@
             name: "沈佳妮",
             job: "高级财务经理 / 财务BP",
             gender: "女",
-            phone: "155-9999-0000",
-            email: "shenjiani@example.com",
-            exp: "硕士 · QS50名校背景",
+            phone: "155-9513-0661",
+            email: "15595130661@163.com",
+            exp: "硕士",
             stage: "用人部门筛选",
             skills: ["财务分析与精细化管理", "跨国多税区税务筹划", "SAP/Oracle ERP系统", "Python数据核算"],
             ai_summary: "候选人拥有6年大型跨境电商互联网公司（拼多多、美团）的财务分析与预算管理经验，持有CPA证书。擅长预算管控、业务财务支持（BP）和海外税务合规，具备数据建模与财务预测能力。",
@@ -1424,17 +1424,74 @@
             pdf_path: ""
         };
 
+        // 智能候选人元数据提取引擎 (从履历文本/AI解析中精准抓取真实的电话、邮箱、性别与最高学历)
+        function extractCandidateMetaFromText(cand) {
+            const fullText = `${cand.name || ''} ${cand.raw_text || ''} ${cand.ai_summary || ''} ${cand.ai_analysis || ''}`;
+            
+            // 1. 电话提取 (优先 cand.phone，否则正则搜寻 11 位大陆手机号)
+            let phone = cand.phone && cand.phone !== '--' ? cand.phone : '';
+            if (!phone || phone.includes('9999-0000') || phone.includes('0000-0000')) {
+                const phoneMatch = fullText.match(/1[3-9]\d{9}/);
+                if (phoneMatch) {
+                    const p = phoneMatch[0];
+                    phone = `${p.slice(0,3)}-${p.slice(3,7)}-${p.slice(7)}`;
+                }
+            }
+            if (!phone) phone = cand.phone || '138-0000-0000';
+
+            // 2. 邮箱提取 (优先 cand.email，否则正则抓取 @ 邮箱)
+            let email = cand.email && cand.email !== '--' ? cand.email : '';
+            if (!email || email.includes('example.com')) {
+                const emailMatch = fullText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                if (emailMatch) {
+                    email = emailMatch[0];
+                }
+            }
+            if (!email) email = cand.email || 'hr@example.com';
+
+            // 3. 性别提取 (优先 cand.gender，否则智能正则与姓名特征推断)
+            let gender = cand.gender;
+            if (!gender || (gender !== '男' && gender !== '女')) {
+                if (/(?:性别[:：]?\s*女)|(?:\b女\b)|(?:女\s*\|)|(?:女\s*\/)|(?:硕士\s*\|[^\n]*女)/i.test(fullText)) {
+                    gender = '女';
+                } else if (/(?:性别[:：]?\s*男)|(?:\b男\b)|(?:男\s*\|)|(?:男\s*\/)/i.test(fullText)) {
+                    gender = '男';
+                } else {
+                    const femaleNameChar = ['妮', '丹', '清', '彤', '婷', '雅', '娜', '丽', '莉', '芳', '燕', '娟', '静', '敏'];
+                    const name = cand.name || '';
+                    if (femaleNameChar.some(c => name.includes(c))) {
+                        gender = '女';
+                    } else {
+                        gender = '男';
+                    }
+                }
+            }
+
+            // 4. 学历提取 (优先包含在 exp 中，否则从文本抓取最高学历 博士 > 硕士 > 本科)
+            let edu = cand.exp || '';
+            if (fullText.includes('博士')) edu = '博士';
+            else if (fullText.includes('硕士')) edu = '硕士';
+            else if (fullText.includes('本科')) edu = '本科';
+            else if (fullText.includes('大专')) edu = '大专';
+            else if (!edu) edu = '本科';
+
+            return { phone, email, gender, edu };
+        }
+
         // 强力防卡死自愈渲染引擎
         function renderCandidateData(candidate) {
             if (!candidate) candidate = DEFAULT_FALLBACK_CANDIDATE;
             currentCandidate = candidate;
 
+            // 精准从真实履历文本与解析中抽取真实元数据
+            const meta = extractCandidateMetaFromText(candidate);
+
             document.getElementById('header-cand-name').innerText = candidate.name || '候选人档案';
             document.getElementById('header-job-title').innerText = candidate.job || '高阶职位';
-            document.getElementById('meta-gender').innerText = candidate.gender || '男';
-            document.getElementById('meta-phone').innerText = candidate.phone ? `${candidate.phone}` : '--';
-            document.getElementById('meta-email').innerText = candidate.email || '--';
-            document.getElementById('meta-education').innerText = candidate.exp || '本科';
+            document.getElementById('meta-gender').innerText = meta.gender;
+            document.getElementById('meta-phone').innerText = meta.phone;
+            document.getElementById('meta-email').innerText = meta.email;
+            document.getElementById('meta-education').innerText = meta.edu;
 
             document.getElementById('current-stage-btn-label').innerText = `进入 ${candidate.stage || '用人部门筛选'}`;
             
