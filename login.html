@@ -22,7 +22,9 @@
                 <div class="form-group">
                     <input type="password" id="password" placeholder="密码" required value="123456">
                 </div>
-                <button type="submit" class="btn btn-primary">登录</button>
+                <div id="error-msg-box" style="color: #ff4d4f; font-size: 13px; margin-top: 12px; background: #fff2f0; border: 1px solid #ffccc7; padding: 8px 12px; border-radius: 6px; display: none; text-align: center;"></div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top:16px;">登录</button>
             </form>
             
             <div class="auth-links">
@@ -36,7 +38,13 @@
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const errorBox = document.getElementById('error-msg-box');
             
+            if (errorBox) {
+                errorBox.style.display = 'none';
+                errorBox.innerText = '';
+            }
+
             const btn = e.target.querySelector('button');
             const originalText = btn.innerText;
             btn.innerText = '正在登录...';
@@ -51,9 +59,8 @@
                         body: JSON.stringify({ email, password })
                     });
                 } catch(err1) {
-                    // 如果云端正好处于构建冷重启过渡阶段，自动进行一次热唤醒重试
-                    btn.innerText = '云端服务唤醒中...';
-                    await new Promise(r => setTimeout(r, 1500));
+                    btn.innerText = '正在尝试连接...';
+                    await new Promise(r => setTimeout(r, 1000));
                     response = await fetch('/api/auth/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -69,14 +76,21 @@
                     window.location.href = 'index.html';
                 } else if (response) {
                     const err = await response.json();
-                    alert(err.detail || '邮箱或密码错误，登录失败');
+                    const msg = err.detail || '邮箱或密码错误，请重新输入';
+                    if (errorBox) {
+                        errorBox.innerText = msg;
+                        errorBox.style.display = 'block';
+                    }
                 } else {
                     throw new Error("No response");
                 }
             } catch (error) {
                 console.error(error);
                 if (!localStorage.getItem('aura_token') && !window.loginSuccessful) {
-                    alert('网络连接超时或云端服务正在热重启中，请点击确定重新点击登录。');
+                    if (errorBox) {
+                        errorBox.innerText = '网络连接暂时繁忙，请重新点击登录';
+                        errorBox.style.display = 'block';
+                    }
                 }
             } finally {
                 btn.innerText = originalText;
