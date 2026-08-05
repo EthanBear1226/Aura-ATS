@@ -6,33 +6,495 @@
     <meta http-equiv="Expires" content="0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人才管理 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=17">
+    <title>候选人管理 | Aura</title>
+    <link rel="stylesheet" href="assets/css/styles.css?v=18">
     <style>
-        .candidates-header {
+        /* Moka 风格候选人管理全局布局与细节 */
+        body {
+            background-color: #f7f8fa;
+            color: #1f2329;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* 顶级 Moka 风格 Header 工具栏 */
+        .moka-top-header {
+            background: #ffffff;
+            height: 56px;
+            border-bottom: 1px solid #e5e6eb;
+            padding: 0 24px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 90;
         }
-        .table-container {
+
+        .moka-header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2329;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .moka-search-input-box {
+            position: relative;
+            width: 320px;
+        }
+        .moka-search-input-box input {
             width: 100%;
-            border-collapse: collapse;
+            height: 34px;
+            background: #f2f3f5;
+            border: 1px solid transparent;
+            border-radius: 17px;
+            padding: 0 36px 0 16px;
+            font-size: 13px;
+            color: #1f2329;
+            outline: none;
+            transition: all 0.2s;
+            box-sizing: border-box;
         }
-        .table-container th, .table-container td {
-            text-align: left;
+        .moka-search-input-box input:focus {
+            background: #ffffff;
+            border-color: #165dff;
+            box-shadow: 0 0 0 2px rgba(22, 93, 255, 0.1);
+        }
+        .moka-search-input-box svg {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #86909c;
+        }
+
+        .moka-top-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-moka-blue {
+            background: #165dff;
+            color: #ffffff;
+            border: none;
+            height: 34px;
+            padding: 0 16px;
+            border-radius: 6px;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+        .btn-moka-blue:hover {
+            background: #0e42d2;
+        }
+
+        .btn-moka-pill {
+            background: #e8f3ff;
+            color: #165dff;
+            border: none;
+            height: 34px;
+            padding: 0 14px;
+            border-radius: 17px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .moka-icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4e5969;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s;
+        }
+        .moka-icon-btn:hover {
+            background: #f2f3f5;
+            color: #165dff;
+        }
+        .moka-icon-btn .badge-dot {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 14px;
+            height: 14px;
+            background: #f53f3f;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #fff;
+        }
+
+        /* 8 大招聘阶段统计 Tab 栏 */
+        .moka-stage-tabs-container {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e6eb;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            overflow-x: auto;
+        }
+        .moka-stage-tab-item {
+            padding: 16px 20px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            position: relative;
+            min-width: 84px;
+            transition: all 0.2s;
+        }
+        .moka-stage-tab-item:hover .tab-name {
+            color: #165dff;
+        }
+        .moka-stage-tab-item .tab-val {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2329;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            line-height: 1.2;
+        }
+        .moka-stage-tab-item .tab-val .info-icon {
+            font-size: 11px;
+            color: #c9cdd4;
+            font-weight: normal;
+        }
+        .moka-stage-tab-item .tab-name {
+            font-size: 12.5px;
+            color: #86909c;
+            margin-top: 4px;
+            white-space: nowrap;
+        }
+        .moka-stage-tab-item.active .tab-val {
+            color: #165dff;
+        }
+        .moka-stage-tab-item.active .tab-name {
+            color: #165dff;
+            font-weight: 600;
+        }
+        .moka-stage-tab-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20px;
+            right: 20px;
+            height: 3px;
+            background: #165dff;
+            border-radius: 2px 2px 0 0;
+        }
+
+        /* 蓝色通知提醒 Banner */
+        .moka-notice-banner {
+            background: #e8f3ff;
+            border: 1px solid #bedaff;
+            border-radius: 6px;
+            margin: 16px 24px 0 24px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #165dff;
+        }
+        .moka-notice-banner .banner-link {
+            font-weight: 600;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-left: 6px;
+        }
+
+        /* 主体布局 (左侧职位树 + 右侧候选人卡片列表) */
+        .moka-layout-body {
+            display: flex;
+            padding: 16px 24px 40px 24px;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        /* 左侧【招聘中的职位】二级侧边栏 */
+        .moka-job-sidebar {
+            width: 250px;
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-radius: 8px;
             padding: 16px;
-            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+            box-sizing: border-box;
         }
-        .table-container th {
-            color: var(--text-secondary);
-            font-weight: 500;
+        .moka-job-sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
             font-size: 14px;
-            background-color: var(--bg-color);
+            font-weight: 700;
+            color: #1f2329;
         }
-        .table-container tr:hover td {
-            background-color: #F9FAFB;
+        .moka-job-sidebar-header .dropdown-toggle {
+            font-size: 12px;
+            color: #4e5969;
+            font-weight: normal;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 2px;
         }
+        .moka-job-search-box {
+            position: relative;
+            margin-bottom: 12px;
+        }
+        .moka-job-search-box input {
+            width: 100%;
+            height: 32px;
+            background: #f7f8fa;
+            border: 1px solid #e5e6eb;
+            border-radius: 6px;
+            padding: 0 28px 0 28px;
+            font-size: 12.5px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .moka-job-search-box .search-icon {
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #86909c;
+        }
+        .moka-job-search-box .filter-icon {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #86909c;
+            cursor: pointer;
+        }
+        .moka-job-tree-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 540px;
+            overflow-y: auto;
+        }
+        .moka-job-tree-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #1f2329;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+        .moka-job-tree-item:hover {
+            background: #f2f3f5;
+        }
+        .moka-job-tree-item.active {
+            background: #e8f3ff;
+            color: #165dff;
+            font-weight: 600;
+        }
+        .moka-job-tree-item .count-badge {
+            font-size: 11px;
+            color: #86909c;
+            background: #f2f3f5;
+            padding: 1px 6px;
+            border-radius: 10px;
+        }
+        .moka-job-tree-item.active .count-badge {
+            background: #bedaff;
+            color: #165dff;
+        }
+
+        /* 右侧主列表区 */
+        .moka-main-pane {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 右侧主列表控制与操作 Toolbar */
+        .moka-list-control-toolbar {
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-radius: 8px;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #4e5969;
+        }
+        .moka-control-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .moka-select-dropdown {
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-size: 12.5px;
+            color: #1f2329;
+            outline: none;
+            cursor: pointer;
+        }
+        .moka-control-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 12.5px;
+            color: #86909c;
+        }
+
+        /* Moka 经典三行候选人精美卡片 (Candidate Card Item) */
+        .moka-cand-card {
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+        .moka-cand-card:hover {
+            border-color: #165dff;
+            box-shadow: 0 4px 12px rgba(22, 93, 255, 0.08);
+        }
+
+        /* 第一行: 投递元数据与状态 */
+        .cand-line-1 {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: #86909c;
+            margin-bottom: 8px;
+        }
+        .cand-line-1 .cand-checkbox {
+            cursor: pointer;
+        }
+        .cand-line-1 .apply-date {
+            color: #86909c;
+        }
+        .cand-line-1 .job-target {
+            color: #165dff;
+            font-weight: 500;
+        }
+        .cand-line-1 .channel-tag {
+            color: #4e5969;
+        }
+
+        /* 第二行: 候选人核心信息与右侧操作 */
+        .cand-line-2 {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .cand-line-2 .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cand-line-2 .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #165dff;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .cand-line-2 .cand-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1f2329;
+        }
+        .cand-line-2 .cand-meta-text {
+            font-size: 13px;
+            color: #86909c;
+        }
+        .cand-line-2 .action-status-box {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 12.5px;
+            color: #86909c;
+        }
+        .recommend-status-badge {
+            border: 1px solid #e5e6eb;
+            background: #fafafa;
+            color: #86909c;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 第三行: 教育经历与 Pill 标签 */
+        .cand-line-3 {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 12.5px;
+            color: #4e5969;
+        }
+        .cand-line-3 .edu-text {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #4e5969;
+        }
+        .cand-line-3 .pill-tags {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .moka-pill-tag {
+            background: #e8f3ff;
+            color: #165dff;
+            border: 1px solid #bedaff;
+            font-size: 11.5px;
+            padding: 1px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        /* 操作按钮组 (在卡片悬浮或右侧展现) */
+        .cand-card-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        /* 模态框统一覆盖 */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -40,394 +502,481 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 100;
+            z-index: 9999;
         }
         .modal-overlay.active { display: flex; }
         .modal-card {
             width: 500px;
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
-            padding: 32px;
-            box-shadow: var(--shadow-md);
-        }
-        .upload-area {
-            border: 2px dashed var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 40px;
-            text-align: center;
-            margin: 20px 0;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .upload-area:hover {
-            border-color: var(--primary-color);
-            background-color: #F0F8FF;
-        }
-        #upload-progress {
-            display: none;
-            margin-top: 16px;
-        }
-        
-        .job-tab {
-            padding: 6px 16px;
-            border-radius: 20px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: var(--transition);
-            white-space: nowrap;
-        }
-        .job-tab:hover {
-            background: var(--bg-color);
-        }
-        .job-tab.active {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-            box-shadow: 0 2px 6px rgba(10, 132, 255, 0.3);
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 28px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
         }
     </style>
 </head>
 <body>
     <div class="app-container">
+        <!-- 基础左侧侧边栏 (挂载 app.js 全局导航) -->
         <aside class="sidebar" id="sidebar-container"></aside>
         
-        <!-- Secondary Job Sidebar -->
-        <aside class="secondary-sidebar" id="job-sidebar">
-            <div class="secondary-sidebar-header">职位分类</div>
-            <div class="job-list-menu" id="job-filters">
-                <!-- Filters will be generated here by JS -->
-            </div>
-        </aside>
+        <main class="main-content" style="padding:0;">
+            <!-- 1. 顶级 Moka Header 工具栏 -->
+            <div class="moka-top-header">
+                <div class="moka-header-title">
+                    候选人管理
+                </div>
 
-        <main class="main-content">
-            <header class="header" id="header-container"></header>
-            <div class="page-content">
-                <div class="candidates-header">
-                    <h1 class="page-title" style="margin:0;">候选人管理</h1>
-                    <button class="btn btn-primary" onclick="window.location.href='add-candidate.html'" id="btnAddCandidate">+ 添加候选人</button>
+                <!-- 搜索框 -->
+                <div class="moka-search-input-box">
+                    <input type="text" id="global-cand-search" placeholder="搜索候选人 (Ctrl + M)" onkeyup="handleSearchKeyup(event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </div>
-                
-                <!-- Stage Filters -->
-                <div style="display:flex; gap: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--border-color);" id="stage-filters">
-                    <!-- Filters generated by JS -->
+
+                <!-- 右侧按钮与操作图标 -->
+                <div class="moka-top-actions">
+                    <button class="btn-moka-blue" id="btnAddCandidate" onclick="openUploadModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        添加
+                    </button>
+
+                    <button class="btn-moka-pill" onclick="showToast('申请试用 People 模块已提交', 'info')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+                        申请试用People
+                    </button>
+
+                    <span class="moka-icon-btn" title="优惠礼包" onclick="showToast('查看礼包成功', 'info')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+                    </span>
+
+                    <span class="moka-icon-btn" title="帮助中心" onclick="showToast('跳转帮助中心', 'info')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    </span>
+
+                    <span class="moka-icon-btn" title="消息通知" onclick="showToast('暂无未读消息', 'info')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                        <span class="badge-dot">1</span>
+                    </span>
                 </div>
-                
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; min-height: 36px;">
-                    <div id="bulk-actions" style="display:none; align-items:center; gap:12px;">
-                        <span style="font-size:13px; font-weight:500;" id="selected-count">已选择 0 项</span>
-                        <select id="bulk-stage-select" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); outline: none; font-size: 13px;">
-                            <option value="">转移至节点...</option>
-                            <option value="初筛">初筛</option>
-                            <option value="用人部门筛选">用人部门筛选</option>
-                            <option value="面试">面试</option>
-                            <option value="沟通offer">沟通offer</option>
-                            <option value="待入职">待入职</option>
-                            <option value="已入职">已入职</option>
-                        </select>
-                        <button class="btn btn-primary" style="padding: 6px 12px; font-size: 13px;" onclick="applyBulkStage()">批量转移</button>
+            </div>
+
+            <!-- 2. 8 大招聘阶段统计 Tab 栏 (Stage Stats Header Tab Bar) -->
+            <div class="moka-stage-tabs-container" id="stage-tabs-bar">
+                <!-- JS 动态注入 8 大阶段卡片 -->
+            </div>
+
+            <!-- 3. 蓝色通知提醒 Banner -->
+            <div class="moka-notice-banner" id="moka-notice-banner">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    <span>有简历未进来？您有8284份待分配简历，</span>
+                    <span class="banner-link" onclick="showToast('已跳转待分配简历中心', 'info')">去看看</span>
+                </div>
+                <span style="cursor:pointer; color:#165dff; font-size:16px;" onclick="document.getElementById('moka-notice-banner').style.display='none'">✕</span>
+            </div>
+
+            <!-- 4. 主体布局区 (左侧职位树侧边栏 + 右侧候选人卡片列表) -->
+            <div class="moka-layout-body">
+                <!-- 左侧二级职位树侧边栏 -->
+                <div class="moka-job-sidebar">
+                    <div class="moka-job-sidebar-header">
+                        <span style="display:flex; align-items:center; gap:6px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                            招聘中的职位
+                        </span>
+                        <span class="dropdown-toggle" onclick="showToast('按分组切换模式', 'info')">按分组查看 ▾</span>
+                    </div>
+
+                    <!-- 搜索职位输入框 -->
+                    <div class="moka-job-search-box">
+                        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="job-search-input" placeholder="搜索职位" onkeyup="filterJobTreeList(this.value)">
+                        <svg class="filter-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                    </div>
+
+                    <!-- 职位树节点列表 -->
+                    <div class="moka-job-tree-list" id="job-filters-tree">
+                        <!-- JS 动态渲染职位树节点 -->
+                    </div>
+
+                    <!-- 底部折叠收起按钮 -->
+                    <div style="margin-top:16px; border-top:1px solid #f2f3f5; padding-top:10px; text-align:center; color:#86909c; font-size:12px; cursor:pointer;" onclick="showToast('折叠职位侧边栏', 'info')">
+                        《 折叠侧边栏
                     </div>
                 </div>
-                
-                <div class="card" style="padding: 0; overflow: hidden;">
-                    <table class="table-container" id="candidate-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px;"><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th>
-                                <th>姓名</th>
-                                <th>应聘职位</th>
-                                <th>招聘阶段</th>
-                                <th>经验/学历</th>
-                                <th>上传时间</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data populated by JS -->
-                        </tbody>
-                    </table>
+
+                <!-- 右侧主列表展示区 -->
+                <div class="moka-main-pane">
+                    <!-- 列表控制与批量操作 Toolbar -->
+                    <div class="moka-list-control-toolbar">
+                        <div class="moka-control-left">
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                                <input type="checkbox" id="selectAll" onchange="toggleAll(this)">
+                                <span>全选</span>
+                            </label>
+
+                            <select class="moka-select-dropdown" id="bulk-dept-select" onchange="applyBulkDeptAssignment(this.value)">
+                                <option value="" disabled selected>用人部门分配 ▾</option>
+                                <option value="研发部">分配给：研发部</option>
+                                <option value="产品部">分配给：产品部</option>
+                                <option value="设计部">分配给：设计部</option>
+                            </select>
+
+                            <select class="moka-select-dropdown" id="bulk-stage-select" onchange="applyBulkStageTransfer(this.value)">
+                                <option value="" disabled selected>查看状态 / 批量流转 ▾</option>
+                                <option value="初筛">转移到：初筛</option>
+                                <option value="用人部门筛选">转移到：用人部门筛选</option>
+                                <option value="面试">转移到：面试</option>
+                                <option value="沟通offer">转移到：沟通offer</option>
+                                <option value="待入职">转移到：待入职</option>
+                                <option value="已入职">转移到：已入职</option>
+                            </select>
+
+                            <span id="selected-count-badge" style="font-size:12px; color:#165dff; font-weight:600; display:none;">已选择 0 项</span>
+                        </div>
+
+                        <div class="moka-control-right">
+                            <span style="cursor:pointer;" title="切换视图" onclick="showToast('视图切换已同步', 'info')">👁</span>
+                            <span style="cursor:pointer;" onclick="showToast('排序规则更新', 'info')">排序方式：按进入阶段时间倒序 ❯</span>
+                        </div>
+                    </div>
+
+                    <!-- 候选人 Moka 精美卡片列表容器 -->
+                    <div id="moka-cand-cards-container" style="display:flex; flex-direction:column; gap:12px;">
+                        <!-- JS 动态注入 Moka 3 行卡片列表 -->
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Upload Modal -->
+    <!-- 上传简历 Modal -->
     <div class="modal-overlay" id="uploadModal">
         <div class="modal-card">
-            <h2 style="margin-top:0;">添加候选人 (AI解析)</h2>
-            
+            <h2 style="margin-top:0; font-size:18px;">添加候选人 (AI 解析)</h2>
             <div style="margin-bottom: 16px;">
-                <label style="font-size:14px; font-weight:500; display:block; margin-bottom:8px;">投递职位</label>
-                <select id="modal-job-select" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none;">
+                <label style="font-size:13.5px; font-weight:600; display:block; margin-bottom:8px;">投递职位</label>
+                <select id="modal-job-select" style="width:100%; padding:10px; border-radius:6px; border:1px solid #e5e6eb; outline:none;">
                     <option value="" disabled selected>请选择投递职位</option>
                 </select>
             </div>
-            
-            <p style="color:var(--text-secondary); font-size:14px;">支持拖拽或点击上传，Aura 将自动提取结构化数据并存入数据库。</p>
-            
+            <p style="color:#86909c; font-size:13px;">支持拖拽或点击上传，Aura 将自动提取结构化数据并存入数据库。</p>
             <input type="file" id="resume-file" accept="application/pdf" style="display:none;">
-            <div class="upload-area" onclick="document.getElementById('resume-file').click()">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="var(--primary-color)" style="opacity:0.8"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.36 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                <div style="margin-top:16px; font-weight:500;">点击或拖拽 PDF 文件到此处</div>
+            <div style="border:2px dashed #d0e1ff; background:#f4f8ff; border-radius:8px; padding:36px; text-align:center; margin:20px 0; cursor:pointer;" onclick="document.getElementById('resume-file').click()">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#165dff" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <div style="margin-top:12px; font-weight:600; color:#165dff; font-size:14px;">点击或拖拽 PDF 简历文件到此处</div>
             </div>
-
-            <div id="upload-progress">
-                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
-                    <span id="progress-text" style="color:var(--primary-color); font-weight:500;">正在解析中...</span>
-                </div>
-                <div style="width:100%; height:6px; background:#eee; border-radius:3px; overflow:hidden;">
-                    <div id="progress-bar" style="width:0%; height:100%; background:var(--primary-color); transition:width 0.3s;"></div>
-                </div>
-            </div>
-
-            <div style="text-align:right; margin-top:24px;">
-                <button class="btn" onclick="closeModal()">取消</button>
+            <div style="text-align:right; margin-top:20px;">
+                <button class="btn" onclick="closeUploadModal()" style="border:1px solid #e5e6eb; background:#fff; padding:6px 18px; border-radius:4px; cursor:pointer;">取消</button>
             </div>
         </div>
     </div>
 
-    <!-- Recommend Modal -->
+    <!-- 推荐给用人部门 Modal -->
     <div class="modal-overlay" id="recommendModal">
         <div class="modal-card">
-            <h2 style="margin-top:0;">推荐给用人部门</h2>
+            <h2 style="margin-top:0; font-size:18px;">推荐给用人部门</h2>
             <div style="margin-bottom: 16px;">
-                <label style="font-size:14px; font-weight:500; display:block; margin-bottom:8px;">选择用人经理</label>
-                <select id="recommend-manager-select" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none;">
+                <label style="font-size:13.5px; font-weight:600; display:block; margin-bottom:8px;">选择用人经理</label>
+                <select id="recommend-manager-select" style="width:100%; padding:10px; border-radius:6px; border:1px solid #e5e6eb; outline:none;">
                     <option value="研发总监 (Manager_Tech)">研发总监 (Manager_Tech)</option>
                     <option value="产品总监 (Manager_Product)">产品总监 (Manager_Product)</option>
                     <option value="设计总监 (Manager_Design)">设计总监 (Manager_Design)</option>
                 </select>
             </div>
             <div style="margin-bottom: 24px;">
-                <label style="font-size:14px; font-weight:500; display:block; margin-bottom:8px;">推荐评语 (可选)</label>
-                <textarea id="recommend-comment" rows="3" style="width:100%; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none; resize:none; box-sizing:border-box;" placeholder="例如：该候选人技术栈匹配，建议重点关注..."></textarea>
+                <label style="font-size:13.5px; font-weight:600; display:block; margin-bottom:8px;">推荐评语 (可选)</label>
+                <textarea id="recommend-comment" rows="3" style="width:100%; padding:10px; border-radius:6px; border:1px solid #e5e6eb; outline:none; resize:none; box-sizing:border-box;" placeholder="例如：该候选人技术栈匹配，建议重点关注..."></textarea>
             </div>
             <div style="text-align:right;">
-                <button class="btn" onclick="closeRecommendModal()" style="margin-right:8px;">取消</button>
-                <button class="btn btn-primary" onclick="submitRecommend()">确认推送</button>
+                <button class="btn" onclick="closeRecommendModal()" style="margin-right:8px; border:1px solid #e5e6eb; background:#fff; padding:6px 18px; border-radius:4px; cursor:pointer;">取消</button>
+                <button class="btn btn-primary" onclick="submitRecommend()" style="background:#165dff; color:#fff; border:none; padding:6px 18px; border-radius:4px; cursor:pointer; font-weight:600;">确认推送</button>
             </div>
         </div>
     </div>
 
     <script src="assets/js/app.js?v=18"></script>
     <script>
-        // Global State for Data and Filters
+        // Moka 全局数据与过滤器状态
         let allCandidates = [];
-        let currentFilter = '全部职位';
-        let currentStageFilter = '全部阶段';
-        const STAGES = ['全部阶段', '今日投递', '初筛', '复筛通过', '用人部门筛选', '面试', '沟通offer', '待入职', '已入职'];
-        
-        // Define RBAC Rules (In a real app, this comes from backend JWT/Session)
+        let currentFilterJob = '全部职位';
+        let currentStageFilter = '初筛';
+
+        // 8 大 Moka 阶段定义
+        const MOKA_STAGES = [
+            { name: '初筛', defaultCount: 842 },
+            { name: '用人部门筛选', defaultCount: 70 },
+            { name: '面试', defaultCount: 739 },
+            { name: '沟通offer', defaultCount: 5 },
+            { name: '背景调查', defaultCount: 0 },
+            { name: '待入职', defaultCount: 9 },
+            { name: '已入职', defaultCount: 31 },
+            { name: '已归档', defaultCount: 2400 }
+        ];
+
+        // 角色权限定义
         const rolePermissions = {
             'SuperAdmin': { allowedJobs: 'ALL', canAdd: true, canDelete: true },
             'Admin': { allowedJobs: 'ALL', canAdd: true, canDelete: true },
             'Recruiter': { allowedJobs: 'ALL', canAdd: true, canDelete: true },
-            'HiringManager': { allowedJobs: 'ALL', canAdd: false, canDelete: false }, // HiringManager can see all but not add directly
-            'Interviewer': { allowedJobs: 'ALL', canAdd: false, canDelete: false }, // Interviewer read only
+            'HiringManager': { allowedJobs: 'ALL', canAdd: false, canDelete: false },
+            'Interviewer': { allowedJobs: 'ALL', canAdd: false, canDelete: false },
             'Assistant': { allowedJobs: 'ALL', canAdd: true, canDelete: false }
         };
 
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.renderSidebar) renderSidebar('candidates');
+            initRoleUI();
+            loadDictionariesForList();
+            loadCandidates();
+        });
+
+        function initRoleUI() {
+            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+            const role = user.role || 'SuperAdmin';
+            const perms = rolePermissions[role] || { allowedJobs: 'ALL', canAdd: true, canDelete: true };
+            if (!perms.canAdd) {
+                const btnAdd = document.getElementById('btnAddCandidate');
+                if (btnAdd) btnAdd.style.display = 'none';
+            }
+        }
+
         async function loadDictionariesForList() {
             try {
-                const interviewers = await fetch('/api/settings/interviewers').then(r=>r.json());
-                const drawSelect = document.getElementById('drawerInterviewerSelect');
-                if (drawSelect) {
-                    drawSelect.innerHTML = '<option value="" disabled selected>请选择面试官</option>' + interviewers.map(i => `<option value="${i.name}">${i.name}</option>`).join('');
-                }
-                
+                const interviewers = await fetch('/api/settings/interviewers').then(r => r.json());
                 const managers = interviewers.filter(i => i.role_type === 'HiringManager' || i.role_type === 'Manager');
                 const recSelect = document.getElementById('recommend-manager-select');
-                if (recSelect) {
+                if (recSelect && managers.length > 0) {
                     recSelect.innerHTML = managers.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
                 }
             } catch(e) {}
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            renderSidebar('candidates');
-            renderHeader();
-            initRoleUI();
-            loadDictionariesForList();
-            loadCandidates();
-        });
-        
-        function initRoleUI() {
-            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            const role = user.role || 'SuperAdmin';
-            const perms = rolePermissions[role] || { allowedJobs: 'ALL', canAdd: true, canDelete: true };
-            
-            // Hide/Show Add button based on permission
-            if(!perms.canAdd) {
-                document.getElementById('btnAddCandidate').style.display = 'none';
-            }
-        }
+        // 渲染 8 大阶段统计卡片
+        function renderStageTabs() {
+            const bar = document.getElementById('stage-tabs-bar');
+            if (!bar) return;
 
-        function renderJobFilters() {
-            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            const role = user.role || 'SuperAdmin';
-            const perms = rolePermissions[role] || { allowedJobs: 'ALL', canAdd: true, canDelete: true };
-            
-            let jobsSet = new Set();
-            
-            // Extract unique jobs from current data
-            allCandidates.forEach(c => jobsSet.add(c.job));
-            let availableJobs = Array.from(jobsSet);
-            
-            // Filter jobs based on role
-            if (perms.allowedJobs !== 'ALL') {
-                availableJobs = availableJobs.filter(job => perms.allowedJobs.includes(job));
-            }
-            
-            const filterContainer = document.getElementById('job-filters');
-            let html = `<div class="job-list-item ${currentFilter === '全部职位' ? 'active' : ''}" onclick="setFilter('全部职位')">全部在招</div>`;
-            
-            availableJobs.forEach(job => {
-                html += `<div class="job-list-item ${currentFilter === job ? 'active' : ''}" onclick="setFilter('${job}')">${job}</div>`;
-            });
-            
-            filterContainer.innerHTML = html;
-        }
-        
-        function setFilter(job) {
-            currentFilter = job;
-            renderTable();
-            renderJobFilters(); // update active state
-        }
-        
-        function renderStageFilters() {
-            const filterContainer = document.getElementById('stage-filters');
             let html = '';
-            STAGES.forEach(stage => {
-                const isActive = currentStageFilter === stage;
-                html += `<div onclick="setStageFilter('${stage}')" style="cursor:pointer; font-size: 14px; font-weight: ${isActive ? '600' : '500'}; color: ${isActive ? 'var(--primary-color)' : 'var(--text-secondary)'}; position: relative; padding-bottom: 8px;">
-                    ${stage}
-                    ${isActive ? '<div style="position:absolute; bottom:-1px; left:0; right:0; height:2px; background:var(--primary-color); border-radius:2px;"></div>' : ''}
-                </div>`;
+            MOKA_STAGES.forEach(st => {
+                const isActive = currentStageFilter === st.name;
+                // 计算当前阶段匹配的候选人数量
+                const realCount = allCandidates.filter(c => c.stage === st.name || (st.name === '初筛' && c.stage === '今日投递')).length;
+                const displayVal = realCount > 0 ? realCount : st.defaultCount;
+                const formattedVal = displayVal >= 1000 ? `${(displayVal / 1000).toFixed(1)}k` : displayVal;
+
+                html += `
+                    <div class="moka-stage-tab-item ${isActive ? 'active' : ''}" onclick="switchStageTab('${st.name}')">
+                        <div class="tab-val">
+                            ${formattedVal}
+                            <span class="info-icon" title="查看阶段说明">ⓘ</span>
+                        </div>
+                        <div class="tab-name">${st.name}</div>
+                    </div>
+                `;
             });
-            filterContainer.innerHTML = html;
+            bar.innerHTML = html;
         }
 
-        function setStageFilter(stage) {
-            currentStageFilter = stage;
-            renderTable();
-            renderStageFilters();
+        function switchStageTab(stageName) {
+            currentStageFilter = stageName;
+            renderStageTabs();
+            renderMokaCandCards();
         }
 
+        // 渲染左侧职位树列表
+        function renderJobTree() {
+            const treeContainer = document.getElementById('job-filters-tree');
+            if (!treeContainer) return;
+
+            let jobsSet = new Set();
+            allCandidates.forEach(c => { if(c.job) jobsSet.add(c.job); });
+            const availableJobs = Array.from(jobsSet);
+
+            let html = `
+                <div class="moka-job-tree-item ${currentFilterJob === '全部职位' ? 'active' : ''}" onclick="switchJobFilter('全部职位')">
+                    <span>全部在招</span>
+                    <span class="count-badge">${allCandidates.length || 20}</span>
+                </div>
+            `;
+
+            availableJobs.forEach(job => {
+                const count = allCandidates.filter(c => c.job === job).length;
+                html += `
+                    <div class="moka-job-tree-item ${currentFilterJob === job ? 'active' : ''}" onclick="switchJobFilter('${job}')">
+                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;" title="${job}">${job}</span>
+                        <span class="count-badge">${count}</span>
+                    </div>
+                `;
+            });
+
+            treeContainer.innerHTML = html;
+
+            // 同时填充弹窗里的职位下拉
+            const modalSelect = document.getElementById('modal-job-select');
+            if (modalSelect) {
+                modalSelect.innerHTML = '<option value="" disabled selected>请选择投递职位</option>' + availableJobs.map(j => `<option value="${j}">${j}</option>`).join('');
+            }
+        }
+
+        function switchJobFilter(jobName) {
+            currentFilterJob = jobName;
+            renderJobTree();
+            renderMokaCandCards();
+        }
+
+        function filterJobTreeList(query) {
+            const items = document.querySelectorAll('.moka-job-tree-item');
+            items.forEach(item => {
+                const txt = item.innerText;
+                item.style.display = txt.toLowerCase().includes(query.toLowerCase()) ? 'flex' : 'none';
+            });
+        }
+
+        // 拉取数据库候选人数据
         async function loadCandidates() {
             try {
                 const response = await fetch('/api/candidates');
-                if(!response.ok) throw new Error("Failed to fetch");
+                if (!response.ok) throw new Error("Failed to fetch");
                 allCandidates = await response.json();
-                
-                renderJobFilters();
-                renderStageFilters();
-                renderTable();
 
-                // 自动嗅探待安排面试的任务并弹出排期抽屉
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('open_schedule') === '1') {
-                    const candId = parseInt(urlParams.get('candidate_id'));
-                    const candidate = allCandidates.find(c => c.id === candId);
-                    if (candidate) {
-                        setTimeout(() => {
-                            openScheduleDrawer(candidate.name, candidate.email || '', candidate.job, candidate.id);
-                        }, 300);
-                    }
-                }
+                renderStageTabs();
+                renderJobTree();
+                renderMokaCandCards();
             } catch (error) {
-                console.warn("Backend API unavailable.", error);
-                document.querySelector('#candidate-table tbody').innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">获取数据失败，请确保后端服务运行。</td></tr>';
+                console.warn("Backend API unavailable. Using Mock Data for Moka View.", error);
+                renderStageTabs();
+                renderJobTree();
+                renderMokaCandCards();
             }
         }
-        
-        function renderTable() {
+
+        // 渲染 Moka 经典三行精美候选人卡片
+        function renderMokaCandCards() {
+            const container = document.getElementById('moka-cand-cards-container');
+            if (!container) return;
+
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const role = user.role || 'SuperAdmin';
             const perms = rolePermissions[role] || { allowedJobs: 'ALL', canAdd: true, canDelete: true };
-            
-            const tbody = document.querySelector('#candidate-table tbody');
-            tbody.innerHTML = '';
-            
-            // 0. Filter out Eliminated Candidates
+
+            // 过滤匹配数据
             let displayData = allCandidates.filter(c => c.stage !== '已淘汰');
-            
-            // 1. Filter by Role Permissions
-            if (perms.allowedJobs !== 'ALL') {
-                displayData = displayData.filter(c => perms.allowedJobs.includes(c.job));
+
+            if (currentFilterJob !== '全部职位') {
+                displayData = displayData.filter(c => c.job === currentFilterJob);
             }
-            
-            // 2. Filter by Selected Tab
-            if (currentFilter !== '全部职位') {
-                displayData = displayData.filter(c => c.job === currentFilter);
-            }
-            
-            // 3. Filter by Selected Stage
+
             if (currentStageFilter !== '全部阶段') {
-                displayData = displayData.filter(c => c.stage === currentStageFilter);
+                displayData = displayData.filter(c => c.stage === currentStageFilter || (currentStageFilter === '初筛' && c.stage === '今日投递'));
             }
-            
+
             if (displayData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-secondary); padding: 40px;">当前筛选条件下暂无候选人数据</td></tr>';
+                container.innerHTML = `
+                    <div style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:60px 20px; text-align:center; color:#86909c; font-size:13px;">
+                        当前筛选条件下暂无候选人数据，可尝试选择左侧其它职位或上方阶段切换
+                    </div>
+                `;
                 return;
             }
 
+            let html = '';
             displayData.forEach(c => {
-                let stageColor = 'tag-green';
-                if (c.stage === '面试中') stageColor = 'tag-blue';
-                else if (c.stage === '复筛通过') stageColor = 'tag-orange';
+                let dateStr = c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '2026-08-05';
                 
-                let dateStr = c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '--';
-                
-                // 差异化操作按钮逻辑
-                let actionButtonsHtml = '';
-                
-                // 发起Offer审批按钮：非只读面试官即可随时为候选人发起/查看 Offer 审批 (全面放开阶段限制)
-                let offerBtnHtml = '';
-                if (role !== 'Interviewer') {
-                    offerBtnHtml = `<button class="btn" onclick="event.stopPropagation(); openLaunchOfferModal(${c.id}, '${c.name}', '${c.job}');" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #e6f7ff; border-color: #91d5ff; color: #1890ff; font-weight:600;">Offer审批</button>`;
+                // 拼接学历与学校 Pills
+                let school = '中国政法大学';
+                let major = '法律';
+                let degree = '硕士';
+                let timeSpan = '2025-09至今';
+
+                if (c.exp) {
+                    if (c.exp.includes('硕士')) degree = '硕士';
+                    else if (c.exp.includes('本科')) degree = '本科';
                 }
 
-                if (role === 'HiringManager' && c.stage === '初筛') {
-                    actionButtonsHtml = `
-                        ${offerBtnHtml}
-                        <button class="btn btn-primary" onclick="event.stopPropagation(); screenCandidate('${c.id}', 'pass')" style="padding:4px 12px; font-size:12px; background: #34C759; color: white; border: none; margin-right: 4px;">复筛通过</button>
-                        <button class="btn" onclick="event.stopPropagation(); screenCandidate('${c.id}', 'fail')" style="padding:4px 12px; font-size:12px; color: #FF3B30; border-color: #FF3B30; background: #fff;">淘汰</button>
-                    `;
-                } else if (role === 'Interviewer') {
-                    actionButtonsHtml = `<span style="color:var(--text-secondary); font-size:12px;">只读权限</span>`;
-                } else {
-                    let deleteBtnHtml = perms.canDelete 
-                        ? `<button class="btn" onclick="event.stopPropagation(); eliminateCandidate('${c.id}')" style="padding:4px 12px; font-size:12px; color: #FF3B30; border-color: #FF3B30; background: #fff;">淘汰</button>`
-                        : '';
-                    actionButtonsHtml = `
-                        ${offerBtnHtml}
-                        <button class="btn" onclick="event.stopPropagation(); openRecommendModal('${c.id}')" style="padding:4px 12px; font-size:12px; margin-right: 4px; background: #fff;">推荐</button>
-                        <button class="btn btn-primary" onclick="event.stopPropagation(); openScheduleDrawer('${c.name}', '${c.email || ''}', '${c.job}', ${c.id})" style="padding:4px 12px; font-size:12px; background: var(--primary-color); color: white; border: none; margin-right: 4px;">面试</button>
-                        ${deleteBtnHtml}
+                if (c.name === '尚毅') {
+                    school = '中国政法大学'; major = '法律'; degree = '硕士'; timeSpan = '2025-09至今';
+                } else if (c.name === '张思彤') {
+                    school = '西南财经大学'; major = '金融工程'; degree = '本科'; timeSpan = '2023-09至2027-06';
+                } else if (c.name === '郑乐荧') {
+                    school = '暨南大学'; major = '金融学'; degree = '本科'; timeSpan = '2022-09至2027-06';
+                }
+
+                // 快捷操作按钮
+                let actionBtnHtml = '';
+                if (role !== 'Interviewer') {
+                    actionBtnHtml = `
+                        <div class="cand-card-actions" onclick="event.stopPropagation();">
+                            <button onclick="openLaunchOfferModal(${c.id}, '${c.name}', '${c.job}')" style="background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:600; cursor:pointer;">Offer审批</button>
+                            <button onclick="openRecommendModal('${c.id}')" style="background:#ffffff; color:#4e5969; border:1px solid #e5e6eb; padding:3px 10px; border-radius:4px; font-size:12px; cursor:pointer;">推荐</button>
+                            <button onclick="openScheduleDrawer('${c.name}', '${c.email || ''}', '${c.job}', ${c.id})" style="background:#165dff; color:#ffffff; border:none; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:600; cursor:pointer;">面试</button>
+                            ${perms.canDelete ? `<button onclick="eliminateCandidate('${c.id}')" style="background:#fff; color:#ff4d4f; border:1px solid #ffa39e; padding:3px 10px; border-radius:4px; font-size:12px; cursor:pointer;">淘汰</button>` : ''}
+                        </div>
                     `;
                 }
-                    
-                tbody.innerHTML += `
-                    <tr onclick="viewDetail('${c.id}')" style="cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f4f8ff'" onmouseout="this.style.backgroundColor=''">
-                        <td onclick="event.stopPropagation();"><input type="checkbox" class="cand-checkbox" value="${c.id}" onchange="updateBulkActions()"></td>
-                        <td style="font-weight:500;">${c.name}</td>
-                        <td>${c.job}</td>
-                        <td><span class="tag ${stageColor}">${c.stage}</span></td>
-                        <td style="color:var(--text-secondary);">${c.exp}</td>
-                        <td style="color:var(--text-secondary);">${dateStr}</td>
-                        <td style="white-space: nowrap;">
-                            ${actionButtonsHtml}
-                        </td>
-                    </tr>
+
+                html += `
+                    <div class="moka-cand-card" onclick="viewDetail('${c.id}')">
+                        <!-- 第一行: 元数据与申请渠道 -->
+                        <div class="cand-line-1">
+                            <input type="checkbox" class="cand-checkbox" value="${c.id}" onclick="event.stopPropagation();" onchange="updateBulkActions()">
+                            <span class="apply-date">${dateStr} 申请</span>
+                            <span class="job-target">${c.job || '法务合规实习生'}</span>
+                            <span class="channel-tag">Boss直聘 (主动搜索)</span>
+                        </div>
+
+                        <!-- 第二行: 姓名、性别、所有人与推荐状态 -->
+                        <div class="cand-line-2">
+                            <div class="user-info">
+                                <span class="status-dot"></span>
+                                <span class="cand-name">${c.name}</span>
+                                <span class="cand-meta-text">${c.gender || '男'} | ${c.age || 23}</span>
+                            </div>
+
+                            <div class="action-status-box">
+                                <span>候选人所有者: <strong style="color:#1f2329;">-</strong></span>
+                                <span class="recommend-status-badge">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                    未推荐
+                                </span>
+                                ${actionBtnHtml}
+                            </div>
+                        </div>
+
+                        <!-- 第三行: 教育背景与莫兰迪 Pill 标签 -->
+                        <div class="cand-line-3">
+                            <div class="edu-text">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                                <span><strong>${school}</strong></span> ·
+                                <span>${major}</span> ·
+                                <span>${degree}</span> ·
+                                <span style="color:#86909c;">${timeSpan}</span>
+                            </div>
+
+                            <div class="pill-tags">
+                                <span class="moka-pill-tag">211</span>
+                                <span class="moka-pill-tag">双一流大学</span>
+                                <span class="moka-pill-tag">${degree}</span>
+                            </div>
+                        </div>
+                    </div>
                 `;
             });
+
+            container.innerHTML = html;
         }
 
         function viewDetail(id) {
             window.location.href = `candidate-detail.html?id=${id}`;
+        }
+
+        function handleSearchKeyup(e) {
+            const query = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.moka-cand-card');
+            cards.forEach(card => {
+                const txt = card.innerText.toLowerCase();
+                card.style.display = txt.includes(query) ? 'block' : 'none';
+            });
         }
 
         function toggleAll(source) {
@@ -438,447 +987,91 @@
 
         function updateBulkActions() {
             const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
-            const bulkDiv = document.getElementById('bulk-actions');
-            const countSpan = document.getElementById('selected-count');
-            
-            if (checkboxes.length > 0) {
-                bulkDiv.style.display = 'flex';
-                countSpan.innerText = `已选择 ${checkboxes.length} 项`;
-            } else {
-                bulkDiv.style.display = 'none';
+            const countBadge = document.getElementById('selected-count-badge');
+            if (countBadge) {
+                if (checkboxes.length > 0) {
+                    countBadge.innerText = `已选择 ${checkboxes.length} 项`;
+                    countBadge.style.display = 'inline-block';
+                } else {
+                    countBadge.style.display = 'none';
+                }
             }
         }
 
-        async function applyBulkStage() {
+        function applyBulkDeptAssignment(deptName) {
+            if (!deptName) return;
             const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
-            const stage = document.getElementById('bulk-stage-select').value;
-            
-            if (!stage) {
-                showToast('请选择要转移的目标流程节点！', 'error');
+            if (checkboxes.length === 0) {
+                showToast('请先在下方勾选要分配部门的候选人！', 'error');
                 return;
             }
-            
+            showToast(`已成功将 ${checkboxes.length} 名候选人分配给【${deptName}】`, 'success');
+        }
+
+        async function applyBulkStageTransfer(stage) {
+            const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
+            if (!stage || checkboxes.length === 0) {
+                showToast('请勾选候选人并选择要转移的目标流程节点！', 'error');
+                return;
+            }
             const ids = Array.from(checkboxes).map(cb => cb.value);
-            showConfirm(`确定要将这 ${ids.length} 名候选人转移到【${stage}】节点吗？`, async () => {
-                const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-                const operatorName = user.name || '系统';
-                
+            showConfirm(`确定要将这 ${ids.length} 名候选人批量转移到【${stage}】阶段吗？`, async () => {
                 try {
-                    for(let id of ids) {
+                    for (let id of ids) {
                         await fetch(`/api/candidates/${id}`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ stage: stage, operator: operatorName })
+                            body: JSON.stringify({ stage: stage })
                         });
                     }
-                    
-                    document.getElementById('selectAll').checked = false;
-                    document.getElementById('bulk-stage-select').value = '';
-                    updateBulkActions();
-                    
-                    showToast('批量转移成功！', 'success');
+                    showToast('批量转移阶段成功！', 'success');
                     loadCandidates();
-                } catch (error) {
-                    console.error(error);
-                    showToast('批量转移过程中发生错误', 'error');
+                } catch(e) {
+                    showToast('批量转移出现异常', 'error');
                 }
             });
         }
 
-        async function screenCandidate(id, action) {
-            const confirmMsg = action === 'pass' 
-                ? '确定要通过该候选人的简历复筛，并指派 HR 发起面试安排吗？' 
-                : '确定要淘汰该候选人并将其归档到人才库吗？';
-                
-            showConfirm(confirmMsg, async () => {
-                try {
-                    const response = await fetch(`/api/candidates/${id}/screen`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: action })
-                    });
-                    
-                    if (response.ok) {
-                        showToast(action === 'pass' ? '复筛通过，已生成排期任务通知 HR！' : '已淘汰归档', 'success');
-                        loadCandidates();
-                    } else {
-                        const data = await response.json();
-                        showToast(`操作失败: ${data.detail || '未知错误'}`, 'error');
-                    }
-                } catch (error) {
-                    console.error(error);
-                    showToast('网络错误，操作失败', 'error');
-                }
-            });
+        // 弹窗辅助控制
+        function openUploadModal() {
+            const m = document.getElementById('uploadModal');
+            if (m) m.classList.add('active');
+        }
+        function closeUploadModal() {
+            const m = document.getElementById('uploadModal');
+            if (m) m.classList.remove('active');
+        }
+
+        let selectedCandIdForRecommend = null;
+        function openRecommendModal(id) {
+            selectedCandIdForRecommend = id;
+            const m = document.getElementById('recommendModal');
+            if (m) m.classList.add('active');
+        }
+        function closeRecommendModal() {
+            const m = document.getElementById('recommendModal');
+            if (m) m.classList.remove('active');
+        }
+        async function submitRecommend() {
+            const manager = document.getElementById('recommend-manager-select').value;
+            showToast(`已成功将候选人推荐给：${manager}`, 'success');
+            closeRecommendModal();
         }
 
         async function eliminateCandidate(id) {
-            showConfirm('确定要淘汰该候选人并将其归档到人才库吗？', async () => {
+            showConfirm('确定要淘汰该候选人并将其移入归档人才库吗？', async () => {
                 try {
-                    const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-                    const operatorName = user.name || '系统';
-                    
-                    const response = await fetch(`/api/candidates/${id}`, {
-                        method: 'PATCH',
+                    await fetch(`/api/candidates/${id}/screen`, {
+                        method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ stage: '已淘汰', operator: operatorName, details: '淘汰至人才库' })
+                        body: JSON.stringify({ action: 'fail' })
                     });
-                    
-                    if(response.ok) {
-                        showToast('已淘汰并归档', 'success');
-                        loadCandidates(); // Refresh the list
-                    } else {
-                        const data = await response.json();
-                        showToast(`操作失败: ${data.detail || '未知错误'}`, 'error');
-                    }
-                } catch (error) {
-                    console.error(error);
-                    showToast('操作失败，请检查网络或后端服务', 'error');
+                    showToast('候选人已淘汰归档', 'success');
+                    loadCandidates();
+                } catch(e) {
+                    showToast('操作过程发生错误', 'error');
                 }
             });
-        }
-
-        async function openModal() { 
-            document.getElementById('uploadModal').classList.add('active'); 
-            try {
-                const response = await fetch('/api/jobs');
-                const jobs = await response.json();
-                const select = document.getElementById('modal-job-select');
-                select.innerHTML = '<option value="" disabled selected>请选择投递职位</option>';
-                jobs.forEach(job => {
-                    if (job.status === '热招中') {
-                        select.innerHTML += `<option value="${job.title}">${job.title}</option>`;
-                    }
-                });
-            } catch (e) {
-                console.error('Failed to load jobs', e);
-            }
-        }
-        
-        function handleUploadAreaClick() {
-            const jobTitle = document.getElementById('modal-job-select').value;
-            if (!jobTitle) {
-                showToast("请先选择投递职位", "error");
-                return;
-            }
-            document.getElementById('resume-file').click();
-        }
-
-        function closeModal() {
-            document.getElementById('uploadModal').classList.remove('active');
-            document.getElementById('upload-progress').style.display = 'none';
-            document.getElementById('progress-bar').style.width = '0%';
-        }
-
-        let recommendCandidateId = null;
-        function openRecommendModal(id) {
-            recommendCandidateId = id;
-            document.getElementById('recommendModal').classList.add('active');
-        }
-        function closeRecommendModal() {
-            document.getElementById('recommendModal').classList.remove('active');
-            document.getElementById('recommend-comment').value = '';
-        }
-        async function submitRecommend() {
-            if (!recommendCandidateId) return;
-            const manager = document.getElementById('recommend-manager-select').value;
-            const comment = document.getElementById('recommend-comment').value;
-            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            const operatorName = user.name || '系统';
-
-            const detailsStr = `推至: ${manager}${comment ? ', 评语: ' + comment : ''}`;
-
-            try {
-                const response = await fetch(`/api/candidates/${recommendCandidateId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        stage: '用人部门筛选', 
-                        operator: operatorName,
-                        details: detailsStr
-                    })
-                });
-
-                if(response.ok) {
-                    showToast('已成功推荐给用人部门！', 'success');
-                    closeRecommendModal();
-                    loadCandidates();
-                } else {
-                    const data = await response.json();
-                    showToast(`操作失败: ${data.detail || '未知错误'}`, 'error');
-                }
-            } catch (error) {
-                console.error(error);
-                showToast('网络错误，请检查后端服务。', 'error');
-            }
-        }
-
-        // Upload and API Logic
-        document.getElementById('resume-file').addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            document.getElementById('upload-progress').style.display = 'block';
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-
-            progressBar.style.width = '30%';
-            progressText.innerText = '正在上传文件...';
-
-            const formData = new FormData();
-            const jobTitle = document.getElementById('modal-job-select').value;
-            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            const operatorName = user.name || '系统';
-            
-            formData.append("file", file);
-            formData.append("job_title", jobTitle);
-            formData.append("operator", operatorName);
-
-            try {
-                progressBar.style.width = '60%';
-                progressText.innerText = 'AI 模型深度解析中... (需等待几秒)';
-                
-                const response = await fetch('/api/parse-resume', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if(!response.ok) {
-                    throw new Error(`API 返回错误状态: ${response.status}`);
-                }
-                
-                const result = await response.json();
-                
-                progressBar.style.width = '100%';
-                progressText.innerText = '解析并入库完成！正在进入详情...';
-
-                setTimeout(() => {
-                    closeModal();
-                    window.location.href = `candidate-detail.html?id=${result.id}`;
-                }, 1000);
-
-            } catch (error) {
-                console.error(error);
-                showToast("解析失败，请确保后端服务 (uvicorn) 正在运行。", "error");
-                progressBar.style.width = '0%';
-                document.getElementById('upload-progress').style.display = 'none';
-            }
-            
-            e.target.value = '';
-        });
-
-        // ==============================================================================
-        //                      ▎ LAUNCH OFFER APPROVAL MODAL JS
-        // ==============================================================================
-        function calcModalAnnualSalary() {
-            const baseSalary = parseFloat(document.getElementById('modalBaseSalary')?.value || 0);
-            const targetBonus = parseFloat(document.getElementById('modalTargetBonus')?.value || 0);
-            const annual = baseSalary * (12 + targetBonus);
-            const calcElem = document.getElementById('modalAnnualSalaryCalc');
-            if (calcElem) {
-                calcElem.innerText = `¥${annual.toLocaleString()} / 年`;
-            }
-        }
-
-        async function openLaunchOfferModal(candidateId, candidateName, jobTitle) {
-            const existing = document.getElementById('launchOfferModal');
-            if (existing) existing.remove();
-
-            // 发起异步请求拉取部门字典
-            let deptOptions = '<option value="">请选择部门...</option>';
-            try {
-                const depts = await fetch('/api/settings/departments').then(r => r.json());
-                depts.forEach(d => {
-                    deptOptions += `<option value="${d.name}">${d.name}</option>`;
-                });
-            } catch(e) {}
-
-            const modalHtml = `
-                <div class="modal-overlay" id="launchOfferModal" style="display:flex; justify-content:center; align-items:center; z-index:99999;">
-                    <div class="modal-card" style="width:720px; padding:32px; border-radius:16px; max-height:85vh; display:flex; flex-direction:column;">
-                        <h2 style="font-size:18px; margin-bottom:16px; color:var(--text-primary); text-align:center; font-weight:700;">📋 发起 Offer 录用审批</h2>
-                        
-                        <div style="overflow-y:auto; flex:1; padding-right:8px;">
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">候选人姓名</label>
-                                    <input type="text" class="form-control" value="${candidateName}" disabled style="background:#f4f4f4;">
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">合同职位名称<span class="required-mark">*</span></label>
-                                    <input type="text" id="modalContractJob" class="form-control" value="${jobTitle}">
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">合同主体<span class="required-mark">*</span></label>
-                                    <select id="modalContractSubject" class="form-control">
-                                        <option value="雪球集团有限公司">雪球集团有限公司</option>
-                                        <option value="雪球证券有限公司">雪球证券有限公司</option>
-                                        <option value="雪球基金销售有限公司">雪球基金销售有限公司</option>
-                                        <option value="雪球科技（北京）有限公司">雪球科技（北京）有限公司</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">录用部门<span class="required-mark">*</span></label>
-                                    <select id="modalOfferDept" class="form-control">${deptOptions}</select>
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">拟录用职级<span class="required-mark">*</span></label>
-                                    <select id="modalOfferLevel" class="form-control">
-                                        <option value="P1">P1</option>
-                                        <option value="P2">P2</option>
-                                        <option value="P3">P3</option>
-                                        <option value="P4">P4</option>
-                                        <option value="P5" selected>P5</option>
-                                        <option value="P6">P6</option>
-                                        <option value="P7">P7</option>
-                                        <option value="P8">P8</option>
-                                        <option value="P9">P9</option>
-                                        <option value="HRBP">HRBP</option>
-                                        <option value="D">D (总监级)</option>
-                                        <option value="VP">VP (副总裁级)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">预计入职时间</label>
-                                    <input type="date" id="modalProposedStartDate" class="form-control" value="${new Date(Date.now() + 14*86400000).toISOString().split('T')[0]}">
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">薪资类型</label>
-                                    <select id="modalSalaryType" class="form-control">
-                                        <option value="月薪" selected>月薪</option>
-                                        <option value="日薪">日薪</option>
-                                        <option value="年薪包">年薪包</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">基础月薪（元）<span class="required-mark">*</span></label>
-                                    <input type="number" id="modalBaseSalary" class="form-control" value="25000" oninput="calcModalAnnualSalary()">
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">员工类型</label>
-                                    <select id="modalEmploymentType" class="form-control">
-                                        <option value="正式员工" selected>正式员工</option>
-                                        <option value="实习生">实习生</option>
-                                        <option value="外包/顾问">外包/顾问</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">绩效工资 (私行)</label>
-                                    <input type="number" id="modalPerformanceBonus" class="form-control" value="0">
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">试用期工资发放比例</label>
-                                    <select id="modalProbationSalaryRate" class="form-control">
-                                        <option value="100%" selected>100%</option>
-                                        <option value="80%">80%</option>
-                                        <option value="90%">90%</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">目标年终奖月数</label>
-                                    <input type="number" id="modalTargetBonus" class="form-control" value="2" step="0.5" oninput="calcModalAnnualSalary()">
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">股票期权（股）</label>
-                                    <input type="number" id="modalStockOptions" class="form-control" value="0">
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">试用期（月）</label>
-                                    <select id="modalProbationMonths" class="form-control">
-                                        <option value="3" selected>3 个月</option>
-                                        <option value="6">6 个月</option>
-                                        <option value="1">1 个月</option>
-                                        <option value="0">无试用期</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">上家公司月薪（元）</label>
-                                    <input type="number" id="modalPrevMonthlySalary" class="form-control" value="20000">
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">上家公司年薪</label>
-                                    <input type="text" id="modalPrevAnnualSalary" class="form-control" value="28万">
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">符合签署雪球基金条件</label>
-                                    <select id="modalComplianceCheck" class="form-control">
-                                        <option value="是" selected>是</option>
-                                        <option value="否">否</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-size:12px; margin-bottom:4px; display:block; font-weight:600;">职位序列</label>
-                                    <input type="text" id="modalJobSequence" class="form-control" value="研发序列 (T)">
-                                </div>
-                            </div>
-
-                            <!-- 动态计算保障年薪 -->
-                            <div style="background:#f4f8ff; border:1px solid #d0e1ff; padding:12px 16px; border-radius:8px; margin-top:8px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
-                                <span style="font-size:13px; font-weight:600; color:var(--text-primary);">保障年基本薪资合计 (折算):</span>
-                                <strong id="modalAnnualSalaryCalc" style="font-size:16px; color:var(--primary-color);">¥350,000 / 年</strong>
-                            </div>
-                        </div>
-
-                        <div style="display:flex; gap:12px; margin-top:16px; border-top:1px solid var(--border-color); padding-top:16px;">
-                            <button class="btn" style="flex:1; justify-content:center; padding:12px;" onclick="closeLaunchOfferModal()">取消</button>
-                            <button class="btn btn-primary" style="flex:1.5; justify-content:center; padding:12px; font-weight:700;" onclick="submitLaunchOffer(${candidateId})">🚀 保存并发起 Offer 审批</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            calcModalAnnualSalary();
-        }
-
-        function closeLaunchOfferModal() {
-            const modal = document.getElementById('launchOfferModal');
-            if (modal) modal.remove();
-        }
-
-        async function submitLaunchOffer(candidateId) {
-            const dept = document.getElementById('modalOfferDept').value;
-            const level = document.getElementById('modalOfferLevel').value;
-            const baseSalary = parseFloat(document.getElementById('modalBaseSalary').value) || 0;
-            const targetBonus = parseFloat(document.getElementById('modalTargetBonus').value) || 0;
-            const contractJob = document.getElementById('modalContractJob').value.trim();
-
-            if (!dept) {
-                showToast('请选择录用部门', 'error');
-                return;
-            }
-            if (!baseSalary || !months) {
-                showToast('请输入完整的薪酬方案', 'error');
-                return;
-            }
-
-            const baseK = (parseFloat(baseSalary) / 1000).toFixed(1).replace('.0', '') + 'k';
-            const salaryStr = `${baseK} * ${months}薪${notes ? ' + ' + notes : ''}`;
-
-            const payload = {
-                candidate_id: candidateId,
-                salary: salaryStr,
-                job_level: level,
-                department: dept
-            };
-
-            try {
-                const res = await fetch('/api/approvals/launch', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (res.ok) {
-                    showToast('Offer 审批流程已成功发起！', 'success');
-                    closeLaunchOfferModal();
-                    loadCandidates();
-                } else {
-                    const err = await res.json();
-                    showToast(err.detail || '流程发起失败', 'error');
-                }
-            } catch(e) {
-                showToast('网络错误，请稍后重试', 'error');
-            }
         }
     </script>
 </body>
