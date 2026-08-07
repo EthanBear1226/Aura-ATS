@@ -850,35 +850,6 @@
             }
         }
 
-        // 渲染 Moka 经典三行精美候选人卡片
-        function renderMokaCandCards() {
-            const container = document.getElementById('moka-cand-cards-container');
-            if (!container) return;
-
-            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            const role = user.role || 'SuperAdmin';
-            const perms = rolePermissions[role] || { allowedJobs: 'ALL', canAdd: true, canDelete: true };
-
-            // 过滤匹配数据
-            let displayData = allCandidates.filter(c => c.stage !== '已淘汰');
-
-            if (currentFilterJob !== '全部职位') {
-                displayData = displayData.filter(c => c.job === currentFilterJob);
-            }
-
-            if (currentStageFilter !== '全部阶段') {
-                displayData = displayData.filter(c => c.stage === currentStageFilter || (currentStageFilter === '初筛' && c.stage === '今日投递'));
-            }
-
-            if (displayData.length === 0) {
-                container.innerHTML = `
-                    <div style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:60px 20px; text-align:center; color:#86909c; font-size:13px;">
-                        当前筛选条件下暂无候选人数据，可尝试选择左侧其它职位或上方阶段切换
-                    </div>
-                `;
-                return;
-            }
-
         // 动态候选人真实履历抽取与能力标签计算引擎 (彻底消除硬编码模板)
         function extractRealCandidateProfile(c) {
             const fullText = `${c.name || ''} ${c.job || ''} ${c.raw_text || ''} ${c.ai_summary || ''} ${c.ai_analysis || ''} ${c.exp || ''}`;
