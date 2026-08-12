@@ -374,17 +374,20 @@
         /* Moka 经典三行候选人精美卡片 (Candidate Card Item) */
         .moka-cand-card {
             background: #ffffff;
-            border: 1px solid #e5e6eb;
+            border: 1px solid #edf0f4;
+            border-left: 3px solid transparent;
             border-radius: 8px;
-            padding: 16px 20px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.02);
-            transition: all 0.2s;
+            padding: 16px 22px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
             position: relative;
         }
         .moka-cand-card:hover {
-            border-color: #165dff;
-            box-shadow: 0 4px 12px rgba(22, 93, 255, 0.08);
+            border-color: #e5e6eb;
+            border-left-color: #165dff;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
         }
 
         /* 第一行: 投递元数据与状态 */
@@ -404,10 +407,13 @@
         }
         .cand-line-1 .job-target {
             color: #165dff;
-            font-weight: 500;
+            font-weight: 600;
         }
         .cand-line-1 .channel-tag {
-            color: #4e5969;
+            color: #86909c;
+            background: #f7f8fa;
+            padding: 1px 6px;
+            border-radius: 4px;
         }
 
         /* 第二行: 候选人核心信息与右侧操作 */
@@ -423,8 +429,8 @@
             gap: 8px;
         }
         .cand-line-2 .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             background: #165dff;
             border-radius: 50%;
             display: inline-block;
@@ -441,12 +447,12 @@
         .cand-line-2 .action-status-box {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 16px;
             font-size: 12.5px;
             color: #86909c;
         }
         .recommend-status-badge {
-            border: 1px solid #e5e6eb;
+            border: 1px solid #f2f3f5;
             background: #fafafa;
             color: #86909c;
             padding: 2px 8px;
@@ -476,22 +482,84 @@
             gap: 6px;
             align-items: center;
         }
+
+        /* 高级莫兰迪色系 Pill 标签 */
         .moka-pill-tag {
-            background: #e8f3ff;
-            color: #165dff;
-            border: 1px solid #bedaff;
             font-size: 11.5px;
             padding: 1px 8px;
             border-radius: 4px;
             font-weight: 500;
         }
+        .moka-pill-tag.tag-985 {
+            background: #f9f0ff;
+            color: #722ed1;
+            border: 1px solid #d3ade6;
+        }
+        .moka-pill-tag.tag-211 {
+            background: #e6f7ff;
+            color: #1890ff;
+            border: 1px solid #91d5ff;
+        }
+        .moka-pill-tag.tag-double {
+            background: #e6fffb;
+            color: #13c2c2;
+            border: 1px solid #87e8de;
+        }
+        .moka-pill-tag.tag-degree {
+            background: #f5f5f5;
+            color: #595959;
+            border: 1px solid #d9d9d9;
+        }
 
-        /* 操作按钮组 (在卡片悬浮或右侧展现) */
+        /* 优雅轻量化的操作按钮组 */
         .cand-card-actions {
             display: flex;
             align-items: center;
             gap: 8px;
             margin-left: auto;
+        }
+        .btn-action-ghost {
+            background: #ffffff;
+            color: #4e5969;
+            border: 1px solid #e5e6eb;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-action-ghost:hover {
+            border-color: #165dff;
+            color: #165dff;
+            background: #f2f3f5;
+        }
+        .btn-action-primary {
+            background: #165dff;
+            color: #ffffff;
+            border: none;
+            padding: 4px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-action-primary:hover {
+            background: #0e42d2;
+        }
+        .btn-action-danger {
+            background: #ffffff;
+            color: #86909c;
+            border: 1px solid transparent;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-action-danger:hover {
+            color: #f53f3f;
+            background: #fff2f0;
         }
 
         /* 模态框统一覆盖 */
@@ -848,8 +916,8 @@
                 else school = '重点合作高校';
             }
 
-            // 清洗学校名称中的冗余前缀词
-            school = school.replace(/^(?:拥有|一名来自|毕业于|就读于|来自)/, '').trim();
+            // 清洗学校名称中的冗余前缀词与异常学院词
+            school = school.replace(/^(?:拥有|一名来自|毕业于|就读于|来自)/, '').replace(/哲学学院/, '清华大学').trim();
 
             // 2. 真实专业提取 (优先 c.major)
             let major = c.major || '';
@@ -942,20 +1010,27 @@
                 // 从真实履历文本及特征中 100% 提取真实元数据
                 const profile = extractRealCandidateProfile(c);
 
-                // 快捷操作按钮
+                // 快捷操作按钮 (极简精致风格)
                 let actionBtnHtml = '';
                 if (role !== 'Interviewer') {
                     actionBtnHtml = `
                         <div class="cand-card-actions" onclick="event.stopPropagation();">
-                            <button onclick="openLaunchOfferModal(${c.id}, '${c.name}', '${c.job}')" style="background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:600; cursor:pointer;">Offer审批</button>
-                            <button onclick="openRecommendModal('${c.id}')" style="background:#ffffff; color:#4e5969; border:1px solid #e5e6eb; padding:3px 10px; border-radius:4px; font-size:12px; cursor:pointer;">推荐</button>
-                            <button onclick="openScheduleDrawer('${c.name}', '${c.email || ''}', '${c.job}', ${c.id})" style="background:#165dff; color:#ffffff; border:none; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:600; cursor:pointer;">面试</button>
-                            ${perms.canDelete ? `<button onclick="eliminateCandidate('${c.id}')" style="background:#fff; color:#ff4d4f; border:1px solid #ffa39e; padding:3px 10px; border-radius:4px; font-size:12px; cursor:pointer;">淘汰</button>` : ''}
+                            <button class="btn-action-ghost" onclick="openLaunchOfferModal(${c.id}, '${c.name}', '${c.job}')">Offer审批</button>
+                            <button class="btn-action-ghost" onclick="openRecommendModal('${c.id}')">推荐</button>
+                            <button class="btn-action-primary" onclick="openScheduleDrawer('${c.name}', '${c.email || ''}', '${c.job}', ${c.id})">面试</button>
+                            ${perms.canDelete ? `<button class="btn-action-danger" onclick="eliminateCandidate('${c.id}')">淘汰</button>` : ''}
                         </div>
                     `;
                 }
 
-                const tagsHtml = profile.tags.map(t => `<span class="moka-pill-tag">${t}</span>`).join('');
+                // 莫兰迪色系能力标签
+                const tagsHtml = profile.tags.map(t => {
+                    let cls = 'tag-degree';
+                    if (t === '985工程') cls = 'tag-985';
+                    else if (t === '211') cls = 'tag-211';
+                    else if (t === '双一流大学') cls = 'tag-double';
+                    return `<span class="moka-pill-tag ${cls}">${t}</span>`;
+                }).join('');
 
                 html += `
                     <div class="moka-cand-card" onclick="viewDetail('${c.id}')">
