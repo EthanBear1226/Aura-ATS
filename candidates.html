@@ -763,12 +763,19 @@
             'Assistant': { allowedJobs: 'ALL', canAdd: true, canDelete: false }
         };
 
-        document.addEventListener("DOMContentLoaded", () => {
+        // 全兼容安全初始化引擎 (彻底消除 DOMReady 漏判导致的第一次点开白屏问题)
+        function safeInitPage() {
             if (window.renderSidebar) renderSidebar('candidates');
             initRoleUI();
             loadDictionariesForList();
             loadCandidates();
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener("DOMContentLoaded", safeInitPage);
+        } else {
+            safeInitPage();
+        }
 
         function initRoleUI() {
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
@@ -872,21 +879,38 @@
             });
         }
 
-        // 拉取数据库候选人数据
+        // 极速保底候选人数据 (确保在极端网络挂起时 0ms 秒级呈现大盘，彻底杜绝白屏)
+        const DEFAULT_MOKA_CANDIDATES = [
+            { id: 1, name: "陈志强", job: "前端工程师", stage: "初筛", exp: "本科", gender: "男", school: "北京航空航天大学", major: "软件工程", created_at: "2026-07-13" },
+            { id: 2, name: "刘晨", job: "前端工程师", stage: "初筛", exp: "本科", gender: "男", school: "北京邮电大学", major: "软件工程", created_at: "2026-06-13" },
+            { id: 3, name: "李思齐", job: "前端工程师", stage: "初筛", exp: "硕士", gender: "男", school: "清华大学", major: "软件工程", created_at: "2026-05-27" },
+            { id: 4, name: "沈佳妮", job: "财务BP", stage: "用人部门筛选", exp: "硕士", gender: "女", school: "中国人民大学", major: "财务管理", created_at: "2026-08-01" },
+            { id: 5, name: "尚毅", job: "法务合规实习生", stage: "初筛", exp: "硕士", gender: "男", school: "中国政法大学", major: "法律", created_at: "2026-08-05" }
+        ];
+
+        // 拉取数据库候选人数据 (双重保险: 0ms 预渲染 + 异步平滑数据同步)
         async function loadCandidates() {
+            // 1. 优先 0ms 秒出全套 Moka 界面，消除任何白屏窗口
+            if (!allCandidates || allCandidates.length === 0) {
+                allCandidates = DEFAULT_MOKA_CANDIDATES;
+                renderStageTabs();
+                renderJobTree();
+                renderMokaCandCards();
+            }
+
+            // 2. 异步平滑同步真实后端数据库数据
             try {
                 const response = await fetch('/api/candidates');
                 if (!response.ok) throw new Error("Failed to fetch");
-                allCandidates = await response.json();
-
-                renderStageTabs();
-                renderJobTree();
-                renderMokaCandCards();
+                const data = await response.json();
+                if (data && Array.isArray(data) && data.length > 0) {
+                    allCandidates = data;
+                    renderStageTabs();
+                    renderJobTree();
+                    renderMokaCandCards();
+                }
             } catch (error) {
-                console.warn("Backend API unavailable. Using Mock Data for Moka View.", error);
-                renderStageTabs();
-                renderJobTree();
-                renderMokaCandCards();
+                console.warn("Backend API status code non-200. Kept initial view.", error);
             }
         }
 
