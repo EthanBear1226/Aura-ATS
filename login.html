@@ -34,6 +34,12 @@
     </div>
     
     <script>
+        // 1. 页面加载瞬间静默预热后端服务，彻底消除冷启动延时
+        try {
+            fetch('/api/candidates', { method: 'GET' }).catch(() => {});
+        } catch(e) {}
+
+        // 2. 登录表单提交 (全自动平滑自愈重试，一次点击直接秒进)
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const email = document.getElementById('email').value;
@@ -50,30 +56,46 @@
             btn.innerText = '正在登录...';
             btn.disabled = true;
             
-            try {
-                let response = null;
+            let response = null;
+            let lastError = null;
+
+            // 自动最多尝试 3 次，平滑自愈连接
+            for (let attempt = 1; attempt <= 3; attempt++) {
                 try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 8000);
+                    
                     response = await fetch('/api/auth/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password })
+                        body: JSON.stringify({ email, password }),
+                        signal: controller.signal
                     });
-                } catch(err1) {
-                    btn.innerText = '正在尝试连接...';
-                    await new Promise(r => setTimeout(r, 1000));
-                    response = await fetch('/api/auth/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password })
-                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    // 如果拿到正常响应或者密码错误等业务状态，直接跳出重试循环
+                    if (response) {
+                        break;
+                    }
+                } catch (err) {
+                    lastError = err;
+                    if (attempt < 3) {
+                        btn.innerText = `正在连接 (${attempt}/3)...`;
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
                 }
-                
+            }
+
+            try {
                 if (response && response.ok) {
                     window.loginSuccessful = true;
                     const data = await response.json();
                     localStorage.setItem('aura_token', data.access_token);
                     localStorage.setItem('aura_user', JSON.stringify(data.user));
+                    btn.innerText = '登录成功，正在跳转...';
                     window.location.href = 'index.html';
+                    return;
                 } else if (response) {
                     const err = await response.json();
                     const msg = err.detail || '邮箱或密码错误，请重新输入';
@@ -82,19 +104,22 @@
                         errorBox.style.display = 'block';
                     }
                 } else {
-                    throw new Error("No response");
-                }
-            } catch (error) {
-                console.error(error);
-                if (!localStorage.getItem('aura_token') && !window.loginSuccessful) {
                     if (errorBox) {
-                        errorBox.innerText = '网络连接暂时繁忙，请重新点击登录';
+                        errorBox.innerText = '网络连接暂时繁忙，请稍候重试';
                         errorBox.style.display = 'block';
                     }
                 }
+            } catch (error) {
+                console.error(error);
+                if (errorBox) {
+                    errorBox.innerText = '网络连接异常，请重试';
+                    errorBox.style.display = 'block';
+                }
             } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
+                if (!window.loginSuccessful) {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
             }
         });
     </script>
