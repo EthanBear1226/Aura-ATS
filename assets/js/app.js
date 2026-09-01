@@ -4,11 +4,13 @@ window.fetch = async function (url, options = {}) {
     options.headers = options.headers || {};
     const token = localStorage.getItem('aura_token');
     
-    // 注入 JWT 令牌
+    // 注入 JWT 令牌 (公开接口不强制注入)
     const isPublicAuth = url.includes('/api/auth/login') || 
                          url.includes('/api/auth/register') || 
                          url.includes('/api/auth/register-by-invite') || 
-                         url.includes('/api/auth/invite/detail/');
+                         url.includes('/api/auth/invite/detail/') ||
+                         url.includes('/api/public/') ||
+                         url.includes('/api/health');
                          
     if (token && url.startsWith('/api/') && !isPublicAuth) {
         if (options.headers instanceof Headers) {
@@ -20,12 +22,12 @@ window.fetch = async function (url, options = {}) {
     
     try {
         const response = await originalFetch(url, options);
-        // 若后端返回 401 凭证失效，则自动退登
+        // 若后端返回 401 凭证失效，则自动退登并跳回登录页
         if (response.status === 401 && url.startsWith('/api/') && !isPublicAuth) {
             localStorage.removeItem('aura_token');
             localStorage.removeItem('aura_user');
             const path = window.location.pathname;
-            if (!path.includes('login.html') && !path.includes('register.html')) {
+            if (!path.includes('login.html') && !path.includes('register.html') && !path.includes('portal.html')) {
                 window.location.href = 'login.html';
             }
         }
@@ -64,13 +66,13 @@ function checkAuth() {
     if (token && isTokenExpired(token)) {
         localStorage.removeItem('aura_token');
         localStorage.removeItem('aura_user');
-        if (!path.includes('login.html') && !path.includes('register.html')) {
+        if (!path.includes('login.html') && !path.includes('register.html') && !path.includes('portal.html')) {
             window.location.href = 'login.html';
             return;
         }
     }
     
-    if ((!token || !user) && !path.includes('login.html') && !path.includes('register.html')) {
+    if ((!token || !user) && !path.includes('login.html') && !path.includes('register.html') && !path.includes('portal.html')) {
         window.location.href = 'login.html';
     }
 }

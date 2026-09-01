@@ -453,7 +453,7 @@ def create_job(job: schemas.JobCreate, db: Session = Depends(get_db), current_us
     return db_job
 
 @app.get("/api/jobs/{job_id}", response_model=schemas.Job)
-def get_job(job_id: int, db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_optional)):
+def get_job(job_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
     if not db_job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -478,11 +478,11 @@ def update_job_status(job_id: int, job_update: schemas.JobUpdate, db: Session = 
     return db_job
 
 @app.get("/api/candidates", response_model=list[schemas.Candidate])
-def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_optional)):
+def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     try:
-        role = current_user.role if current_user else "Admin"
-        name = current_user.name if current_user else "系统"
-        email = current_user.email if current_user else ""
+        role = current_user.role or "Admin"
+        name = current_user.name or "系统"
+        email = current_user.email or ""
         
         if role == "Interviewer":
             my_candidate_ids = db.query(models.Interview.candidate_id).filter(models.Interview.interviewer_name == name).distinct().all()
@@ -507,13 +507,33 @@ def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail="Database error")
 
 @app.get("/api/candidates/{candidate_id}", response_model=schemas.Candidate)
-def get_candidate(candidate_id: int, db: Session = Depends(get_db)):
+def get_candidate(candidate_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
     if candidate is None:
-        # 自愈降级：当指定ID不存在时，尝试自动返回数据库最新的第一条候选人记录
-        candidate = db.query(models.Candidate).order_by(models.Candidate.id.desc()).first()
-    if candidate is None:
         raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    # RBAC 防越权校验
+    role = current_user.role or "Admin"
+    name = current_user.name or "系统"
+    email = current_user.email or ""
+
+    if role == "Interviewer":
+        # 面试官仅可查看与自己绑定的候选人
+        has_interview = db.query(models.Interview).filter(
+            models.Interview.candidate_id == candidate.id,
+            models.Interview.interviewer_name == name
+        ).first()
+        if not has_interview:
+            raise HTTPException(status_code=403, detail="无权查看非指派面试的候选人档案")
+    elif role == "HiringManager":
+        # 用人经理仅可查看属于本部门职位的候选人
+        user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first()
+        dept_name = user_invite.department if user_invite else None
+        if dept_name and candidate.job:
+            job_obj = db.query(models.Job).filter(models.Job.title == candidate.job).first()
+            if job_obj and job_obj.department != dept_name:
+                raise HTTPException(status_code=403, detail="无权查看非本部门管辖的候选人档案")
+
     return candidate
 
 @app.post("/api/candidates/{candidate_id}/screen", response_model=schemas.Candidate)
@@ -589,8 +609,7 @@ async def reupload_resume(candidate_id: int, file: UploadFile = File(...), db: S
     return candidate
 
 
-@app.post("/api/parse-resume", response_model=schemas.Candidate)
-async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), operator: str = Form("系统"), db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_current_user_optional)):
+async def _process_resume_upload(file: UploadFile, job_title: str, operator: str, db: Session, current_user: Optional[models.User] = None):
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
     
@@ -628,8 +647,6 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
                 job_info_text = f"\n【正在应聘的职位及JD】\n职位名称：{job_title}\n职位JD：{job_desc[:1000]}\n"
 
         if api_key:
-            # 尝试的模型列表，按优先级排序
-            # 使用较新且免费配额更高的型号
             candidate_models = [
                 'gemini-2.5-flash-lite',
                 'gemini-flash-lite-latest',
@@ -657,19 +674,18 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
                     parsed_data = json.loads(response.text.strip())
                     success = True
                     print(f"Successfully parsed using {model_name}")
-                    break # 成功则跳出循环
+                    break
                 except Exception as e:
                     last_error = str(e)
                     print(f"Model {model_name} failed: {e}")
                     if "429" in last_error or "quota" in last_error.lower():
-                        continue # 额度满了，尝试下一个
+                        continue
                     elif "404" in last_error or "not found" in last_error.lower():
-                        continue # 模型不存在，尝试下一个
+                        continue
                     else:
-                        break # 其他严重错误，直接停止
+                        break
 
             if not success:
-                # 所有模型都失败后的逻辑
                 if "429" in last_error or "quota" in last_error.lower():
                     parsed_data = {
                         "name": file.filename.replace('.pdf', '')[:10],
@@ -695,7 +711,6 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
         else:
             skills_val = []
 
-        # 查重逻辑与投递历史合并（合卷）
         phone_val = str(parsed_data.get("phone") or "").strip()
         email_val = str(parsed_data.get("email") or "").strip()
         
@@ -713,7 +728,6 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
         operator_name = current_user.name if current_user else operator
 
         if existing_candidate:
-            # 1. 更新已存在的候选人主表字段为最新解析数据
             existing_candidate.job = str(final_job or "未知")
             existing_candidate.stage = "初筛"
             existing_candidate.exp = str(parsed_data.get("exp") or existing_candidate.exp)
@@ -730,7 +744,6 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
             db.refresh(existing_candidate)
             db_candidate = existing_candidate
             
-            # 2. 插入合并日志
             details_str = f"检测到手机号[{phone_val}]或邮箱[{email_val}]已存在。本次新投递职位【{final_job}】，已更新该候选人的主表属性及简历原件。"
             db_log = models.CandidateLog(
                 candidate_id=db_candidate.id,
@@ -741,7 +754,6 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
             db.add(db_log)
             db.commit()
         else:
-            # 2. 全新候选人创建
             db_candidate = models.Candidate(
                 name=str(parsed_data.get("name") or "未知"),
                 job=str(final_job or "未知"),
@@ -761,7 +773,6 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
             db.commit()
             db.refresh(db_candidate)
             
-            # 3. 记录日志
             db_log = models.CandidateLog(
                 candidate_id=db_candidate.id,
                 operator=operator_name,
@@ -770,7 +781,6 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
             db.add(db_log)
             db.commit()
 
-        # 无论新旧，均插入一笔投递历史 JobApplication 记录
         db_app = models.JobApplication(
             candidate_id=db_candidate.id,
             job_title=str(final_job or "未知"),
@@ -780,7 +790,6 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
         db.add(db_app)
         db.commit()
 
-        # 如果是求职者前台自主投递，则在后端生成 SystemTask 待办任务通知 HR
         if operator == "Candidate (Self-Submitted)":
             task = models.SystemTask(
                 title=f"新投递：{db_candidate.name} 自主投递了 {db_candidate.job}",
@@ -797,6 +806,14 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
     except Exception as e:
         print(f"Server Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/parse-resume", response_model=schemas.Candidate)
+async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), operator: str = Form("系统"), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return await _process_resume_upload(file=file, job_title=job_title, operator=operator, db=db, current_user=current_user)
+
+@app.post("/api/public/submit-resume", response_model=schemas.Candidate)
+async def submit_public_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), db: Session = Depends(get_db)):
+    return await _process_resume_upload(file=file, job_title=job_title, operator="Candidate (Self-Submitted)", db=db, current_user=None)
 
 @app.patch("/api/candidates/{candidate_id}", response_model=schemas.Candidate)
 def update_candidate_stage(candidate_id: int, candidate_update: schemas.CandidateUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -1293,20 +1310,13 @@ def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback
 
 @app.get("/api/workbench/dashboard", response_model=schemas.DashboardSummary)
 def get_dashboard_data(
-    role: str = None, 
-    name: str = None, 
     db: Session = Depends(get_db), 
-    current_user: models.User = Depends(get_current_user_optional)
+    current_user: models.User = Depends(get_current_user)
 ):
     try:
-        if current_user:
-            role = current_user.role
-            name = current_user.name
-            email = current_user.email
-        else:
-            role = role or "SuperAdmin"
-            name = name or "系统管理员"
-            email = ""
+        role = current_user.role or "SuperAdmin"
+        name = current_user.name or "系统管理员"
+        email = current_user.email or ""
 
         from datetime import datetime, timedelta
         
