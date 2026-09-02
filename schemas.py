@@ -330,26 +330,29 @@ class OfferApprovalInstanceCreate(BaseModel):
     offer_details: Optional[OfferDetailsSchema] = None
 
 class OfferApprovalStepData(BaseModel):
-    label: str
-    approver_email: str
-    status: str = "pending"
+    label: Optional[str] = ""
+    approver_email: Optional[str] = ""
+    status: Optional[str] = "pending"
     comment: Optional[str] = ""
     action_time: Optional[str] = ""
 
+    class Config:
+        from_attributes = True
+
 class OfferApprovalInstanceResponse(BaseModel):
     id: int
-    candidate_id: int
-    candidate_name: str
-    job_title: str
-    salary: str
-    job_level: str
-    department: str
-    current_step_index: int
-    status: str
-    creator_email: str
-    steps_data: list[OfferApprovalStepData]
-    offer_details: Optional[OfferDetailsSchema] = None
-    created_at: datetime
+    candidate_id: Optional[int] = None
+    candidate_name: Optional[str] = ""
+    job_title: Optional[str] = ""
+    salary: Optional[str] = ""
+    job_level: Optional[str] = ""
+    department: Optional[str] = ""
+    current_step_index: Optional[int] = 0
+    status: Optional[str] = "pending"
+    creator_email: Optional[str] = ""
+    steps_data: Optional[list[dict]] = []
+    offer_details: Optional[dict] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

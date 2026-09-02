@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.71
+- **当前版本**: Newton-(牛顿)-v1.22.72
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.72**: P1深度修复：Offer字段配置422与审批列表500异常根治 (2026-09-02 09:55:37)
 - **v1.22.71**: P1路由修复：解决Offer字段配置接口与动态ID路由冲突422 (2026-09-01 13:55:12)
 - **v1.22.70**: P0安全治理：未登录敏感数据访问阻断与全栈鉴权防越权 (2026-09-01 10:28:52)
 - **v1.22.69**: 上线登录页打开即静默预热与平滑自愈重试引擎 (2026-08-17 15:22:19)
@@ -241,3 +242,4 @@
 - [2026-08-17 15:22:19] 在login.html中上线了页面打开瞬间静默预热探针(Pre-warming Probe)与多轮平滑自愈重试引擎；彻底排查并消除了过去因为云端冷启动建立连接稍慢导致首次点击必报错弹红字、用户被迫手动点第二次才进系统的虚假提示痛点，实现首次点击一次性秒进系统
 - [2026-09-01 10:28:52] 在main.py与app.js中完成了P0级安全加固：将候选人列表(/api/candidates)、详情(/api/candidates/{id})、内部简历解析(/api/parse-resume)、工作台看板(/api/workbench/dashboard)及职位管理等所有私有业务端点全面强制升级为get_current_user鉴权，未登录坚决返回401；在候选人详情接口中植入了RBAC防水平越权校验(面试官/用人经理越权直接返回403)；收敛公开端点并独立构建/api/public/submit-resume求职者投递接口，全面通过了安全断言测试
 - [2026-09-01 13:55:12] 在main.py中重新编排了FastAPI审批流路由注册顺序：将静态配置路由/api/approvals/offer-fields-config提升至动态路由/api/approvals/{id}之前，彻底排除了FastAPI将offer-fields-config字符串误解析为int ID导致422的缺陷，并通过了路由回归测试
+- [2026-09-02 09:55:37] 彻底定位并根治了审批流系列缺陷：1. 在database.py中上线auto_migrate_columns自动无损字段迁移引擎，解决了生产数据库因缺少offer_details列导致pending/my-launches查询500崩溃的根本原因；2. 在schemas.py中升级OfferApprovalInstanceResponse为高弹性容错模型，支持异构JSON字典透传；3. 在main.py中为动态路由增加{id:int}强类型转换器并提升offer-fields-config静态路由，彻底杜绝422与500异常

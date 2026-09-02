@@ -1791,35 +1791,52 @@ def save_offer_fields_config(payload: list[dict], current_user: models.User = De
 
 @app.get("/api/approvals/pending", response_model=list[schemas.OfferApprovalInstanceResponse])
 def get_pending_approvals(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    instances = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.status == "pending").all()
-    pending_list = []
-    for inst in instances:
-        steps = inst.steps_data or []
-        if 0 <= inst.current_step_index < len(steps):
-            current_step = steps[inst.current_step_index]
-            if current_step.get("approver_email") == current_user.email:
-                pending_list.append(inst)
-    return pending_list
+    try:
+        instances = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.status == "pending").all()
+        pending_list = []
+        for inst in instances:
+            steps = inst.steps_data
+            if isinstance(steps, str):
+                try:
+                    steps = json.loads(steps)
+                except Exception:
+                    steps = []
+            elif not isinstance(steps, list):
+                steps = []
+
+            step_idx = inst.current_step_index or 0
+            if 0 <= step_idx < len(steps):
+                current_step = steps[step_idx]
+                if isinstance(current_step, dict) and current_step.get("approver_email") == current_user.email:
+                    pending_list.append(inst)
+        return pending_list
+    except Exception as e:
+        print(f"Error in get_pending_approvals: {e}")
+        return []
 
 @app.get("/api/approvals/my-launches", response_model=list[schemas.OfferApprovalInstanceResponse])
 def get_my_launches(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.creator_email == current_user.email).all()
+    try:
+        return db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.creator_email == current_user.email).all()
+    except Exception as e:
+        print(f"Error in get_my_launches: {e}")
+        return []
 
-@app.get("/api/approvals/candidate/{candidate_id}", response_model=schemas.OfferApprovalInstanceResponse | None)
+@app.get("/api/approvals/candidate/{candidate_id:int}", response_model=Optional[schemas.OfferApprovalInstanceResponse])
 def get_candidate_approval(candidate_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     instance = db.query(models.OfferApprovalInstance).filter(
         models.OfferApprovalInstance.candidate_id == candidate_id
     ).order_by(models.OfferApprovalInstance.id.desc()).first()
     return instance
 
-@app.get("/api/approvals/{id}", response_model=schemas.OfferApprovalInstanceResponse)
+@app.get("/api/approvals/{id:int}", response_model=schemas.OfferApprovalInstanceResponse)
 def get_approval_detail(id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     inst = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.id == id).first()
     if not inst:
         raise HTTPException(status_code=404, detail="Instance not found")
     return inst
 
-@app.post("/api/approvals/{id}/action", response_model=schemas.OfferApprovalInstanceResponse)
+@app.post("/api/approvals/{id:int}/action", response_model=schemas.OfferApprovalInstanceResponse)
 def action_offer_approval(id: int, req: schemas.OfferApprovalActionRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     inst = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.id == id).first()
     if not inst:

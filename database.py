@@ -49,10 +49,27 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
-# 依赖项
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+def auto_migrate_columns():
+    """自动检测并补齐新版本迭代中增加的数据库字段 (支持 SQLite / MySQL)"""
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        # 1. 补齐 offer_approval_instances.offer_details 字段
+        try:
+            conn.execute(text("ALTER TABLE offer_approval_instances ADD COLUMN offer_details JSON"))
+            conn.commit()
+            print("Auto migration: added offer_details to offer_approval_instances")
+        except Exception:
+            pass
+
+# 立即执行一次自动平滑迁移
+try:
+    auto_migrate_columns()
+except Exception as e:
+    print(f"Warning: auto migration skipped: {e}")
