@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.73
+- **当前版本**: Newton-(牛顿)-v1.22.74
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.74**: P1修复：候选人详情页简历预览ReferenceError与兜底渲染 (2026-09-02 17:41:30)
 - **v1.22.73**: P1待审批接口500异常根治与全兼容序列化 (2026-09-02 16:59:51)
 - **v1.22.72**: P1深度修复：Offer字段配置422与审批列表500异常根治 (2026-09-02 09:55:37)
 - **v1.22.71**: P1路由修复：解决Offer字段配置接口与动态ID路由冲突422 (2026-09-01 13:55:12)
@@ -245,3 +246,4 @@
 - [2026-09-01 13:55:12] 在main.py中重新编排了FastAPI审批流路由注册顺序：将静态配置路由/api/approvals/offer-fields-config提升至动态路由/api/approvals/{id}之前，彻底排除了FastAPI将offer-fields-config字符串误解析为int ID导致422的缺陷，并通过了路由回归测试
 - [2026-09-02 09:55:37] 彻底定位并根治了审批流系列缺陷：1. 在database.py中上线auto_migrate_columns自动无损字段迁移引擎，解决了生产数据库因缺少offer_details列导致pending/my-launches查询500崩溃的根本原因；2. 在schemas.py中升级OfferApprovalInstanceResponse为高弹性容错模型，支持异构JSON字典透传；3. 在main.py中为动态路由增加{id:int}强类型转换器并提升offer-fields-config静态路由，彻底杜绝422与500异常
 - [2026-09-02 16:59:51] 在main.py中上线_format_approval_instance显式规范化字典转换引擎，并升级schemas.py中的OfferApprovalInstanceResponse模型；彻底排除了数据库NULL值、JSON字符串和脏数据引发的Pydantic序列化500异常，确保无实例返回[]，有实例精准按当前登录用户待审节点过滤返回200
+- [2026-09-02 17:41:30] 在candidate-detail.html中彻底清除了iframe DOM节点上的内联onload属性，彻底消灭了DOM解析期脚本未就绪报ReferenceError的缺陷；同时上线了loadPdfOrFallback主动探测与showFallbackResumeView高保真结构化简历兜底引擎，实现PDF存在时高清预览、缺失时无缝秒出结构化简历

@@ -865,8 +865,8 @@
                 <div id="tab-pane-0" class="tab-pane-content active">
                     <!-- 原始 PDF 沉浸视窗 (自适应充满容器，支持 404 自愈无缝降级高保真视图) -->
                     <div id="pdf-viewer-wrapper" style="height: 860px; border: 1px solid #e5e6eb; border-radius: 8px; overflow: auto; background: #ffffff; position:relative; box-shadow: 0 1px 4px rgba(0,0,0,0.02);">
-                        <div id="pdf-loading-fallback" style="padding:60px 40px; text-align:center; color:#86909c; font-size:13px; position:absolute; top:40%; left:50%; transform:translate(-50%, -50%);">正在加载候选人原始简历附件...</div>
-                        <iframe id="pdf-viewer" style="width:100%; height:100%; border:none; transition:transform 0.2s ease;" onload="handleIframeLoad(this)"></iframe>
+                        <div id="pdf-loading-fallback" style="padding:60px 40px; text-align:center; color:#86909c; font-size:13px; position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); display:none;">正在加载候选人原始简历附件...</div>
+                        <iframe id="pdf-viewer" style="width:100%; height:100%; border:none; transition:transform 0.2s ease; display:none;"></iframe>
                         <!-- 404 文件缺失自愈高保真结构化简历卡片 -->
                         <div id="fallback-resume-card" style="display:none; width:100%; height:100%; overflow-y:auto;"></div>
                     </div>
@@ -1164,7 +1164,7 @@
         }
 
         // 智能捕获与 404 自愈无缝降级高保真结构化简历视图
-        function handleIframeLoad(iframe) {
+        window.handleIframeLoad = function(iframe) {
             const fallbackLoading = document.getElementById('pdf-loading-fallback');
             if (fallbackLoading) fallbackLoading.style.display = 'none';
 
@@ -1172,18 +1172,63 @@
                 const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
                 const text = doc && doc.body ? doc.body.innerText : '';
                 if (text.includes('Not Found') || text.includes('detail') || text.includes('404')) {
-                    // 如果被 FastAPI StaticFiles 返回了 404 JSON，立刻无缝平滑自愈切换为高保真简历视图
-                    showFallbackResumeView();
+                    showFallbackResumeView(currentCandidate);
                 } else {
                     iframe.style.display = 'block';
                     const fallbackCard = document.getElementById('fallback-resume-card');
                     if (fallbackCard) fallbackCard.style.display = 'none';
                 }
             } catch(e) {
-                // 如果遭遇跨域规则拦截，保持默认 iframe 展现
+                // 跨域或加载完成，保持 iframe 展现
                 iframe.style.display = 'block';
                 const fallbackCard = document.getElementById('fallback-resume-card');
                 if (fallbackCard) fallbackCard.style.display = 'none';
+            }
+        };
+
+        // 统一 PDF 存在性主动检测、404 fallback 与结构化简历兜底渲染
+        async function loadPdfOrFallback(candidate) {
+            const iframe = document.getElementById('pdf-viewer');
+            const fallbackLoading = document.getElementById('pdf-loading-fallback');
+            const fallbackCard = document.getElementById('fallback-resume-card');
+
+            if (!candidate || !candidate.pdf_path || !candidate.pdf_path.trim()) {
+                if (fallbackLoading) fallbackLoading.style.display = 'none';
+                showFallbackResumeView(candidate);
+                return;
+            }
+
+            const rawPdfUrl = candidate.pdf_path.split('#')[0];
+            try {
+                // 探测 PDF 是否真实存在
+                const probe = await fetch(rawPdfUrl, { method: 'HEAD' });
+                if (probe.ok) {
+                    let pdfUrl = rawPdfUrl;
+                    if (pdfUrl.includes('.pdf') && !pdfUrl.includes('#')) {
+                        pdfUrl += '#toolbar=0&navpanes=0&view=FitH,top&zoom=100';
+                    }
+                    if (fallbackLoading) fallbackLoading.style.display = 'none';
+                    if (fallbackCard) fallbackCard.style.display = 'none';
+                    if (iframe) {
+                        iframe.style.display = 'block';
+                        iframe.onload = function() { window.handleIframeLoad(this); };
+                        iframe.src = pdfUrl;
+                    }
+                    setTimeout(() => applyPdfZoom(100), 100);
+                } else {
+                    if (fallbackLoading) fallbackLoading.style.display = 'none';
+                    showFallbackResumeView(candidate);
+                }
+            } catch (err) {
+                // 若 HEAD 受限则尝试直接设置并监听
+                if (fallbackLoading) fallbackLoading.style.display = 'none';
+                if (iframe) {
+                    iframe.onload = function() { window.handleIframeLoad(this); };
+                    iframe.src = rawPdfUrl + '#toolbar=0&navpanes=0&view=FitH,top&zoom=100';
+                    iframe.style.display = 'block';
+                } else {
+                    showFallbackResumeView(candidate);
+                }
             }
         }
 
@@ -1521,22 +1566,8 @@
                 document.getElementById('ai-skills').innerHTML = '<span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">财务分析与精细化管理</span><span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">跨国多税区税务筹划</span>';
             }
 
-            if (candidate.pdf_path) {
-                let pdfUrl = candidate.pdf_path;
-                if (pdfUrl.includes('.pdf') && !pdfUrl.includes('#')) {
-                    pdfUrl += '#toolbar=0&navpanes=0&view=FitH,top&zoom=100';
-                }
-                const iframe = document.getElementById('pdf-viewer');
-                if (iframe) {
-                    iframe.style.display = 'block';
-                    iframe.src = pdfUrl;
-                }
-                setTimeout(() => {
-                    applyPdfZoom(100);
-                }, 150);
-            } else {
-                showFallbackResumeView(candidate);
-            }
+            // 统一调用健壮的 PDF 主动探测与结构化简历兜底引擎
+            loadPdfOrFallback(candidate);
 
             if (candidate.history && candidate.history.length > 0) {
                 document.getElementById('timeline-logs').innerHTML = candidate.history.map(h => `
