@@ -446,6 +446,13 @@ def get_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), cur
 
 @app.post("/api/jobs", response_model=schemas.Job)
 def create_job(job: schemas.JobCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    # 职位描述与任职要求校验
+    desc = (job.description or "").strip()
+    import re
+    plain_text = re.sub(r'<[^>]+>', '', desc).strip()
+    if not plain_text or len(plain_text) < 15 or plain_text in ['asd', 'test', '123', '1']:
+        raise HTTPException(status_code=400, detail="职位描述与任职要求为必填项，且不能少于15个有效字符，请提供完整的岗位职责与要求")
+
     db_job = models.Job(**job.model_dump())
     db.add(db_job)
     db.commit()
