@@ -1789,26 +1789,63 @@ def save_offer_fields_config(payload: list[dict], current_user: models.User = De
     offer_fields_config_db = payload
     return {"status": "ok", "msg": "Offer 详情字段填报配置保存成功", "config": offer_fields_config_db}
 
+def _format_approval_instance(inst):
+    if not inst:
+        return None
+    # 安全解析 steps_data
+    steps = inst.steps_data
+    if isinstance(steps, str):
+        try:
+            steps = json.loads(steps)
+        except Exception:
+            steps = []
+    elif not isinstance(steps, list):
+        steps = []
+
+    # 安全解析 offer_details
+    details = inst.offer_details
+    if isinstance(details, str):
+        try:
+            details = json.loads(details)
+        except Exception:
+            details = {}
+    elif not isinstance(details, dict):
+        details = {}
+
+    return {
+        "id": inst.id,
+        "candidate_id": inst.candidate_id,
+        "candidate_name": inst.candidate_name or "",
+        "job_title": inst.job_title or "",
+        "salary": inst.salary or "",
+        "job_level": inst.job_level or "",
+        "department": inst.department or "",
+        "current_step_index": inst.current_step_index if inst.current_step_index is not None else 0,
+        "status": inst.status or "pending",
+        "creator_email": inst.creator_email or "",
+        "steps_data": steps,
+        "offer_details": details,
+        "created_at": inst.created_at
+    }
+
 @app.get("/api/approvals/pending", response_model=list[schemas.OfferApprovalInstanceResponse])
 def get_pending_approvals(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     try:
         instances = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.status == "pending").all()
+        if not instances:
+            return []
+            
         pending_list = []
+        user_email = (current_user.email or "").strip().lower()
         for inst in instances:
-            steps = inst.steps_data
-            if isinstance(steps, str):
-                try:
-                    steps = json.loads(steps)
-                except Exception:
-                    steps = []
-            elif not isinstance(steps, list):
-                steps = []
-
-            step_idx = inst.current_step_index or 0
+            formatted = _format_approval_instance(inst)
+            steps = formatted["steps_data"]
+            step_idx = formatted["current_step_index"]
             if 0 <= step_idx < len(steps):
                 current_step = steps[step_idx]
-                if isinstance(current_step, dict) and current_step.get("approver_email") == current_user.email:
-                    pending_list.append(inst)
+                step_email = (current_step.get("approver_email") or "").strip().lower() if isinstance(current_step, dict) else ""
+                if step_email and step_email == user_email:
+                    pending_list.append(formatted)
         return pending_list
     except Exception as e:
         print(f"Error in get_pending_approvals: {e}")
@@ -1817,7 +1854,9 @@ def get_pending_approvals(db: Session = Depends(get_db), current_user: models.Us
 @app.get("/api/approvals/my-launches", response_model=list[schemas.OfferApprovalInstanceResponse])
 def get_my_launches(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     try:
-        return db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.creator_email == current_user.email).all()
+        user_email = (current_user.email or "").strip().lower()
+        instances = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.creator_email == user_email).all()
+        return [_format_approval_instance(inst) for inst in instances]
     except Exception as e:
         print(f"Error in get_my_launches: {e}")
         return []
@@ -1827,14 +1866,14 @@ def get_candidate_approval(candidate_id: int, db: Session = Depends(get_db), cur
     instance = db.query(models.OfferApprovalInstance).filter(
         models.OfferApprovalInstance.candidate_id == candidate_id
     ).order_by(models.OfferApprovalInstance.id.desc()).first()
-    return instance
+    return _format_approval_instance(instance)
 
 @app.get("/api/approvals/{id:int}", response_model=schemas.OfferApprovalInstanceResponse)
 def get_approval_detail(id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     inst = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.id == id).first()
     if not inst:
         raise HTTPException(status_code=404, detail="Instance not found")
-    return inst
+    return _format_approval_instance(inst)
 
 @app.post("/api/approvals/{id:int}/action", response_model=schemas.OfferApprovalInstanceResponse)
 def action_offer_approval(id: int, req: schemas.OfferApprovalActionRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

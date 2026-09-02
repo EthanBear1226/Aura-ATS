@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Any, Union
 from datetime import datetime
 
 class CandidateBase(BaseModel):
@@ -350,8 +350,8 @@ class OfferApprovalInstanceResponse(BaseModel):
     current_step_index: Optional[int] = 0
     status: Optional[str] = "pending"
     creator_email: Optional[str] = ""
-    steps_data: Optional[list[dict]] = []
-    offer_details: Optional[dict] = None
+    steps_data: Optional[Any] = []
+    offer_details: Optional[Any] = {}
     created_at: Optional[datetime] = None
 
     class Config:
