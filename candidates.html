@@ -16,10 +16,10 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
-        /* 顶级 Moka 风格 Header 工具栏 */
+        /* 顶级 Moka 风格 Header 工具栏 (精致 SaaS 规范) */
         .moka-top-header {
             background: #ffffff;
-            height: 56px;
+            height: 64px;
             border-bottom: 1px solid #e5e6eb;
             padding: 0 24px;
             display: flex;
@@ -28,28 +28,33 @@
             position: sticky;
             top: 0;
             z-index: 90;
+            box-sizing: border-box;
         }
 
         .moka-header-title {
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 17px;
+            font-weight: 600;
             color: #1f2329;
+            letter-spacing: -0.2px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
+            flex-shrink: 0;
         }
 
         .moka-search-input-box {
             position: relative;
-            width: 320px;
+            width: 480px;
+            max-width: 520px;
+            min-width: 380px;
         }
         .moka-search-input-box input {
             width: 100%;
-            height: 34px;
+            height: 36px;
             background: #f2f3f5;
             border: 1px solid transparent;
-            border-radius: 17px;
-            padding: 0 36px 0 16px;
+            border-radius: 6px;
+            padding: 0 38px 0 14px;
             font-size: 13px;
             color: #1f2329;
             outline: none;
@@ -67,19 +72,21 @@
             top: 50%;
             transform: translateY(-50%);
             color: #86909c;
+            pointer-events: none;
         }
 
         .moka-top-actions {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-shrink: 0;
         }
 
         .btn-moka-blue {
             background: #165dff;
             color: #ffffff;
             border: none;
-            height: 34px;
+            height: 36px;
             padding: 0 16px;
             border-radius: 6px;
             font-size: 13.5px;
@@ -89,6 +96,7 @@
             align-items: center;
             gap: 6px;
             transition: background 0.2s;
+            box-sizing: border-box;
         }
         .btn-moka-blue:hover {
             background: #0e42d2;
@@ -98,15 +106,16 @@
             background: #e8f3ff;
             color: #165dff;
             border: none;
-            height: 34px;
+            height: 36px;
             padding: 0 14px;
-            border-radius: 17px;
+            border-radius: 18px;
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 6px;
+            box-sizing: border-box;
         }
 
         .moka-icon-btn {
@@ -230,13 +239,13 @@
             align-items: flex-start;
         }
 
-        /* 左侧【招聘中的职位】二级侧边栏 */
+        /* 左侧【招聘中的职位】二级侧边栏 (高密度秩序感) */
         .moka-job-sidebar {
             width: 250px;
             background: #ffffff;
             border: 1px solid #e5e6eb;
             border-radius: 8px;
-            padding: 16px;
+            padding: 14px;
             flex-shrink: 0;
             box-shadow: 0 1px 4px rgba(0,0,0,0.02);
             box-sizing: border-box;
@@ -246,18 +255,22 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 12px;
-            font-size: 14px;
-            font-weight: 700;
+            font-size: 13.5px;
+            font-weight: 600;
             color: #1f2329;
         }
         .moka-job-sidebar-header .dropdown-toggle {
             font-size: 12px;
-            color: #4e5969;
+            color: #86909c;
             font-weight: normal;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 2px;
+            transition: color 0.2s;
+        }
+        .moka-job-sidebar-header .dropdown-toggle:hover {
+            color: #165dff;
         }
         .moka-job-search-box {
             position: relative;
@@ -273,6 +286,11 @@
             font-size: 12.5px;
             outline: none;
             box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .moka-job-search-box input:focus {
+            background: #ffffff;
+            border-color: #165dff;
         }
         .moka-job-search-box .search-icon {
             position: absolute;
@@ -292,12 +310,13 @@
         .moka-job-tree-list {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
             max-height: 540px;
             overflow-y: auto;
         }
         .moka-job-tree-item {
-            padding: 8px 12px;
+            height: 36px;
+            padding: 0 10px;
             border-radius: 6px;
             font-size: 13px;
             color: #1f2329;
@@ -306,6 +325,7 @@
             align-items: center;
             justify-content: space-between;
             transition: all 0.2s;
+            box-sizing: border-box;
         }
         .moka-job-tree-item:hover {
             background: #f2f3f5;
@@ -319,7 +339,7 @@
             font-size: 11px;
             color: #86909c;
             background: #f2f3f5;
-            padding: 1px 6px;
+            padding: 2px 7px;
             border-radius: 10px;
         }
         .moka-job-tree-item.active .count-badge {
@@ -336,32 +356,39 @@
             gap: 12px;
         }
 
-        /* 右侧主列表控制与操作 Toolbar */
+        /* 右侧主列表控制与操作 Toolbar (紧凑专业 56px) */
         .moka-list-control-toolbar {
             background: #ffffff;
             border: 1px solid #e5e6eb;
             border-radius: 8px;
-            padding: 10px 18px;
+            height: 56px;
+            padding: 0 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             font-size: 13px;
             color: #4e5969;
+            box-sizing: border-box;
         }
         .moka-control-left {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
         }
         .moka-select-dropdown {
             background: #ffffff;
             border: 1px solid #e5e6eb;
             border-radius: 6px;
-            padding: 5px 12px;
+            height: 32px;
+            padding: 0 10px;
             font-size: 12.5px;
             color: #1f2329;
             outline: none;
             cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .moka-select-dropdown:hover {
+            border-color: #165dff;
         }
         .moka-control-right {
             display: flex;
@@ -371,17 +398,23 @@
             color: #86909c;
         }
 
-        /* Moka 经典三行候选人精美卡片 (Candidate Card Item) */
+        /* 候选人卡片 3 列网格排版 (稳定卡片高约 136-144px，按钮绝对对齐) */
         .moka-cand-card {
             background: #ffffff;
             border: 1px solid #edf0f4;
             border-left: 3px solid transparent;
             border-radius: 8px;
-            padding: 16px 22px;
+            padding: 16px 20px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.02);
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
             position: relative;
+            display: grid;
+            grid-template-columns: 260px 1fr 340px;
+            align-items: center;
+            gap: 20px;
+            min-height: 136px;
+            box-sizing: border-box;
         }
         .moka-cand-card:hover {
             border-color: #e5e6eb;
@@ -390,105 +423,100 @@
             transform: translateY(-1px);
         }
 
-        /* 第一行: 投递元数据与状态 */
-        .cand-line-1 {
+        /* 左列: 复选框 + 投递职位/渠道 + 姓名与基础属性 */
+        .cand-col-left {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+        .cand-col-left .meta-top {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             font-size: 12px;
             color: #86909c;
-            margin-bottom: 8px;
         }
-        .cand-line-1 .cand-checkbox {
+        .cand-col-left .meta-top .cand-checkbox {
             cursor: pointer;
+            margin: 0;
         }
-        .cand-line-1 .apply-date {
+        .cand-col-left .meta-top .apply-date {
             color: #86909c;
         }
-        .cand-line-1 .job-target {
-            color: #165dff;
-            font-weight: 600;
-        }
-        .cand-line-1 .channel-tag {
+        .cand-col-left .meta-top .channel-tag {
             color: #86909c;
             background: #f7f8fa;
             padding: 1px 6px;
             border-radius: 4px;
+            font-size: 11px;
         }
-
-        /* 第二行: 候选人核心信息与右侧操作 */
-        .cand-line-2 {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        .cand-line-2 .user-info {
+        .cand-col-left .name-row {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .cand-line-2 .status-dot {
+        .cand-col-left .status-dot {
             width: 7px;
             height: 7px;
             background: #165dff;
             border-radius: 50%;
-            display: inline-block;
+            flex-shrink: 0;
         }
-        .cand-line-2 .cand-name {
+        .cand-col-left .cand-name {
             font-size: 16px;
             font-weight: 700;
             color: #1f2329;
+            letter-spacing: -0.2px;
         }
-        .cand-line-2 .cand-meta-text {
-            font-size: 13px;
-            color: #86909c;
-        }
-        .cand-line-2 .action-status-box {
-            display: flex;
-            align-items: center;
-            gap: 16px;
+        .cand-col-left .cand-meta-text {
             font-size: 12.5px;
             color: #86909c;
         }
-        .recommend-status-badge {
-            border: 1px solid #f2f3f5;
-            background: #fafafa;
-            color: #86909c;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
+        .cand-col-left .target-job {
+            font-size: 13px;
+            color: #165dff;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* 第三行: 教育经历与 Pill 标签 */
-        .cand-line-3 {
+        /* 中列: 学校、专业、学历、时间与莫兰迪标签 */
+        .cand-col-mid {
             display: flex;
-            align-items: center;
-            gap: 16px;
-            font-size: 12.5px;
-            color: #4e5969;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
         }
-        .cand-line-3 .edu-text {
+        .cand-col-mid .edu-row {
             display: flex;
             align-items: center;
             gap: 6px;
+            font-size: 13px;
             color: #4e5969;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .cand-line-3 .pill-tags {
+        .cand-col-mid .edu-row svg {
+            flex-shrink: 0;
+            color: #86909c;
+        }
+        .cand-col-mid .pill-tags {
             display: flex;
             gap: 6px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         /* 高级莫兰迪色系 Pill 标签 */
         .moka-pill-tag {
             font-size: 11.5px;
-            padding: 1px 8px;
+            padding: 2px 8px;
             border-radius: 4px;
             font-weight: 500;
+            line-height: 1.3;
         }
         .moka-pill-tag.tag-985 {
             background: #f9f0ff;
@@ -511,22 +539,53 @@
             border: 1px solid #d9d9d9;
         }
 
-        /* 优雅轻量化的操作按钮组 */
+        /* 右列: 所有者、推荐状态与横向绝对对齐按钮组 */
+        .cand-col-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .cand-col-right .status-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12.5px;
+            color: #86909c;
+        }
+        .cand-col-right .recommend-status-badge {
+            border: 1px solid #f2f3f5;
+            background: #fafafa;
+            color: #86909c;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 优雅轻量化的操作按钮组 (固定高度与对齐) */
         .cand-card-actions {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-left: auto;
         }
         .btn-action-ghost {
             background: #ffffff;
             color: #4e5969;
             border: 1px solid #e5e6eb;
-            padding: 4px 12px;
+            height: 28px;
+            padding: 0 10px;
             border-radius: 6px;
             font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .btn-action-ghost:hover {
             border-color: #165dff;
@@ -537,12 +596,17 @@
             background: #165dff;
             color: #ffffff;
             border: none;
-            padding: 4px 14px;
+            height: 28px;
+            padding: 0 12px;
             border-radius: 6px;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .btn-action-primary:hover {
             background: #0e42d2;
@@ -551,11 +615,16 @@
             background: #ffffff;
             color: #86909c;
             border: 1px solid transparent;
-            padding: 4px 10px;
+            height: 28px;
+            padding: 0 8px;
             border-radius: 6px;
             font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .btn-action-danger:hover {
             color: #f53f3f;
@@ -638,9 +707,10 @@
                         <!-- JS 动态渲染职位树节点 -->
                     </div>
 
-                    <!-- 底部折叠收起按钮 -->
-                    <div style="margin-top:16px; border-top:1px solid #f2f3f5; padding-top:10px; text-align:center; color:#86909c; font-size:12px; cursor:pointer;" onclick="showToast('折叠职位侧边栏', 'info')">
-                        《 折叠侧边栏
+                    <!-- 底部折叠收起按钮 (弱化轻量操作) -->
+                    <div style="margin-top:14px; padding-top:8px; border-top:1px solid #f2f3f5; text-align:center; color:#86909c; font-size:11.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; transition:color 0.2s;" onmouseover="this.style.color='#165dff'" onmouseout="this.style.color='#86909c'" onclick="showToast('折叠职位侧边栏', 'info')">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        <span>折叠侧边栏</span>
                     </div>
                 </div>
 
@@ -1058,45 +1128,45 @@
 
                 html += `
                     <div class="moka-cand-card" onclick="viewDetail('${c.id}')">
-                        <!-- 第一行: 元数据与申请渠道 -->
-                        <div class="cand-line-1">
-                            <input type="checkbox" class="cand-checkbox" value="${c.id}" onclick="event.stopPropagation();" onchange="updateBulkActions()">
-                            <span class="apply-date">${dateStr} 申请</span>
-                            <span class="job-target">${c.job || '高阶岗位'}</span>
-                            <span class="channel-tag">Boss直聘 (主动搜索)</span>
-                        </div>
-
-                        <!-- 第二行: 姓名、性别、所有人与推荐状态 -->
-                        <div class="cand-line-2">
-                            <div class="user-info">
+                        <!-- 左列: 复选框 + 投递职位/渠道 + 姓名与基础属性 -->
+                        <div class="cand-col-left">
+                            <div class="meta-top">
+                                <input type="checkbox" class="cand-checkbox" value="${c.id}" onclick="event.stopPropagation();" onchange="updateBulkActions()">
+                                <span class="apply-date">${dateStr} 申请</span>
+                                <span class="channel-tag">Boss直聘</span>
+                            </div>
+                            <div class="name-row">
                                 <span class="status-dot"></span>
                                 <span class="cand-name">${c.name}</span>
-                                <span class="cand-meta-text">${profile.gender} | ${c.age || 23}</span>
+                                <span class="cand-meta-text">${profile.gender} | ${c.age || 23}岁</span>
                             </div>
-
-                            <div class="action-status-box">
-                                <span>候选人所有者: <strong style="color:#1f2329;">-</strong></span>
-                                <span class="recommend-status-badge">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                                    未推荐
-                                </span>
-                                ${actionBtnHtml}
-                            </div>
+                            <div class="target-job">${c.job || '高阶岗位'}</div>
                         </div>
 
-                        <!-- 第三行: 教育背景与莫兰迪 Pill 标签 (100% 真实抽取) -->
-                        <div class="cand-line-3">
-                            <div class="edu-text">
+                        <!-- 中列: 学校、专业、学历、时间与莫兰迪标签 -->
+                        <div class="cand-col-mid">
+                            <div class="edu-row">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
-                                <span><strong>${profile.school}</strong></span> ·
+                                <span><strong style="color:#1f2329;">${profile.school}</strong></span> ·
                                 <span>${profile.major}</span> ·
                                 <span>${profile.degree}</span> ·
                                 <span style="color:#86909c;">${profile.timeSpan}</span>
                             </div>
-
                             <div class="pill-tags">
                                 ${tagsHtml}
                             </div>
+                        </div>
+
+                        <!-- 右列: 所有者、推荐状态与横向绝对对齐按钮组 -->
+                        <div class="cand-col-right">
+                            <div class="status-top">
+                                <span>所有者: <strong style="color:#1f2329;">-</strong></span>
+                                <span class="recommend-status-badge">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                    未推荐
+                                </span>
+                            </div>
+                            ${actionBtnHtml}
                         </div>
                     </div>
                 `;

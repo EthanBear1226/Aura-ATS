@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.22.74
+- **当前版本**: Newton-(牛顿)-v1.22.75
 
 ## 📝 阶段概览
 > 当前状态：外网求职者自主投递免登录闭环与 Windows 开发环境迁移
 
 ## 📈 变更流 (Timeline)
+- **v1.22.75**: UI排版优化：候选人管理页SaaS工作台对齐与高密度网格重构 (2026-09-02 17:53:41)
 - **v1.22.74**: P1修复：候选人详情页简历预览ReferenceError与兜底渲染 (2026-09-02 17:41:30)
 - **v1.22.73**: P1待审批接口500异常根治与全兼容序列化 (2026-09-02 16:59:51)
 - **v1.22.72**: P1深度修复：Offer字段配置422与审批列表500异常根治 (2026-09-02 09:55:37)
@@ -247,3 +248,4 @@
 - [2026-09-02 09:55:37] 彻底定位并根治了审批流系列缺陷：1. 在database.py中上线auto_migrate_columns自动无损字段迁移引擎，解决了生产数据库因缺少offer_details列导致pending/my-launches查询500崩溃的根本原因；2. 在schemas.py中升级OfferApprovalInstanceResponse为高弹性容错模型，支持异构JSON字典透传；3. 在main.py中为动态路由增加{id:int}强类型转换器并提升offer-fields-config静态路由，彻底杜绝422与500异常
 - [2026-09-02 16:59:51] 在main.py中上线_format_approval_instance显式规范化字典转换引擎，并升级schemas.py中的OfferApprovalInstanceResponse模型；彻底排除了数据库NULL值、JSON字符串和脏数据引发的Pydantic序列化500异常，确保无实例返回[]，有实例精准按当前登录用户待审节点过滤返回200
 - [2026-09-02 17:41:30] 在candidate-detail.html中彻底清除了iframe DOM节点上的内联onload属性，彻底消灭了DOM解析期脚本未就绪报ReferenceError的缺陷；同时上线了loadPdfOrFallback主动探测与showFallbackResumeView高保真结构化简历兜底引擎，实现PDF存在时高清预览、缺失时无缝秒出结构化简历
+- [2026-09-02 17:53:41] 在不改变任何现有配色和业务逻辑的前提下，重构了candidates.html的排版与组件层级：1. 顶部Header高度收敛至64px，搜索框扩展为480px并与36px添加按钮及左侧标题垂直居中；2. 页面主体工具条高度统一为56px，批量操作靠左、视图排序靠右；3. 职位筛选侧边栏统一36px行高并弱化底部折叠；4. 候选人卡片重构为清晰的3列网格，确保右侧操作按钮组横向绝对对齐
