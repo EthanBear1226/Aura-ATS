@@ -82,6 +82,19 @@ class JobCreate(JobBase):
     pass
 
 class JobUpdate(BaseModel):
+    title: Optional[str] = None
+    department: Optional[str] = None
+    location: Optional[str] = None
+    hr_name: Optional[str] = None
+    interview_process: Optional[str] = None
+    description: Optional[str] = None
+    job_type: Optional[str] = None
+    category: Optional[str] = None
+    experience: Optional[str] = None
+    job_level: Optional[str] = None
+    headcount: Optional[int] = None
+    salary_range: Optional[str] = None
+    salary_months: Optional[int] = None
     status: Optional[str] = None
 
 class Job(JobBase):

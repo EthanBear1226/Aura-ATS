@@ -68,6 +68,14 @@ python main.py
 
 ---
 
+## 💼 职位管理与全字段在线编辑 (Job Management & Editing)
+系统支持 HR/管理员对招聘职位进行全生命周期管理与在线修改：
+1. **职位发布与编辑**：在职位卡片操作区点击“编辑”按钮（`add-job.html?job_id={id}&mode=edit`），自动回填 13 项核心字段并支持无感修改与保存。
+2. **JD 质量强校验与清洗**：支持一键套用标准规范 JD 模板，内置 HTML 富文本清洗与纯文本不少于 100 字强校验，避免脏数据流入。
+3. **实时全渠道同步**：职位信息更新后，公开求职投递页 (`/portal.html?job_id={id}`) 零缓存即刻同步展示最新岗位要求与薪酬待遇。
+
+---
+
 ## 🗺️ 项目演进历史与蓝图
 *   详细的日常开发决策与版本里程碑见：[Progress_Newton-(牛顿).md](file:///Users/caoyixiong/AI%20Project/Aura/Progress_Newton-%28%E7%89%9B%E9%A1%BF%29.md)。
 *   V2.6 -> V3.0 的生产化迁移蓝图见：[Aura_V2.6_至_V3.0_生产化演进蓝图.md](file:///Users/caoyixiong/AI%20Project/Aura/%E8%BF%9B%E5%BA%A6%E6%B1%87%E6%8A%A5/Aura_V2.6_%E8%87%B3_V3.0_%E7%94%9F%E4%BA%A7%E5%8C%96%E6%BC%94%E8%BF%9B%E8%93%9D%E5%9B%BE.md)。

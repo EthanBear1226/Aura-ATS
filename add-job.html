@@ -144,7 +144,7 @@
         <main class="main-content">
             <header class="header" id="header-container"></header>
             <div class="page-content" style="max-width: 800px; margin: 0 auto; padding-top: 40px;">
-                <h1 class="page-title" style="margin-bottom: 32px;">发布新职位</h1>
+                <h1 class="page-title" id="pageTitle" style="margin-bottom: 32px;">发布新职位</h1>
                 
                 <div class="card">
                     <form id="jobForm" class="auth-form" novalidate>
@@ -545,6 +545,9 @@
             }
         });
         
+        let isEditMode = false;
+        let editJobId = null;
+
         document.addEventListener("DOMContentLoaded", async () => {
             renderSidebar('jobs');
             renderHeader();
@@ -557,7 +560,7 @@
             // 初始化 Quill 文本编辑器
             quill = new Quill('#editor-container', {
                 theme: 'snow',
-                placeholder: '请输入职位描述和任职要求...',
+                placeholder: '请输入职位描述和任职要求（不少于100字）...',
                 modules: {
                     toolbar: [
                         [{ 'header': [1, 2, 3, false] }],
@@ -567,6 +570,22 @@
                     ]
                 }
             });
+
+            // 检查是否为编辑模式 (add-job.html?job_id={id}&mode=edit)
+            const urlParams = new URLSearchParams(window.location.search);
+            const jobId = urlParams.get('job_id');
+            const mode = urlParams.get('mode');
+            if (mode === 'edit' && jobId) {
+                isEditMode = true;
+                editJobId = jobId;
+                const pageTitle = document.getElementById('pageTitle');
+                if (pageTitle) pageTitle.innerText = "编辑职位";
+                const submitBtn = document.getElementById('submitBtn');
+                if (submitBtn) submitBtn.innerText = "保存修改";
+                document.title = "编辑职位 | Aura";
+
+                await loadJobForEdit(jobId);
+            }
             
             document.getElementById('jobForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -763,14 +782,23 @@
 
             // 验证职位介绍 (Quill Editor)
             const plainJd = quill.getText().trim();
-            if (!plainJd || plainJd.length < 15 || plainJd === 'asd') {
+            if (!plainJd || plainJd.length < 100 || plainJd === 'asd') {
                 isValid = false;
                 document.getElementById('editor-container').classList.add('has-error');
             }
 
+            // 验证招聘人数
+            const headcountVal = parseInt(document.getElementById('jobHeadcount').value, 10);
+            if (isNaN(headcountVal) || headcountVal < 1) {
+                isValid = false;
+                document.getElementById('jobHeadcount').classList.add('has-error');
+            }
+
             if (!isValid) {
-                if(window.showToast) showToast("请填写完整信息，职位描述不能少于15字", "error");
-                else alert("请填写完整信息，职位描述不能少于15字");
+                const toastMsg = (!plainJd || plainJd.length < 100) 
+                    ? `职位描述与任职要求不能少于100字（当前有效字数：${plainJd.length}字）` 
+                    : "请填写所有必填项并检查数据格式";
+                if(window.showToast) showToast(toastMsg, "error");
                 const firstError = document.querySelector('.has-error');
                 if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
@@ -778,7 +806,7 @@
 
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
-            btn.innerText = "发布中...";
+            btn.innerText = isEditMode ? "保存中..." : "发布中...";
 
             // 获取富文本内容，如果为空则是 <p><br></p>
             const descriptionHTML = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
@@ -799,48 +827,177 @@
                 location: document.getElementById('jobLocation').value,
                 hr_name: document.getElementById('jobHrName').value,
                 interview_process: document.getElementById('jobInterviewProcess').value,
-                status: "热招中",
-                
                 category: selectedJobCategory,
                 job_type: document.getElementById('jobType').value,
                 experience: document.getElementById('jobExperience').value,
                 job_level: document.getElementById('jobLevel').value,
-                headcount: parseInt(document.getElementById('jobHeadcount').value, 10),
+                headcount: headcountVal,
                 salary_range: salaryRange,
-                salary_months: parseInt(document.getElementById('jobSalaryMonths').value, 10),
+                salary_months: parseInt(document.getElementById('jobSalaryMonths').value, 10) || 12,
                 description: descriptionHTML
             };
 
+            if (!isEditMode) {
+                data.status = "热招中";
+            }
+
             try {
-                const response = await fetch('/api/jobs', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+                const url = isEditMode ? `/api/jobs/${editJobId}` : '/api/jobs';
+                const method = isEditMode ? 'PATCH' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
                     body: JSON.stringify(data)
                 });
                 
                 if (response.ok) {
-                    if(window.showToast) showToast("发布成功", "success");
+                    const successMsg = isEditMode ? "职位信息修改成功" : "职位发布成功";
+                    if(window.showToast) showToast(successMsg, "success");
                     setTimeout(() => {
                         window.location.href = 'jobs.html';
                     }, 1000);
                 } else {
-                    if(window.showToast) showToast("发布失败", "error");
+                    const err = await response.json().catch(() => ({}));
+                    const failMsg = err.detail || (isEditMode ? "修改失败，请重试" : "发布失败，请重试");
+                    if(window.showToast) showToast(failMsg, "error");
                     btn.disabled = false;
-                    btn.innerText = "确认发布";
+                    btn.innerText = isEditMode ? "保存修改" : "确认发布";
                 }
             } catch (error) {
-                console.error("Error creating job:", error);
-                if(window.showToast) showToast("发布异常", "error");
+                console.error("Error saving job:", error);
+                if(window.showToast) showToast("网络连接异常，请重试", "error");
                 btn.disabled = false;
-                btn.innerText = "确认发布";
+                btn.innerText = isEditMode ? "保存修改" : "确认发布";
+            }
+        }
+
+        // 回填职位数据（编辑模式）
+        async function loadJobForEdit(jobId) {
+            try {
+                const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+                const res = await fetch(`/api/jobs/${jobId}`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                if (!res.ok) {
+                    if (window.showToast) showToast("获取职位信息失败", "error");
+                    return;
+                }
+                const job = await res.json();
+                
+                // 1. 标题
+                if (job.title) document.getElementById('jobTitle').value = job.title;
+                
+                // 2. 部门（下拉树）
+                if (job.department) {
+                    selectTreeSelectNode(job.department);
+                }
+                
+                // 3. 地点
+                if (job.location) {
+                    selectCustomSelectOption('jobLocation', job.location);
+                }
+                
+                // 4. 类别（下拉树）
+                if (job.category) {
+                    selectCategorySelectNode(job.category);
+                }
+                
+                // 5. 职位性质
+                if (job.job_type) {
+                    setSegmentedValue('jobType', job.job_type);
+                }
+                
+                // 6. 工作经验
+                if (job.experience) {
+                    setSegmentedValue('jobExperience', job.experience);
+                }
+                
+                // 7. 职级
+                if (job.job_level) {
+                    setSegmentedValue('jobLevel', job.job_level);
+                }
+                
+                // 8. 招聘人数
+                if (job.headcount) {
+                    document.getElementById('jobHeadcount').value = job.headcount;
+                }
+                
+                // 9. 薪资拆解
+                if (job.salary_range) {
+                    const match = job.salary_range.match(/(\d+)k-(\d+)k/);
+                    if (match) {
+                        document.getElementById('jobSalaryMin').value = match[1];
+                        document.getElementById('jobSalaryMax').value = match[2];
+                    } else {
+                        const minMatch = job.salary_range.match(/(\d+)k/);
+                        if (minMatch) document.getElementById('jobSalaryMin').value = minMatch[1];
+                    }
+                }
+                if (job.salary_months) {
+                    document.getElementById('jobSalaryMonths').value = job.salary_months;
+                }
+                
+                // 10. 负责人
+                if (job.hr_name) {
+                    selectCustomSelectOption('jobHrName', job.hr_name);
+                }
+                
+                // 11. 面试流程
+                if (job.interview_process) {
+                    selectCustomSelectOption('jobInterviewProcess', job.interview_process);
+                }
+                
+                // 12. 职位描述
+                if (quill && job.description) {
+                    quill.root.innerHTML = job.description;
+                }
+            } catch (e) {
+                console.error("Failed to load job for edit", e);
+                if (window.showToast) showToast("加载职位数据异常", "error");
+            }
+        }
+
+        // 自定义 Select 选项设置辅助方法
+        function selectCustomSelectOption(selectId, value) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            select.value = value;
+            const wrapper = select.closest('.custom-select-wrapper');
+            if (wrapper) {
+                const trigger = wrapper.querySelector('.custom-select-trigger span');
+                if (trigger) {
+                    trigger.innerText = value;
+                    wrapper.querySelector('.custom-select-trigger').classList.remove('placeholder');
+                }
+            }
+        }
+
+        // Segmented Control 切换辅助方法
+        function setSegmentedValue(targetId, value) {
+            const input = document.getElementById(targetId);
+            if (input) input.value = value;
+            const control = document.querySelector(`.segmented-control[data-target="${targetId}"]`);
+            if (control) {
+                control.querySelectorAll('.segmented-item').forEach(item => {
+                    if (item.getAttribute('data-value') === value) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
             }
         }
 
         function insertStandardJdTemplate() {
             if (!quill) return;
-            const template = `<h3>🌟 关于团队与业务</h3><p>我们是核心技术研发团队，致力于构建下一代企业级智能化招聘管理系统 (ATS) 与人才大模型基础设施。团队技术氛围浓厚，鼓励创新与极客精神，提供广阔的业务成长空间与极具竞争力的薪酬回报。</p><h3>📋 岗位职责</h3><ul><li>负责企业级招聘工作台核心业务模块的设计、核心代码编写与架构持续演进；</li><li>深度参与大语言模型 (LLM) 在候选人履历深度解析、智能人岗匹配等前沿场景的落地应用；</li><li>主导复杂业务流转系统的性能优化与高可用治理，保障系统在高并发场景下的极致响应与数据安全；</li><li>与产品、算法、HR 业务专家深度协同，推进工程交付的高质量落地。</li></ul><h3>🎯 任职要求</h3><ul><li>本科及以上学历，计算机、软件工程或相关专业背景；</li><li>熟练掌握现代后端开发技术栈，具备扎实的计算机基础与算法功底；</li><li>熟悉关系型数据库及常用 NoSQL，具备优秀的 SQL 调优与架构设计能力；</li><li>具备强烈的责任心、优秀的沟通协作能力与自驱力。</li></ul><h3>🎁 福利待遇</h3><ul><li>全额六险一金 + 补充商业医疗保险；</li><li>标配 MacBook Pro + 4K 超清显示器；</li><li>弹性工作制，年度带薪年假，定期高品质体检，丰富节日礼品与下午茶。</li></ul><h3>📮 投递说明</h3><p>请直接在下方上传您的 PDF 格式简历附件，系统将在 0 秒内完成履历安全接收与智能解析，HR 团队将在 1-3 个工作日内给予明确反馈。</p>`;
+            const template = `<h3>关于团队与业务</h3><p>我们是核心技术研发团队，致力于构建下一代企业级智能化招聘管理系统 (ATS) 与人才大模型基础设施。团队技术氛围浓厚，鼓励创新与极客精神，提供广阔的业务成长空间与极具竞争力的薪酬回报。</p><h3>岗位职责</h3><ul><li>负责企业级招聘工作台核心业务模块的设计、核心代码编写与架构持续演进；</li><li>深度参与大语言模型 (LLM) 在候选人履历深度解析、智能人岗匹配等前沿场景的落地应用；</li><li>主导复杂业务流转系统的性能优化与高可用治理，保障系统在高并发场景下的极致响应与数据安全；</li><li>与产品、算法、HR 业务专家深度协同，推进工程交付的高质量落地。</li></ul><h3>任职要求</h3><ul><li>本科及以上学历，计算机、软件工程或相关专业背景；</li><li>熟练掌握现代后端开发技术栈，具备扎实的计算机基础与算法功底；</li><li>熟悉关系型数据库及常用 NoSQL，具备优秀的 SQL 调优与架构设计能力；</li><li>具备强烈的责任心、优秀的沟通协作能力与自驱力。</li></ul><h3>福利待遇</h3><ul><li>全额六险一金 + 补充商业医疗保险；</li><li>标配 MacBook Pro + 4K 超清显示器；</li><li>弹性工作制，年度带薪年假，定期高品质体检，丰富节日礼品与下午茶。</li></ul><h3>投递说明</h3><p>请直接在下方上传您的 PDF 格式简历附件，系统将自动完成简历接收与初步解析，HR 团队将在 1-3 个工作日内反馈。</p>`;
             quill.root.innerHTML = template;
-            if(window.showToast) showToast("已成功填入大厂标准规范 JD 模板", "success");
+            if(window.showToast) showToast("已成功填入标准规范 JD 模板", "success");
         }
     </script>
 

@@ -444,16 +444,30 @@ def get_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), cur
         result.append(job_dict)
     return result
 
-@app.post("/api/jobs", response_model=schemas.Job)
-def create_job(job: schemas.JobCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    # 职位描述与任职要求校验
-    desc = (job.description or "").strip()
+def clean_and_validate_jd(raw_desc: Optional[str]) -> str:
+    if not raw_desc:
+        raise HTTPException(status_code=400, detail="职位描述与任职要求为必填项，且纯文本内容不能少于100字")
+    desc = raw_desc.strip()
     import re
     plain_text = re.sub(r'<[^>]+>', '', desc).strip()
-    if not plain_text or len(plain_text) < 15 or plain_text in ['asd', 'test', '123', '1']:
-        raise HTTPException(status_code=400, detail="职位描述与任职要求为必填项，且不能少于15个有效字符，请提供完整的岗位职责与要求")
+    plain_text = re.sub(r'\s+', ' ', plain_text)
+    if len(plain_text) < 100:
+        raise HTTPException(status_code=400, detail=f"职位描述纯文本内容不能少于100字（当前有效字数：{len(plain_text)}字）")
+    # 基础富文本清洗：清理空p、空div、连续br
+    desc = re.sub(r'<p>\s*(?:<br\s*/?>|&nbsp;|\s)*\s*</p>', '', desc)
+    desc = re.sub(r'<div>\s*(?:<br\s*/?>|&nbsp;|\s)*\s*</div>', '', desc)
+    desc = re.sub(r'(?:<br\s*/?>\s*){3,}', '<br><br>', desc)
+    return desc
 
-    db_job = models.Job(**job.model_dump())
+@app.post("/api/jobs", response_model=schemas.Job)
+def create_job(job: schemas.JobCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role == "Interviewer":
+        raise HTTPException(status_code=403, detail="无权创建职位，仅限管理员/招聘团队执行")
+
+    job_dict = job.model_dump()
+    job_dict["description"] = clean_and_validate_jd(job.description)
+
+    db_job = models.Job(**job_dict)
     db.add(db_job)
     db.commit()
     db.refresh(db_job)
@@ -474,12 +488,24 @@ def get_public_job(job_id: int, db: Session = Depends(get_db)):
     return db_job
 
 @app.patch("/api/jobs/{job_id}", response_model=schemas.Job)
-def update_job_status(job_id: int, job_update: schemas.JobUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def update_job(job_id: int, job_update: schemas.JobUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role == "Interviewer":
+        raise HTTPException(status_code=403, detail="无权修改职位，仅限管理员/招聘团队执行")
+
     db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
     if not db_job:
         raise HTTPException(status_code=404, detail="Job not found")
-    if job_update.status:
-        db_job.status = job_update.status
+
+    update_data = job_update.model_dump(exclude_unset=True)
+    if "description" in update_data and update_data["description"] is not None:
+        update_data["description"] = clean_and_validate_jd(update_data["description"])
+
+    for key, value in update_data.items():
+        setattr(db_job, key, value)
+
+    import datetime
+    db_job.updated_at = datetime.datetime.utcnow()
+
     db.commit()
     db.refresh(db_job)
     return db_job
