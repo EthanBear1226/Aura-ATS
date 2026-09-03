@@ -11,39 +11,241 @@
     <style>
         .jobs-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 992px) {
+            .jobs-grid {
+                grid-template-columns: 1fr;
+            }
         }
         .job-card {
+            background: #fff;
+            border: 1px solid #eaedf1;
+            border-radius: var(--radius-sm, 8px);
+            padding: 24px;
+            height: 298px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            transition: var(--transition);
+            justify-content: space-between;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
         }
         .job-card:hover {
-            box-shadow: var(--shadow-md);
+            border-color: #d0d5dd;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
             transform: translateY(-2px);
         }
         .job-card.inactive {
-            opacity: 0.6;
+            opacity: 0.65;
         }
-        .funnel {
+        
+        .job-header-row {
             display: flex;
             justify-content: space-between;
-            background: var(--bg-color);
-            padding: 12px;
-            border-radius: var(--radius-sm);
+            align-items: flex-start;
+            gap: 16px;
+        }
+        .job-title-wrap {
+            flex: 1;
+            min-width: 0;
+        }
+        .job-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1f2329;
+            margin: 0 0 6px 0;
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .job-meta-line {
             font-size: 13px;
+            color: var(--text-secondary, #86909c);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .job-meta-dot {
+            color: #c9cdd4;
+            font-size: 10px;
+        }
+        .job-status-pill {
+            height: 32px;
+            padding: 0 14px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+        .job-status-pill.active {
+            background: #E8F8F5;
+            color: #00B06B;
+        }
+        .job-status-pill.inactive {
+            background: #f2f3f5;
+            color: #86909c;
+        }
+
+        .job-tags-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            margin-bottom: 12px;
+        }
+        .job-tag-item {
+            height: 30px;
+            padding: 0 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        .job-tag-type {
+            background: #f4f4f5;
+            color: #595959;
+        }
+        .job-tag-salary {
+            background: #e6f4ff;
+            color: #0066ff;
+            font-weight: 600;
+        }
+        .job-tag-exp {
+            background: #fff2e8;
+            color: #d46b08;
+        }
+
+        .funnel {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            background: #f7f8fa;
+            height: 74px;
+            border-radius: 10px;
+            padding: 0 8px;
+            align-items: center;
+            box-sizing: border-box;
         }
         .funnel-item {
             text-align: center;
+            padding: 0 4px;
         }
         .funnel-num {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--primary-color);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-color, #165dff);
+            line-height: 1.2;
         }
-        .funnel-label { color: var(--text-secondary); margin-top: 4px; }
+        .funnel-label {
+            color: var(--text-secondary, #86909c);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .job-footer-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-top: 1px solid #f2f3f5;
+            padding-top: 14px;
+            margin-top: auto;
+        }
+        .job-owner-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .job-owner-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 14px;
+            background: #e5e6eb;
+            color: #4e5969;
+            text-align: center;
+            line-height: 28px;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .job-owner-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .job-owner-name {
+            font-size: 13px;
+            color: #1f2329;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 140px;
+        }
+        .job-headcount-text {
+            font-size: 12px;
+            color: var(--text-secondary, #86909c);
+            white-space: nowrap;
+        }
+        .job-actions-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .job-action-btn {
+            min-width: 84px;
+            height: 40px;
+            padding: 0 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            box-sizing: border-box;
+            transition: all 0.15s ease;
+        }
+        .job-action-btn.secondary {
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            color: #4e5969;
+        }
+        .job-action-btn.secondary:hover {
+            border-color: #c9cdd4;
+            background: #f7f8fa;
+            color: #1f2329;
+        }
+        .job-action-btn.primary {
+            background: var(--primary-color, #165dff);
+            border: 1px solid var(--primary-color, #165dff);
+            color: #ffffff;
+        }
+        .job-action-btn.primary:hover {
+            background: #0e42d2;
+            border-color: #0e42d2;
+        }
         
         .form-group {
             margin-bottom: 16px;
@@ -146,57 +348,74 @@
                 const type = job.job_type || "全职";
 
                 const html = `
-                    <div class="card job-card ${isInactive ? 'inactive' : ''}">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                            <div>
-                                <div style="font-size:18px; font-weight:600; margin-bottom:4px;">${job.title}</div>
-                                <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${job.department} · ${job.location} · ${createdDate}发布</div>
-                                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom: 12px;">
-                                    <span style="font-size:12px; background:#f4f4f5; color:#666; padding:2px 6px; border-radius:4px;">${type}</span>
-                                    <span style="font-size:12px; background:#e6f4ff; color:#0066ff; padding:2px 6px; border-radius:4px;">${salary}</span>
-                                    <span style="font-size:12px; background:#fff2e8; color:#d46b08; padding:2px 6px; border-radius:4px;">${exp}</span>
+                    <div class="job-card ${isInactive ? 'inactive' : ''}">
+                        <div>
+                            <!-- 顶部信息区：左侧标题与元数据，右侧胶囊Badge -->
+                            <div class="job-header-row">
+                                <div class="job-title-wrap">
+                                    <div class="job-title" title="${job.title}">${job.title}</div>
+                                    <div class="job-meta-line">
+                                        <span>${job.department || '综合部门'}</span>
+                                        <span class="job-meta-dot">●</span>
+                                        <span>${job.location || '全国'}</span>
+                                        <span class="job-meta-dot">●</span>
+                                        <span>${createdDate} 发布</span>
+                                    </div>
                                 </div>
+                                <span class="job-status-pill ${isInactive ? 'inactive' : 'active'}" onclick="toggleJobStatus(${job.id}, '${job.status}')" title="点击切换状态">${job.status}</span>
                             </div>
-                            <span class="tag" style="background:${isInactive ? '#f0f0f0' : '#E8F8F5'}; color:${isInactive ? '#666' : '#00B06B'}; cursor:pointer;" onclick="toggleJobStatus(${job.id}, '${job.status}')" title="点击切换状态">${job.status}</span>
+
+                            <!-- 标签区：统一高度 30px 与间距 -->
+                            <div class="job-tags-row">
+                                <span class="job-tag-item job-tag-type">${type}</span>
+                                <span class="job-tag-item job-tag-salary">${salary}</span>
+                                <span class="job-tag-item job-tag-exp">${exp}</span>
+                            </div>
                         </div>
                         
+                        <!-- 数据漏斗区：高度 74px 等宽 4 列网格 -->
                         <div class="funnel">
                             <div class="funnel-item">
-                                <div class="funnel-num" style="${isInactive ? 'color:#666' : ''}">${job.funnel.new}</div>
+                                <div class="funnel-num" style="${isInactive ? 'color:#86909c' : ''}">${job.funnel.new}</div>
                                 <div class="funnel-label">今日投递</div>
                             </div>
                             <div class="funnel-item">
-                                <div class="funnel-num" style="${isInactive ? 'color:#666' : ''}">${job.funnel.screened}</div>
+                                <div class="funnel-num" style="${isInactive ? 'color:#86909c' : ''}">${job.funnel.screened}</div>
                                 <div class="funnel-label">初筛过</div>
                             </div>
                             <div class="funnel-item">
-                                <div class="funnel-num" style="${isInactive ? 'color:#666' : ''}">${job.funnel.interviewing}</div>
+                                <div class="funnel-num" style="${isInactive ? 'color:#86909c' : ''}">${job.funnel.interviewing}</div>
                                 <div class="funnel-label">面试中</div>
                             </div>
                             <div class="funnel-item">
-                                <div class="funnel-num" style="${isInactive ? 'color:#666' : ''}">${job.funnel.offered}</div>
-                                <div class="funnel-label">发Offer</div>
+                                <div class="funnel-num" style="${isInactive ? 'color:#86909c' : ''}">${job.funnel.offered}</div>
+                                <div class="funnel-label">发 Offer</div>
                             </div>
                         </div>
 
-                        <div style="display:flex; align-items:center; gap:8px; margin-top:auto; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 12px;">
-                            <div style="width:24px; height:24px; border-radius:12px; background:#ccc; color:white; text-align:center; line-height:24px; font-size:12px;">${initials}</div>
-                            <span style="font-size:13px; color:var(--text-secondary);">负责人: ${job.hr_name}</span>
-                            ${job.headcount ? `<span style="margin-left:8px; font-size:12px; color:var(--text-secondary);">招 ${job.headcount} 人</span>` : ''}
+                        <!-- 底部信息与操作区：左侧负责人/招聘人数，右侧横向平铺按钮组 -->
+                        <div class="job-footer-row">
+                            <div class="job-owner-info">
+                                <div class="job-owner-avatar">${initials}</div>
+                                <div class="job-owner-meta">
+                                    <div class="job-owner-name" title="负责人：${job.hr_name || '未指定'}">负责人：${job.hr_name || '未指定'}</div>
+                                    <div class="job-headcount-text">招聘人数：${job.headcount || 1} 人</div>
+                                </div>
+                            </div>
                             
                             ${!isInactive ? `
-                            <div style="margin-left:auto; display:flex; gap:6px;">
-                                <button class="btn" style="padding: 4px 8px; font-size: 12px; display: flex; align-items: center; gap: 4px;" onclick="copyApplyLink(${job.id}, event)">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                                    复制链接
+                            <div class="job-actions-group">
+                                <button class="job-action-btn secondary" onclick="copyApplyLink(${job.id}, event)">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                    <span>复制链接</span>
                                 </button>
-                                <button class="btn" style="padding: 4px 8px; font-size: 12px; display: flex; align-items: center; gap: 4px;" onclick="previewApplyLink(${job.id}, event)">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                                    预览
+                                <button class="job-action-btn secondary" onclick="previewApplyLink(${job.id}, event)">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                    <span>预览</span>
                                 </button>
-                                <button class="btn btn-primary" style="padding: 4px 8px; font-size: 12px; display: flex; align-items: center; gap: 4px;" onclick="editJob(${job.id}, event)">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                    编辑
+                                <button class="job-action-btn primary" onclick="editJob(${job.id}, event)">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    <span>编辑</span>
                                 </button>
                             </div>
                             ` : ''}
@@ -256,14 +475,21 @@
         async function toggleJobStatus(jobId, currentStatus) {
             const newStatus = currentStatus === "热招中" ? "已停招" : "热招中";
             try {
+                const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
                 const response = await fetch('/api/jobs/' + jobId, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
                     body: JSON.stringify({ status: newStatus })
                 });
                 if (response.ok) {
                     if(window.showToast) showToast("状态已更新为 " + newStatus, "success");
                     fetchJobs();
+                } else {
+                    const err = await response.json().catch(() => ({}));
+                    if(window.showToast) showToast(err.detail || "状态更新失败", "error");
                 }
             } catch (error) {
                 console.error("Error updating job status:", error);
