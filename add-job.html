@@ -272,7 +272,7 @@
 
                             <div class="form-group full-width">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                    <label style="margin-bottom:0;">职位介绍（职责与要求）<span class="required-mark">*</span> <span style="font-size:12px; color:var(--text-secondary); font-weight:normal;">（不少于15字，包含岗位职责与任职要求）</span></label>
+                                    <label style="margin-bottom:0;">职位介绍（职责与要求）<span class="required-mark">*</span></label>
                                     <button type="button" class="btn" style="padding:4px 10px; font-size:12px; color:var(--primary-color); border-color:var(--primary-color); background:#f5f9ff;" onclick="insertStandardJdTemplate()">+ 一键填入大厂标准 JD 模板</button>
                                 </div>
                                 <div id="editor-container"></div>
@@ -560,7 +560,7 @@
             // 初始化 Quill 文本编辑器
             quill = new Quill('#editor-container', {
                 theme: 'snow',
-                placeholder: '请输入职位描述和任职要求（不少于100字）...',
+                placeholder: '请输入职位描述和任职要求...',
                 modules: {
                     toolbar: [
                         [{ 'header': [1, 2, 3, false] }],
@@ -782,7 +782,7 @@
 
             // 验证职位介绍 (Quill Editor)
             const plainJd = quill.getText().trim();
-            if (!plainJd || plainJd.length < 100 || plainJd === 'asd') {
+            if (!plainJd || plainJd === 'asd') {
                 isValid = false;
                 document.getElementById('editor-container').classList.add('has-error');
             }
@@ -795,8 +795,8 @@
             }
 
             if (!isValid) {
-                const toastMsg = (!plainJd || plainJd.length < 100) 
-                    ? `职位描述与任职要求不能少于100字（当前有效字数：${plainJd.length}字）` 
+                const toastMsg = (!plainJd || plainJd === 'asd') 
+                    ? "请填写职位描述与任职要求" 
                     : "请填写所有必填项并检查数据格式";
                 if(window.showToast) showToast(toastMsg, "error");
                 const firstError = document.querySelector('.has-error');

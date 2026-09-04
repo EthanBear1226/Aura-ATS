@@ -496,7 +496,7 @@
                 let descHtml = job.description || '';
                 const plainText = descHtml.replace(/<[^>]+>/g, '').trim();
                 
-                if (!descHtml || plainText.length < 20 || plainText === 'asd' || plainText === 'test') {
+                if (!descHtml || !plainText || plainText === 'asd' || plainText === 'test') {
                     descHtml = `
                         <div class="job-rich-detail">
                             <div style="margin-bottom: 20px;">

@@ -446,13 +446,13 @@ def get_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), cur
 
 def clean_and_validate_jd(raw_desc: Optional[str]) -> str:
     if not raw_desc:
-        raise HTTPException(status_code=400, detail="职位描述与任职要求为必填项，且纯文本内容不能少于100字")
+        raise HTTPException(status_code=400, detail="职位描述与任职要求为必填项")
     desc = raw_desc.strip()
     import re
     plain_text = re.sub(r'<[^>]+>', '', desc).strip()
     plain_text = re.sub(r'\s+', ' ', plain_text)
-    if len(plain_text) < 100:
-        raise HTTPException(status_code=400, detail=f"职位描述纯文本内容不能少于100字（当前有效字数：{len(plain_text)}字）")
+    if not plain_text or plain_text in ['asd', 'test']:
+        raise HTTPException(status_code=400, detail="请提供有效的职位描述与任职要求")
     # 基础富文本清洗：清理空p、空div、连续br
     desc = re.sub(r'<p>\s*(?:<br\s*/?>|&nbsp;|\s)*\s*</p>', '', desc)
     desc = re.sub(r'<div>\s*(?:<br\s*/?>|&nbsp;|\s)*\s*</div>', '', desc)
