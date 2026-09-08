@@ -249,6 +249,40 @@
             flex-shrink: 0;
             box-shadow: 0 1px 4px rgba(0,0,0,0.02);
             box-sizing: border-box;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .moka-job-sidebar.collapsed {
+            display: none;
+        }
+        .moka-sidebar-expand-btn {
+            width: 34px;
+            background: #ffffff;
+            border: 1px solid #e5e6eb;
+            border-radius: 8px;
+            padding: 16px 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            color: #4e5969;
+            cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+            user-select: none;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+        .moka-sidebar-expand-btn:hover {
+            border-color: #165dff;
+            color: #165dff;
+            background: #f5f9ff;
+        }
+        .moka-sidebar-expand-btn span {
+            writing-mode: vertical-rl;
+            letter-spacing: 2px;
+            font-size: 11.5px;
+            font-weight: 500;
         }
         .moka-job-sidebar-header {
             display: flex;
@@ -258,19 +292,6 @@
             font-size: 13.5px;
             font-weight: 600;
             color: #1f2329;
-        }
-        .moka-job-sidebar-header .dropdown-toggle {
-            font-size: 12px;
-            color: #86909c;
-            font-weight: normal;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            transition: color 0.2s;
-        }
-        .moka-job-sidebar-header .dropdown-toggle:hover {
-            color: #165dff;
         }
         .moka-job-search-box {
             position: relative;
@@ -685,21 +706,26 @@
 
             <!-- 3. 主体布局区 (左侧职位树侧边栏 + 右侧候选人卡片列表) -->
             <div class="moka-layout-body">
+                <!-- 展开把手按钮 (折叠时显示) -->
+                <div id="moka-sidebar-expand-btn" class="moka-sidebar-expand-btn" onclick="toggleJobSidebar()" style="display:none;" title="展开职位筛选">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    <span>职位筛选</span>
+                </div>
+
                 <!-- 左侧二级职位树侧边栏 -->
-                <div class="moka-job-sidebar">
+                <div class="moka-job-sidebar" id="moka-job-sidebar">
                     <div class="moka-job-sidebar-header">
                         <span style="display:flex; align-items:center; gap:6px;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
                             招聘中的职位
                         </span>
-                        <span class="dropdown-toggle" onclick="showToast('按分组切换模式', 'info')">按分组查看 ▾</span>
+                        <span id="job-total-count-badge" style="font-size:11.5px; color:#86909c; font-weight:normal; background:#f2f3f5; padding:2px 8px; border-radius:10px;">共 0 个</span>
                     </div>
 
                     <!-- 搜索职位输入框 -->
                     <div class="moka-job-search-box">
                         <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         <input type="text" id="job-search-input" placeholder="搜索职位" onkeyup="filterJobTreeList(this.value)">
-                        <svg class="filter-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
                     </div>
 
                     <!-- 职位树节点列表 -->
@@ -707,10 +733,10 @@
                         <!-- JS 动态渲染职位树节点 -->
                     </div>
 
-                    <!-- 底部折叠收起按钮 (弱化轻量操作) -->
-                    <div style="margin-top:14px; padding-top:8px; border-top:1px solid #f2f3f5; text-align:center; color:#86909c; font-size:11.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; transition:color 0.2s;" onmouseover="this.style.color='#165dff'" onmouseout="this.style.color='#86909c'" onclick="showToast('折叠职位侧边栏', 'info')">
+                    <!-- 底部折叠收起按钮 -->
+                    <div style="margin-top:14px; padding-top:8px; border-top:1px solid #f2f3f5; text-align:center; color:#86909c; font-size:11.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; transition:color 0.2s;" onmouseover="this.style.color='#165dff'" onmouseout="this.style.color='#86909c'" onclick="toggleJobSidebar()">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                        <span>折叠侧边栏</span>
+                        <span>收起职位筛选</span>
                     </div>
                 </div>
 
@@ -723,13 +749,6 @@
                                 <input type="checkbox" id="selectAll" onchange="toggleAll(this)">
                                 <span>全选</span>
                             </label>
-
-                            <select class="moka-select-dropdown" id="bulk-dept-select" onchange="applyBulkDeptAssignment(this.value)">
-                                <option value="" disabled selected>用人部门分配 ▾</option>
-                                <option value="研发部">分配给：研发部</option>
-                                <option value="产品部">分配给：产品部</option>
-                                <option value="设计部">分配给：设计部</option>
-                            </select>
 
                             <select class="moka-select-dropdown" id="bulk-stage-select" onchange="applyBulkStageTransfer(this.value)">
                                 <option value="" disabled selected>查看状态 / 批量流转 ▾</option>
@@ -744,9 +763,13 @@
                             <span id="selected-count-badge" style="font-size:12px; color:#165dff; font-weight:600; display:none;">已选择 0 项</span>
                         </div>
 
-                        <div class="moka-control-right">
-                            <span style="cursor:pointer;" title="切换视图" onclick="showToast('视图切换已同步', 'info')">👁</span>
-                            <span style="cursor:pointer;" onclick="showToast('排序规则更新', 'info')">排序方式：按进入阶段时间倒序 ❯</span>
+                        <div class="moka-control-right" style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:12.5px; color:#86909c;">排序:</span>
+                            <select id="cand-sort-select" class="moka-select-dropdown" style="height:32px; font-size:12.5px; padding:0 8px;" onchange="handleSortChange(this.value)">
+                                <option value="created_desc" selected>最新投递优先</option>
+                                <option value="created_asc">最早投递优先</option>
+                                <option value="score_desc">系统匹配度优先</option>
+                            </select>
                         </div>
                     </div>
 
@@ -810,6 +833,33 @@
         let allCandidates = [];
         let currentFilterJob = '全部职位';
         let currentStageFilter = '初筛';
+        let currentSortType = 'created_desc';
+
+        function handleSortChange(val) {
+            currentSortType = val;
+            renderMokaCandCards();
+        }
+
+        function toggleJobSidebar() {
+            const sidebar = document.getElementById('moka-job-sidebar');
+            const expandBtn = document.getElementById('moka-sidebar-expand-btn');
+            if (!sidebar) return;
+            const isCollapsed = sidebar.classList.toggle('collapsed');
+            if (expandBtn) {
+                expandBtn.style.display = isCollapsed ? 'flex' : 'none';
+            }
+            localStorage.setItem('aura_cand_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+        }
+
+        function initJobSidebarState() {
+            const isCollapsed = localStorage.getItem('aura_cand_sidebar_collapsed') === 'true';
+            const sidebar = document.getElementById('moka-job-sidebar');
+            const expandBtn = document.getElementById('moka-sidebar-expand-btn');
+            if (isCollapsed && sidebar) {
+                sidebar.classList.add('collapsed');
+                if (expandBtn) expandBtn.style.display = 'flex';
+            }
+        }
 
         // 8 大 Moka 阶段定义
         const MOKA_STAGES = [
@@ -837,6 +887,7 @@
         function safeInitPage() {
             if (window.renderSidebar) renderSidebar('candidates');
             initRoleUI();
+            initJobSidebarState();
             loadDictionariesForList();
             loadCandidates();
         }
@@ -908,6 +959,11 @@
             let jobsSet = new Set();
             allCandidates.forEach(c => { if(c.job) jobsSet.add(c.job); });
             const availableJobs = Array.from(jobsSet);
+
+            const totalBadge = document.getElementById('job-total-count-badge');
+            if (totalBadge) {
+                totalBadge.innerText = `共 ${availableJobs.length} 个`;
+            }
 
             let html = `
                 <div class="moka-job-tree-item ${currentFilterJob === '全部职位' ? 'active' : ''}" onclick="switchJobFilter('全部职位')">
@@ -1088,6 +1144,15 @@
                 displayData = displayData.filter(c => c.stage === currentStageFilter || (currentStageFilter === '初筛' && c.stage === '今日投递'));
             }
 
+            // 真实排序逻辑 (投递时间倒序/正序/匹配度由高到低)
+            if (currentSortType === 'created_desc') {
+                displayData.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            } else if (currentSortType === 'created_asc') {
+                displayData.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+            } else if (currentSortType === 'score_desc') {
+                displayData.sort((a, b) => (b.match_score || 0) - (a.match_score || 0));
+            }
+
             if (displayData.length === 0) {
                 container.innerHTML = `
                     <div style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:60px 20px; text-align:center; color:#86909c; font-size:13px;">
@@ -1207,16 +1272,6 @@
             }
         }
 
-        function applyBulkDeptAssignment(deptName) {
-            if (!deptName) return;
-            const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
-            if (checkboxes.length === 0) {
-                showToast('请先在下方勾选要分配部门的候选人！', 'error');
-                return;
-            }
-            showToast(`已成功将 ${checkboxes.length} 名候选人分配给【${deptName}】`, 'success');
-        }
-
         async function applyBulkStageTransfer(stage) {
             const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
             if (!stage || checkboxes.length === 0) {
@@ -1262,9 +1317,35 @@
             if (m) m.classList.remove('active');
         }
         async function submitRecommend() {
-            const manager = document.getElementById('recommend-manager-select').value;
-            showToast(`已成功将候选人推荐给：${manager}`, 'success');
-            closeRecommendModal();
+            const manager = document.getElementById('recommend-manager-select')?.value;
+            const comment = document.getElementById('recommend-comment')?.value?.trim() || '';
+            if (!selectedCandIdForRecommend) return;
+            try {
+                const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+                const detailsText = comment ? `推荐给用人经理: ${manager}（评语: ${comment}）` : `推荐给用人经理: ${manager}`;
+                const res = await fetch(`/api/candidates/${selectedCandIdForRecommend}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
+                    body: JSON.stringify({
+                        stage: '用人部门筛选',
+                        details: detailsText
+                    })
+                });
+                if (res.ok) {
+                    showToast(`已成功推荐给【${manager}】并流转至【用人部门筛选】阶段`, 'success');
+                    closeRecommendModal();
+                    loadCandidates();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.detail || '推荐提交失败', 'error');
+                }
+            } catch(e) {
+                console.error(e);
+                showToast('推荐操作出现异常，请稍后重试', 'error');
+            }
         }
 
         async function eliminateCandidate(id) {

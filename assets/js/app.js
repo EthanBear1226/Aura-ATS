@@ -353,6 +353,8 @@ let currentDrawerCandidateJob = null;
 function openScheduleDrawer(candidateName = '', candidateEmail = '', candidateJob = '', candidateId = null) {
     currentDrawerCandidateId = candidateId;
     currentDrawerCandidateJob = candidateJob;
+    // 按需挂载单例抽屉
+    renderScheduleDrawer();
     const overlay = document.getElementById('globalScheduleDrawerOverlay');
     const drawer = document.getElementById('globalScheduleDrawer');
     if (!overlay || !drawer) return;
@@ -384,14 +386,23 @@ function openScheduleDrawer(candidateName = '', candidateEmail = '', candidateJo
         emailInput.value = '';
     }
 
-    overlay.classList.add('active');
-    drawer.classList.add('active');
+    // 稍微延迟一帧触发CSS动画
+    requestAnimationFrame(() => {
+        overlay.classList.add('active');
+        drawer.classList.add('active');
+    });
 }
 
 function closeScheduleDrawer(e) {
-    if (e && e.target.id !== 'globalScheduleDrawerOverlay') return;
-    document.getElementById('globalScheduleDrawerOverlay').classList.remove('active');
-    document.getElementById('globalScheduleDrawer').classList.remove('active');
+    if (e && e.target && e.target.id !== 'globalScheduleDrawerOverlay' && !e.target.closest('.drawer-close') && e.target.tagName !== 'BUTTON') return;
+    const overlay = document.getElementById('globalScheduleDrawerOverlay');
+    const drawer = document.getElementById('globalScheduleDrawer');
+    if (overlay) overlay.classList.remove('active');
+    if (drawer) drawer.classList.remove('active');
+    setTimeout(() => {
+        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        if (drawer && drawer.parentNode) drawer.parentNode.removeChild(drawer);
+    }, 250);
 }
 
 function updateDrawerCandidateEmail() {
@@ -498,7 +509,6 @@ async function submitDrawerSchedule() {
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAuth();
-    renderScheduleDrawer();
 });
 
 // Run auth check automatically on script load

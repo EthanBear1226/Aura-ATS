@@ -265,16 +265,6 @@
             border-color: #0e42d2;
         }
         
-        .form-group {
-            margin-bottom: 16px;
-            text-align: left;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 14px;
-            font-weight: 500;
-        }
     </style>
 </head>
 <body>
@@ -295,46 +285,12 @@
         </main>
     </div>
 
-    <!-- Create Job Modal -->
-    <div class="modal-overlay" id="jobModal">
-        <div class="modal-card">
-            <h2 style="margin-top:0; margin-bottom:24px;">发布新职位</h2>
-            <form id="jobForm" class="auth-form">
-                <div class="form-group">
-                    <label>职位名称</label>
-                    <input type="text" id="jobTitle" required placeholder="如：高级前端工程师">
-                </div>
-                <div class="form-group">
-                    <label>所属部门</label>
-                    <input type="text" id="jobDepartment" required placeholder="如：研发部">
-                </div>
-                <div class="form-group">
-                    <label>工作地点</label>
-                    <input type="text" id="jobLocation" required placeholder="如：深圳">
-                </div>
-                <div class="form-group">
-                    <label>负责人名称</label>
-                    <input type="text" id="jobHrName" required placeholder="如：HR 李">
-                </div>
-                <div style="display:flex; gap:12px; margin-top:24px; justify-content:flex-end;">
-                    <button type="button" class="btn" onclick="closeJobModal()">取消</button>
-                    <button type="submit" class="btn btn-primary">确认发布</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <script src="assets/js/app.js?v=18"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             renderSidebar('jobs');
             renderHeader();
             fetchJobs();
-            
-            document.getElementById('jobForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await createJob();
-            });
         });
 
         async function fetchJobs() {
@@ -447,47 +403,6 @@
         function editJob(id, event) {
             if (event) event.stopPropagation();
             window.location.href = `add-job.html?job_id=${id}&mode=edit`;
-        }
-
-        function openJobModal() {
-            document.getElementById('jobModal').classList.add('active');
-        }
-
-        function closeJobModal() {
-            document.getElementById('jobModal').classList.remove('active');
-            document.getElementById('jobForm').reset();
-        }
-
-        async function createJob() {
-            const data = {
-                title: document.getElementById('jobTitle').value,
-                department: document.getElementById('jobDepartment').value,
-                location: document.getElementById('jobLocation').value,
-                hr_name: document.getElementById('jobHrName').value,
-                status: "热招中"
-            };
-
-            // 如果项目里有封装好的 showToast，可以用 showToast
-            try {
-                const response = await fetch('/api/jobs', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                if (response.ok) {
-                    if(window.showToast) showToast("发布成功", "success");
-                    closeJobModal();
-                    fetchJobs();
-                } else {
-                    if(window.showToast) showToast("发布失败", "error");
-                    else alert("发布失败");
-                }
-            } catch (error) {
-                console.error("Error creating job:", error);
-                if(window.showToast) showToast("发布异常", "error");
-                else alert("发布异常");
-            }
         }
 
         async function toggleJobStatus(jobId, currentStatus) {
