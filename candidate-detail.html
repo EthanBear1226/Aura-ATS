@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>候选人详情 - Aura ATS</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=17">
+    <link rel="stylesheet" href="assets/css/styles.css?v=19">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { 
@@ -899,9 +899,9 @@
                 <div id="tab-pane-4" class="tab-pane-content">
                     <h3 style="font-size:16px; margin-bottom:16px;">💬 沟通备注与团队跟进</h3>
                     <div class="form-group" style="margin-bottom:16px;">
-                        <textarea class="form-control" rows="4" placeholder="添加关于该候选人的备注（仅内部 HR 与面试官可见）..."></textarea>
+                        <textarea id="candidate-note-input" class="form-control" rows="4" placeholder="添加关于该候选人的备注（仅内部 HR 与面试官可见，保存后将自动归入操作日志）..."></textarea>
                     </div>
-                    <button class="btn btn-primary" onclick="showToast('备注添加成功！', 'success')">保存备注</button>
+                    <button class="btn btn-primary" onclick="submitCandidateNote()">保存备注</button>
                 </div>
 
                 <!-- Tab 5: 附加信息 -->
@@ -1010,47 +1010,23 @@
                     </div>
                 </div>
 
-                <!-- 长条按钮组 -->
-                <button class="btn-white-action" onclick="showToast('已成功推荐给用人部门经理！', 'success')">
+                <!-- 核心业务流转操作 -->
+                <button class="btn-white-action" onclick="openDetailRecommendModal()" style="font-weight:600; color:var(--primary-color, #165dff); border-color:var(--primary-color, #165dff);">
                     推荐给用人部门
                 </button>
-                
-                <button class="btn-white-action" onclick="showToast('已向候选人发送信息补充邀请邮件！', 'success')">
-                    邀请候选人更新信息
-                </button>
 
-                <!-- 双拼按钮 1: 跟进提醒 | 推荐其他职位 -->
+                <!-- 备注 | 淘汰与人才库 -->
                 <div class="btn-two-group">
-                    <button class="btn-white-action" onclick="showToast('跟进提醒已设置！', 'success')">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> 跟进提醒
-                    </button>
-                    <button class="btn-white-action" onclick="showToast('可调配推荐至其他热招职位', 'info')">
-                        推荐其他职位
-                    </button>
-                </div>
-
-                <!-- 淘汰 | 放入人才库 -->
-                <div class="btn-two-group">
-                    <button class="btn-white-action" style="color:#ff4d4f; border-color:#ffa39e;" onclick="eliminateCurrentCandidate()">
-                        淘汰
-                    </button>
-                    <button class="btn-white-action" onclick="eliminateCurrentCandidate()">
-                        放入人才库
-                    </button>
-                </div>
-
-                <!-- 关注 | 备注 -->
-                <div class="btn-two-group">
-                    <button class="btn-white-action" onclick="showToast('已收藏关注该候选人', 'success')">
-                        关注
-                    </button>
                     <button class="btn-white-action" onclick="switchNavTab(4)">
-                        备注
+                        💬 添加备注
+                    </button>
+                    <button class="btn-white-action" style="color:#ff4d4f; border-color:#ffa39e;" onclick="eliminateCurrentCandidate()">
+                        淘汰归档
                     </button>
                 </div>
             </div>
 
-            <!-- 侧边栏卡片 2: 候选人所有者与自定义标签 -->
+            <!-- 侧边栏卡片 2: 候选人所有者与特征标签 -->
             <div class="sidebar-card-box">
                 <div style="font-size:13px; font-weight:600; color:#1f2329; margin-bottom:12px;">候选人所有者</div>
                 <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#4e5969; margin-bottom:18px;">
@@ -1061,11 +1037,10 @@
                     </div>
                 </div>
 
-                <div style="font-size:13px; font-weight:600; color:#1f2329; margin-bottom:10px;">候选人自定义标签</div>
+                <div style="font-size:13px; font-weight:600; color:#1f2329; margin-bottom:10px;">人才特征标签</div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
                     <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">高潜人才</span>
-                    <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">即到岗</span>
-                    <button style="border:1px dashed #c9cdd4; background:#fff; color:#86909c; border-radius:4px; padding:2px 8px; font-size:12px; cursor:pointer;" onclick="showToast('标签添加功能已激活', 'info')">+ 标签</button>
+                    <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">快速到岗</span>
                 </div>
             </div>
 
@@ -1857,23 +1832,20 @@
             const statusText = (inst && inst.status === 'approved') ? '已通过' : ((inst && inst.status === 'rejected') ? '已驳回' : '未发起');
 
             container.innerHTML = `
-                <!-- 1. 顶部动作组合按钮行 -->
+                <!-- 1. 顶部动作组合按钮行 (未集成第三方生态明确标注暂未开放) -->
                 <div style="display:flex; gap:12px; margin-bottom:24px;">
-                    <button class="moka-btn-outline" onclick="showToast('正在导出 Offer 详细 PDF 文档...', 'info')">
-                        导出offer信息 ∨
-                    </button>
-                    <button class="moka-btn-outline" onclick="showToast('已调起 i背调 官方发起背调面板', 'info')">
-                        发起背调 ∨
+                    <button class="moka-btn-outline" style="opacity:0.6; cursor:not-allowed;" title="第三方背调平台集成暂未开放" disabled>
+                        发起背调 (暂未开放)
                     </button>
                 </div>
 
-                <!-- 2. 入职记录 -->
+                <!-- 2. 入职记录 (真实流转) -->
                 <div class="moka-section-title">入职记录</div>
                 <div class="moka-card-box" style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:13.5px; color:#4e5969;">尚未确定候选人是否入职</span>
+                    <span style="font-size:13.5px; color:#4e5969;">当前候选人录取与入职状态跟进</span>
                     <div style="display:flex; gap:12px;">
-                        <button class="moka-btn-gray" onclick="showToast('已确认候选人成功入职！', 'success')">确认入职</button>
-                        <button class="moka-btn-gray" onclick="showToast('已记录候选人放弃入职', 'info')">放弃入职</button>
+                        <button class="moka-btn-gray" style="color:var(--primary-color, #165dff); font-weight:600;" onclick="confirmCandidateOnboard()">确认正式入职</button>
+                        <button class="moka-btn-gray" style="color:#ff4d4f;" onclick="eliminateCurrentCandidate()">放弃入职并归档</button>
                     </div>
                 </div>
 
@@ -1881,21 +1853,20 @@
                 <div class="moka-section-title">背调信息</div>
                 <div class="moka-card-box">
                     <div style="font-weight:600; font-size:14px; color:#1f2329; margin-bottom:4px;">
-                        背调详情
+                        背调状态
                     </div>
-                    <div style="font-size:12px; color:#86909c; margin-bottom:12px;">${inst ? '已发起背景调查' : '尚未发起背调调查'}</div>
+                    <div style="font-size:12px; color:#86909c; margin-bottom:12px;">外部第三方背景调查接口（暂未开放集成）</div>
                     
                     <div style="font-size:13px; color:#4e5969; line-height:1.8;">
-                        <div><strong style="color:#86909c; font-weight:normal;">进度：</strong> ${inst ? '订单状态: 下单成功 2026-07-15 10:23:50' : '暂无订单记录'}</div>
-                        <div><strong style="color:#86909c; font-weight:normal;">详情：</strong> <a href="javascript:void(0)" onclick="showToast('暂无背调全量日志', 'info')" style="color:#165dff; text-decoration:none;">查看详情</a></div>
-                        <div><strong style="color:#86909c; font-weight:normal;">结果：</strong> <span style="color:#86909c;">-</span></div>
+                        <div><strong style="color:#86909c; font-weight:normal;">进度：</strong> <span style="color:#86909c;">暂无外部订单</span></div>
+                        <div><strong style="color:#86909c; font-weight:normal;">详情：</strong> <span style="color:#86909c;">第三方背调服务待接入</span></div>
                     </div>
                 </div>
 
                 <!-- 4. Offer审批 -->
                 <div class="moka-section-title">Offer审批</div>
                 <div style="margin-bottom:12px;">
-                    <button class="moka-btn-gray" style="background:#fff;" onclick="showOfferFormSection()">重新发起审批</button>
+                    <button class="moka-btn-gray" style="background:#fff;" onclick="showOfferFormSection()">发起/修改审批</button>
                 </div>
                 <div class="moka-card-box" style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
@@ -1911,9 +1882,6 @@
 
                 <!-- 5. Offer发送记录 -->
                 <div class="moka-section-title">Offer发送记录</div>
-                <div style="margin-bottom:12px;">
-                    <button class="moka-btn-gray" style="background:#fff;" onclick="showToast('已重发 Offer 签署邮件至候选人邮箱！', 'success')">重新发送Offer</button>
-                </div>
                 <div class="moka-card-box" style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
                         <div style="font-weight:600; font-size:14px; color:#1f2329; margin-bottom:4px;">${candName}的Offer (邮件)</div>
@@ -1921,7 +1889,6 @@
                     </div>
                     <div style="display:flex; align-items:center; gap:12px;">
                         <span style="background:${inst ? '#e6ffec' : '#f5f5f5'}; color:${inst ? '#27a644' : '#86909c'}; padding:4px 12px; border-radius:12px; font-size:12px; font-weight:600;">${inst ? '候选人接受了Offer' : '未发送'}</span>
-                        <span style="color:#86909c; cursor:pointer;" onclick="showToast('更多发送日志选项', 'info')">⋮</span>
                     </div>
                 </div>
 
@@ -1965,7 +1932,7 @@
                         ${isFieldEnabled('cost_center') ? `<div class="moka-kv-row"><div class="moka-kv-label-title">成本中心-财务</div><div class="moka-kv-value-text">${details.cost_center || '-'}</div></div>` : ''}
                         ${isFieldEnabled('salary_special_note') ? `<div class="moka-kv-row"><div class="moka-kv-label-title">薪酬特殊说明（年现金涨幅超20%时，说明：年薪涨幅，横向对比，申请原因）</div><div class="moka-kv-value-text">${details.salary_special_note || '-'}</div></div>` : ''}
                         ${isFieldEnabled('edu_special_note') ? `<div class="moka-kv-row"><div class="moka-kv-label-title">学历特殊说明（第一学历非统招一本时详细说明）</div><div class="moka-kv-value-text">${details.edu_special_note || '-'}</div></div>` : ''}
-                        ${isFieldEnabled('attachment_name') ? `<div class="moka-kv-row"><div class="moka-kv-label-title">发送附件给审批人</div><div class="moka-kv-value-text" style="display:flex; justify-content:space-between; align-items:center;"><span>${details.attachment_name ? details.attachment_name + ' (' + details.attachment_size + ')' : '-'}</span>${details.attachment_name ? `<span style="display:flex; gap:12px; font-size:12.5px;"><a href="javascript:void(0)" onclick="showToast('正在调起附件表格在线预览...', 'info')" style="color:#165dff; text-decoration:none;">预览</a><a href="javascript:void(0)" onclick="showToast('附件下载成功', 'success')" style="color:#165dff; text-decoration:none;">下载</a></span>` : ''}</div></div>` : ''}
+                        ${isFieldEnabled('attachment_name') ? `<div class="moka-kv-row"><div class="moka-kv-label-title">发送附件给审批人</div><div class="moka-kv-value-text" style="display:flex; justify-content:space-between; align-items:center;"><span>${details.attachment_name ? details.attachment_name + ' (' + details.attachment_size + ')' : '-'}</span>${details.attachment_name ? `<span style="font-size:12px; color:#86909c;">(已归档存入系统)</span>` : ''}</div></div>` : ''}
                         ${isFieldEnabled('remarks') ? `<div class="moka-kv-row"><div class="moka-kv-label-title">备注（职级，HC（增或替），核心职责，优劣势总结，其他需要备注的事项）</div><div class="moka-kv-value-text">${details.remarks || '-'}</div></div>` : ''}
                         ${isFieldEnabled('is_campus_hire') ? `<div class="moka-kv-row"><div class="moka-kv-label-title">是否校招生</div><div class="moka-kv-value-text">${details.is_campus_hire || '-'}</div></div>` : ''}
                     </div>
@@ -1974,7 +1941,7 @@
                 <!-- 7. 新增 Offer邮件及短信 仿真预览模块 (1:1 截图 4 图 5 排版) -->
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:32px; margin-bottom:12px;">
                     <div class="moka-section-title" style="margin:0;">Offer邮件及短信</div>
-                    <a href="javascript:void(0)" onclick="showToast('正在调起 Offer 邮件与短信模板编辑器...', 'info')" style="color:#165dff; font-size:13px; text-decoration:none; font-weight:500;">编辑</a>
+                    <span style="color:#86909c; font-size:12px;">(模板已锁定)</span>
                 </div>
 
                 <div class="moka-card-box" style="padding:24px;">
@@ -2014,8 +1981,7 @@
                                 <span style="font-size:13px; font-weight:600; color:#1f2329;">生成Offer附件</span>
                                 <div style="display:flex; align-items:center; gap:16px;">
                                     <span style="font-size:12.5px; color:#4e5969;">📄 ${candName}录取通知函.pdf</span>
-                                    <a href="javascript:void(0)" onclick="showToast('正在调起录取通知函 PDF 视窗预览...', 'info')" style="color:#165dff; text-decoration:none; font-size:12.5px;">预览</a>
-                                    <a href="javascript:void(0)" onclick="showToast('录取通知函 PDF 下载成功', 'success')" style="color:#165dff; text-decoration:none; font-size:12.5px;">下载</a>
+                                    <span style="font-size:12px; color:#86909c;">(审批通过后自动签发)</span>
                                 </div>
                             </div>
                         </div>
@@ -2328,6 +2294,96 @@
             closeOfferDeptTreeModal();
         }
 
+        async function submitCandidateNote() {
+            const input = document.getElementById('candidateNoteInput');
+            if (!input) return;
+            const content = input.value.trim();
+            if (!content) {
+                showToast('请输入备注内容后再保存', 'warning');
+                return;
+            }
+            try {
+                const res = await fetch(`/api/candidates/${candidateId}/notes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content, operator: 'HR' })
+                });
+                if (res.ok) {
+                    showToast('备注已成功保存', 'success');
+                    input.value = '';
+                    await loadDetail();
+                    switchNavTab(4);
+                } else {
+                    showToast('保存备注失败，请稍后重试', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('网络异常，保存备注失败', 'error');
+            }
+        }
+
+        function openDetailRecommendModal() {
+            const modal = document.getElementById('detailRecommendModal');
+            if (modal) {
+                const note = document.getElementById('detailRecommendNote');
+                if (note) note.value = '';
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeDetailRecommendModal() {
+            const modal = document.getElementById('detailRecommendModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function submitDetailRecommend() {
+            const noteEl = document.getElementById('detailRecommendNote');
+            const noteVal = noteEl ? noteEl.value.trim() : '';
+            try {
+                const res = await fetch(`/api/candidates/${candidateId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        stage: '用人部门筛选',
+                        details: noteVal ? `推荐至用人部门筛选：${noteVal}` : '推荐至用人部门筛选'
+                    })
+                });
+                if (res.ok) {
+                    showToast('已成功推荐候选人至用人部门筛选！', 'success');
+                    closeDetailRecommendModal();
+                    await loadDetail();
+                } else {
+                    showToast('推荐失败，请稍后重试', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('网络异常，推荐失败', 'error');
+            }
+        }
+
+        async function confirmCandidateOnboard() {
+            if (!confirm('确认将该候选人状态变更为【已入职】吗？')) return;
+            try {
+                const res = await fetch(`/api/candidates/${candidateId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        stage: '已入职',
+                        details: 'HR 在入职记录中确认候选人正式入职'
+                    })
+                });
+                if (res.ok) {
+                    showToast('🎉 候选人已正式入职！', 'success');
+                    await loadDetail();
+                } else {
+                    showToast('操作失败，请稍后重试', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('网络异常，操作失败', 'error');
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             if (window.renderSidebar) renderSidebar('candidates');
             loadDetail();
@@ -2355,9 +2411,29 @@
         </div>
     </div>
 
+    <!-- 推荐给用人部门 真实弹窗 -->
+    <div class="modal-overlay" id="detailRecommendModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(2px);">
+        <div class="modal-card" style="background:#fff; width:480px; border-radius:10px; padding:24px; box-shadow:0 16px 40px rgba(0,0,0,0.12); display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f2f3f5; padding-bottom:12px; margin-bottom:16px;">
+                <h3 style="margin:0; font-size:15px; font-weight:600; color:#1f2329;">
+                    推荐候选人至用人部门
+                </h3>
+                <span style="cursor:pointer; font-size:18px; color:#86909c;" onclick="closeDetailRecommendModal()">✕</span>
+            </div>
+            <div style="font-size:13px; color:#4e5969; margin-bottom:8px;">
+                将该候选人流转至【用人部门筛选】节点，用人部门主管可在管理面板实时查看评估：
+            </div>
+            <textarea id="detailRecommendNote" placeholder="填写推荐评语或评估理由（选填）..." style="width:100%; height:90px; border:1px solid #e5e6eb; border-radius:6px; padding:10px; font-size:13px; resize:none; outline:none; font-family:inherit; margin-bottom:16px; box-sizing:border-box;"></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="moka-btn-gray" onclick="closeDetailRecommendModal()" style="border-radius:4px; font-size:13px; padding:6px 16px;">取消</button>
+                <button style="background:var(--primary-color, #165dff); color:#fff; border:none; border-radius:4px; font-size:13px; padding:6px 18px; font-weight:500; cursor:pointer;" onclick="submitDetailRecommend()">确认推荐</button>
+            </div>
+        </div>
+    </div>
+
         </main>
     </div>
 
-    <script src="assets/js/app.js?v=18"></script>
+    <script src="assets/js/app.js?v=19"></script>
 </body>
 </html>

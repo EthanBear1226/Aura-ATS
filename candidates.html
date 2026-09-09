@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>候选人管理 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=18">
+    <link rel="stylesheet" href="assets/css/styles.css?v=19">
     <style>
         /* Moka 风格候选人管理全局布局与细节 */
         body {
@@ -827,7 +827,7 @@
         </div>
     </div>
 
-    <script src="assets/js/app.js?v=18"></script>
+    <script src="assets/js/app.js?v=19"></script>
     <script>
         // Moka 全局数据与过滤器状态
         let allCandidates = [];
@@ -936,7 +936,6 @@
                     <div class="moka-stage-tab-item ${isActive ? 'active' : ''}" onclick="switchStageTab('${st.name}')">
                         <div class="tab-val">
                             ${formattedVal}
-                            <span class="info-icon" title="查看阶段说明">ⓘ</span>
                         </div>
                         <div class="tab-name">${st.name}</div>
                     </div>

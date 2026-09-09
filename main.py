@@ -915,6 +915,24 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
     db.refresh(candidate)
     return candidate
 
+@app.post("/api/candidates/{candidate_id}/notes")
+def add_candidate_note(candidate_id: int, note: schemas.CandidateNoteCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    if not note.content or not note.content.strip():
+        raise HTTPException(status_code=400, detail="备注内容不能为空")
+    db_log = models.CandidateLog(
+        candidate_id=candidate.id,
+        operator=current_user.name if current_user else "HR",
+        action="添加候选人备注",
+        details=note.content.strip()
+    )
+    db.add(db_log)
+    db.commit()
+    db.refresh(db_log)
+    return {"status": "success", "log_id": db_log.id, "created_at": db_log.created_at.isoformat(), "operator": db_log.operator, "details": db_log.details}
+
 @app.delete("/api/candidates/{candidate_id}")
 def delete_candidate(candidate_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()

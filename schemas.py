@@ -30,6 +30,9 @@ class CandidateUpdate(BaseModel):
     exp: Optional[str] = None
     job: Optional[str] = None
 
+class CandidateNoteCreate(BaseModel):
+    content: str
+
 class CandidateLog(BaseModel):
     id: int
     candidate_id: int
