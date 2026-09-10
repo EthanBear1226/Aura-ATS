@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>候选人管理 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=19">
+    <link rel="stylesheet" href="assets/css/styles.css?v=20">
     <style>
         /* Moka 风格候选人管理全局布局与细节 */
         body {
@@ -827,13 +827,40 @@
         </div>
     </div>
 
-    <script src="assets/js/app.js?v=19"></script>
+    <script src="assets/js/app.js?v=20"></script>
     <script>
         // Moka 全局数据与过滤器状态
         let allCandidates = [];
         let currentFilterJob = '全部职位';
         let currentStageFilter = '初筛';
         let currentSortType = 'created_desc';
+
+        // 标准候选人全流程 6 大核心阶段 + 分支终态
+        const MOKA_STAGES = [
+            { name: '初筛', defaultCount: 842 },
+            { name: '部门筛选', defaultCount: 70 },
+            { name: '面试', defaultCount: 739 },
+            { name: 'Offer', defaultCount: 5 },
+            { name: '背调', defaultCount: 0 },
+            { name: '入职', defaultCount: 31 },
+            { name: '已淘汰', defaultCount: 128 },
+            { name: '已归档', defaultCount: 2400 }
+        ];
+
+        function isStageMatch(candStage, targetStage) {
+            if (!candStage) candStage = '初筛';
+            if (targetStage === '全部阶段') return true;
+            if (candStage === targetStage) return true;
+            if (targetStage === '初筛') return candStage === '初筛' || candStage === '今日投递';
+            if (targetStage === '部门筛选') return candStage === '部门筛选' || candStage === '用人部门筛选';
+            if (targetStage === '面试') return candStage === '面试' || candStage.includes('面');
+            if (targetStage === 'Offer') return candStage === 'Offer' || candStage === '沟通offer' || candStage === '待发offer';
+            if (targetStage === '背调') return candStage === '背调' || candStage === '背景调查';
+            if (targetStage === '入职') return candStage === '入职' || candStage === '已入职' || candStage === '待入职';
+            if (targetStage === '已淘汰') return candStage === '已淘汰' || candStage === '淘汰';
+            if (targetStage === '已归档') return candStage === '已归档' || candStage === '归档';
+            return false;
+        }
 
         function handleSortChange(val) {
             currentSortType = val;
@@ -860,18 +887,6 @@
                 if (expandBtn) expandBtn.style.display = 'flex';
             }
         }
-
-        // 8 大 Moka 阶段定义
-        const MOKA_STAGES = [
-            { name: '初筛', defaultCount: 842 },
-            { name: '用人部门筛选', defaultCount: 70 },
-            { name: '面试', defaultCount: 739 },
-            { name: '沟通offer', defaultCount: 5 },
-            { name: '背景调查', defaultCount: 0 },
-            { name: '待入职', defaultCount: 9 },
-            { name: '已入职', defaultCount: 31 },
-            { name: '已归档', defaultCount: 2400 }
-        ];
 
         // 角色权限定义
         const rolePermissions = {
@@ -919,7 +934,7 @@
             } catch(e) {}
         }
 
-        // 渲染 8 大阶段统计卡片
+        // 渲染 6 大阶段 + 淘汰归档统计卡片
         function renderStageTabs() {
             const bar = document.getElementById('stage-tabs-bar');
             if (!bar) return;
@@ -928,7 +943,7 @@
             MOKA_STAGES.forEach(st => {
                 const isActive = currentStageFilter === st.name;
                 // 计算当前阶段匹配的候选人数量
-                const realCount = allCandidates.filter(c => c.stage === st.name || (st.name === '初筛' && c.stage === '今日投递')).length;
+                const realCount = allCandidates.filter(c => isStageMatch(c.stage, st.name)).length;
                 const displayVal = realCount > 0 ? realCount : st.defaultCount;
                 const formattedVal = displayVal >= 1000 ? `${(displayVal / 1000).toFixed(1)}k` : displayVal;
 
@@ -1133,14 +1148,15 @@
             const role = user.role || 'SuperAdmin';
             const perms = rolePermissions[role] || { allowedJobs: 'ALL', canAdd: true, canDelete: true };
 
-            let displayData = allCandidates.filter(c => c.stage !== '已淘汰');
+            let displayData = allCandidates.filter(c => {
+                if (currentStageFilter === '已淘汰') return isStageMatch(c.stage, '已淘汰');
+                if (currentStageFilter === '已归档') return isStageMatch(c.stage, '已归档');
+                if (currentStageFilter === '全部阶段') return c.stage !== '已淘汰';
+                return isStageMatch(c.stage, currentStageFilter);
+            });
 
             if (currentFilterJob !== '全部职位') {
                 displayData = displayData.filter(c => c.job === currentFilterJob);
-            }
-
-            if (currentStageFilter !== '全部阶段') {
-                displayData = displayData.filter(c => c.stage === currentStageFilter || (currentStageFilter === '初筛' && c.stage === '今日投递'));
             }
 
             // 真实排序逻辑 (投递时间倒序/正序/匹配度由高到低)

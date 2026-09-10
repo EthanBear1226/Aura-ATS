@@ -760,7 +760,17 @@ async def _process_resume_upload(file: UploadFile, job_title: str, operator: str
 
         operator_name = current_user.name if current_user else operator
 
+        PIPELINE_STAGES = ["初筛", "部门筛选", "面试", "Offer", "背调", "入职"]
+        TERMINAL_STAGES = ["已淘汰", "已归档"]
+
         if existing_candidate:
+            # 防重复进入同一流程校验：若同候选人已在同一职位的活跃流程中，坚决拦截
+            if existing_candidate.job == final_job and existing_candidate.stage in PIPELINE_STAGES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"候选人【{existing_candidate.name}】当前已在职位【{final_job}】的招聘流程中（当前阶段：【{existing_candidate.stage}】），请勿重复投递或录入！"
+                )
+
             existing_candidate.job = str(final_job or "未知")
             existing_candidate.stage = "初筛"
             existing_candidate.exp = str(parsed_data.get("exp") or existing_candidate.exp)
@@ -777,11 +787,11 @@ async def _process_resume_upload(file: UploadFile, job_title: str, operator: str
             db.refresh(existing_candidate)
             db_candidate = existing_candidate
             
-            details_str = f"检测到手机号[{phone_val}]或邮箱[{email_val}]已存在。本次新投递职位【{final_job}】，已更新该候选人的主表属性及简历原件。"
+            details_str = f"检测到手机号[{phone_val}]或邮箱[{email_val}]已存在。本次新投递职位【{final_job}】，已更新该候选人的主表属性及简历原件并重新进入流程。"
             db_log = models.CandidateLog(
                 candidate_id=db_candidate.id,
                 operator=operator_name,
-                action="重复投递自动合并",
+                action="重新进入流程(新投递)",
                 details=details_str
             )
             db.add(db_log)
@@ -847,6 +857,117 @@ async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默�
 @app.post("/api/public/submit-resume", response_model=schemas.Candidate)
 async def submit_public_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), db: Session = Depends(get_db)):
     return await _process_resume_upload(file=file, job_title=job_title, operator="Candidate (Self-Submitted)", db=db, current_user=None)
+
+PIPELINE_STAGES = ["初筛", "部门筛选", "面试", "Offer", "背调", "入职"]
+TERMINAL_STAGES = ["已淘汰", "已归档"]
+
+@app.post("/api/candidates/{candidate_id}/transition", response_model=schemas.Candidate)
+def transition_candidate_stage(
+    candidate_id: int,
+    req: schemas.CandidateTransitionRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="候选人不存在")
+
+    old_stage = candidate.stage or "初筛"
+    operator_name = current_user.name if current_user else (req.operator or "HR")
+    action_type = req.action.lower().strip()
+    reason_text = req.reason.strip() if req.reason and req.reason.strip() else ""
+
+    if action_type == "advance":
+        # 推进流程
+        if old_stage in TERMINAL_STAGES:
+            raise HTTPException(status_code=400, detail=f"候选人当前处于【{old_stage}】状态，无法直接推进，请使用【重新进入流程】")
+
+        target = req.target_stage
+        if not target:
+            # 自动推导下一节点
+            if old_stage in PIPELINE_STAGES:
+                idx = PIPELINE_STAGES.index(old_stage)
+                if idx >= len(PIPELINE_STAGES) - 1:
+                    raise HTTPException(status_code=400, detail="候选人已到达最终【入职】阶段，无法继续推进")
+                target = PIPELINE_STAGES[idx + 1]
+            else:
+                target = "部门筛选"
+
+        if target == old_stage:
+            raise HTTPException(status_code=400, detail=f"候选人当前已处于【{target}】阶段，请勿重复操作！")
+
+        if target not in PIPELINE_STAGES:
+            raise HTTPException(status_code=400, detail=f"目标阶段【{target}】不是标准流转节点")
+
+        candidate.stage = target
+        log_action = f"阶段推进: {old_stage} ➔ {target}"
+        log_details = f"推进备注: {reason_text}" if reason_text else "阶段正常推进"
+
+    elif action_type == "rollback":
+        # 撤回至上一节点
+        if old_stage in TERMINAL_STAGES:
+            raise HTTPException(status_code=400, detail=f"候选人已处于【{old_stage}】状态，无法撤回。如需恢复请使用【重新进入流程】")
+
+        if old_stage not in PIPELINE_STAGES:
+            raise HTTPException(status_code=400, detail=f"当前阶段【{old_stage}】不支持撤回")
+
+        curr_idx = PIPELINE_STAGES.index(old_stage)
+        if curr_idx == 0:
+            raise HTTPException(status_code=400, detail="候选人当前处于起始【初筛】阶段，无法继续撤回")
+
+        target = PIPELINE_STAGES[curr_idx - 1]
+        candidate.stage = target
+        log_action = f"阶段撤回: {old_stage} ➔ {target}"
+        log_details = f"撤回原因: {reason_text}" if reason_text else "操作撤回至上一步"
+
+    elif action_type == "reject":
+        # 驳回 / 淘汰
+        if old_stage == "已淘汰":
+            raise HTTPException(status_code=400, detail="候选人当前已处于【已淘汰】状态，请勿重复操作！")
+
+        target = "已淘汰"
+        candidate.stage = target
+        log_action = f"流程驳回: {old_stage} ➔ 已淘汰"
+        log_details = f"驳回原因/评语: {reason_text}" if reason_text else "综合评估未通过，予以淘汰"
+
+    elif action_type == "reenter":
+        # 重新进入流程
+        if old_stage in PIPELINE_STAGES:
+            raise HTTPException(status_code=400, detail=f"候选人当前已在招聘流程中（当前阶段：【{old_stage}】），请勿重复进入流程！")
+
+        target = req.target_stage if req.target_stage and req.target_stage in PIPELINE_STAGES else "初筛"
+        candidate.stage = target
+        log_action = f"重新进入流程: {old_stage} ➔ {target}"
+        log_details = f"重启原因: {reason_text}" if reason_text else "从人才库/淘汰状态重新激活进入流程"
+
+    else:
+        raise HTTPException(status_code=400, detail=f"不支持的流转动作类型【{req.action}】")
+
+    # 写入 CandidateLog 留痕审计
+    db_log = models.CandidateLog(
+        candidate_id=candidate.id,
+        operator=operator_name,
+        action=log_action,
+        details=log_details
+    )
+    db.add(db_log)
+
+    # 同步最新投递记录
+    latest_app = db.query(models.JobApplication).filter(models.JobApplication.candidate_id == candidate.id).order_by(models.JobApplication.created_at.desc()).first()
+    if latest_app:
+        latest_app.stage = candidate.stage
+
+    # 自动消解相关待办任务
+    pending_tasks = db.query(models.SystemTask).filter(
+        models.SystemTask.candidate_id == candidate.id,
+        models.SystemTask.status == "pending"
+    ).all()
+    for task in pending_tasks:
+        task.status = "resolved"
+
+    db.commit()
+    db.refresh(candidate)
+    return candidate
 
 @app.patch("/api/candidates/{candidate_id}", response_model=schemas.Candidate)
 def update_candidate_stage(candidate_id: int, candidate_update: schemas.CandidateUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

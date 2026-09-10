@@ -33,6 +33,12 @@ class CandidateUpdate(BaseModel):
 class CandidateNoteCreate(BaseModel):
     content: str
 
+class CandidateTransitionRequest(BaseModel):
+    action: str # advance, rollback, reject, reenter
+    target_stage: Optional[str] = None
+    reason: Optional[str] = None
+    operator: Optional[str] = None
+
 class CandidateLog(BaseModel):
     id: int
     candidate_id: int
