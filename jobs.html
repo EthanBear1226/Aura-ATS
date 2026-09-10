@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>职位管理 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=19">
+    <link rel="stylesheet" href="assets/css/styles.css?v=21">
     <style>
         .jobs-grid {
             display: grid;
@@ -285,7 +285,7 @@
         </main>
     </div>
 
-    <script src="assets/js/app.js?v=19"></script>
+    <script src="assets/js/app.js?v=21"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             renderSidebar('jobs');
@@ -308,7 +308,12 @@
             grid.innerHTML = '';
             
             if (jobs.length === 0) {
-                grid.innerHTML = '<div style="color:var(--text-secondary); grid-column: 1 / -1; text-align: center; padding: 40px;">暂无职位数据，请点击右上角发布新职位。</div>';
+                renderEmptyState(grid, {
+                    title: '暂未发布任何招聘职位',
+                    desc: '当前系统中暂无进行中的招聘职位，您可以立即创建发布第一个职位以开启招募流程。',
+                    actionText: '+ 立即发布新职位',
+                    onAction: () => { window.location.href = 'add-job.html'; }
+                });
                 return;
             }
 
@@ -320,6 +325,7 @@
                 const exp = job.experience || "经验不限";
                 const salary = job.salary_range ? (job.salary_range === "面议" ? "面议" : `${job.salary_range}·${job.salary_months || 12}薪`) : "薪资面议";
                 const type = job.job_type || "全职";
+                const safeTitle = (job.title || '未命名职位').replace(/'/g, "\\'");
 
                 const html = `
                     <div class="job-card ${isInactive ? 'inactive' : ''}">
@@ -336,7 +342,7 @@
                                         <span>${createdDate} 发布</span>
                                     </div>
                                 </div>
-                                <span class="job-status-pill ${isInactive ? 'inactive' : 'active'}" onclick="toggleJobStatus(${job.id}, '${job.status}')" title="点击切换状态">${job.status}</span>
+                                <span class="job-status-pill ${isInactive ? 'inactive' : 'active'}" onclick="toggleJobStatus(${job.id}, '${job.status}', '${safeTitle}')" title="点击切换招募状态">${job.status}</span>
                             </div>
 
                             <!-- 标签区：统一高度 30px 与间距 -->
@@ -405,27 +411,54 @@
             window.location.href = `add-job.html?job_id=${id}&mode=edit`;
         }
 
-        async function toggleJobStatus(jobId, currentStatus) {
-            const newStatus = currentStatus === "热招中" ? "已停招" : "热招中";
-            try {
-                const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
-                const response = await fetch('/api/jobs/' + jobId, {
-                    method: 'PATCH',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                    },
-                    body: JSON.stringify({ status: newStatus })
-                });
-                if (response.ok) {
-                    if(window.showToast) showToast("状态已更新为 " + newStatus, "success");
-                    fetchJobs();
-                } else {
-                    const err = await response.json().catch(() => ({}));
-                    if(window.showToast) showToast(err.detail || "状态更新失败", "error");
+        async function toggleJobStatus(jobId, currentStatus, jobTitle = '') {
+            const isPausing = currentStatus === "热招中";
+            const newStatus = isPausing ? "已停招" : "热招中";
+
+            const doUpdate = async () => {
+                try {
+                    const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+                    const response = await fetch('/api/jobs/' + jobId, {
+                        method: 'PATCH',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+                    if (response.ok) {
+                        showToast(`职位状态已成功变更为【${newStatus}】`, "success");
+                        fetchJobs();
+                    } else {
+                        const err = await response.json().catch(() => ({}));
+                        showToast(err.detail || "状态更新失败", "error");
+                    }
+                } catch (error) {
+                    console.error("Error updating job status:", error);
+                    showToast("网络连接异常，操作失败", "error");
                 }
-            } catch (error) {
-                console.error("Error updating job status:", error);
+            };
+
+            if (isPausing) {
+                showDangerConfirm({
+                    title: '确认停止招募该职位？',
+                    targetName: jobTitle || `职位ID: ${jobId}`,
+                    description: '将职位状态切换为【已停招】后，外部公共求职投递页将暂停接收该职位的简历。',
+                    warning: '求职者将无法继续投递此职位；现有在途候选人流程不受影响。',
+                    confirmText: '确认停招',
+                    theme: 'warning',
+                    onConfirm: doUpdate
+                });
+            } else {
+                showDangerConfirm({
+                    title: '确认重新开启招募？',
+                    targetName: jobTitle || `职位ID: ${jobId}`,
+                    description: '将职位状态恢复为【热招中】后，外部公共求职投递页将重新开放投递。',
+                    warning: '该职位将重新对外展示并接收求职者简历投递。',
+                    confirmText: '重新开启招募',
+                    theme: 'info',
+                    onConfirm: doUpdate
+                });
             }
         }
 

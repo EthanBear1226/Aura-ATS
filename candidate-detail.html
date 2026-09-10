@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>候选人详情 - Aura ATS</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=20">
+    <link rel="stylesheet" href="assets/css/styles.css?v=21">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { 
@@ -1534,6 +1534,8 @@
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const operator = user.name || 'HR';
 
+            const btn = document.querySelector('#advanceModal button[onclick="submitAdvance()"]');
+            setBtnLoading(btn, true, '正在推进...');
             try {
                 const res = await authFetch(`/api/candidates/${currentCandidate.id}/transition`, {
                     method: 'POST',
@@ -1551,11 +1553,13 @@
                     closeAdvanceModal();
                     await loadDetail();
                 } else {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({}));
                     showToast(err.detail || '推进失败', 'error');
                 }
             } catch(e) {
                 showToast('网络异常，推进失败', 'error');
+            } finally {
+                setBtnLoading(btn, false);
             }
         }
 
@@ -1588,6 +1592,8 @@
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const operator = user.name || 'HR';
 
+            const btn = document.querySelector('#rollbackModal button[onclick="submitRollback()"]');
+            setBtnLoading(btn, true, '正在撤回...');
             try {
                 const res = await authFetch(`/api/candidates/${currentCandidate.id}/transition`, {
                     method: 'POST',
@@ -1605,11 +1611,13 @@
                     closeRollbackModal();
                     await loadDetail();
                 } else {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({}));
                     showToast(err.detail || '撤回失败', 'error');
                 }
             } catch(e) {
                 showToast('网络异常，撤回失败', 'error');
+            } finally {
+                setBtnLoading(btn, false);
             }
         }
 
@@ -1630,6 +1638,8 @@
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const operator = user.name || 'HR';
 
+            const btn = document.querySelector('#rejectModal button[onclick="submitReject()"]');
+            setBtnLoading(btn, true, '正在淘汰...');
             try {
                 const res = await authFetch(`/api/candidates/${currentCandidate.id}/transition`, {
                     method: 'POST',
@@ -1646,11 +1656,13 @@
                     closeRejectModal();
                     await loadDetail();
                 } else {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({}));
                     showToast(err.detail || '驳回失败', 'error');
                 }
             } catch(e) {
                 showToast('网络异常，驳回失败', 'error');
+            } finally {
+                setBtnLoading(btn, false);
             }
         }
 
@@ -1671,6 +1683,8 @@
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const operator = user.name || 'HR';
 
+            const btn = document.querySelector('#reenterModal button[onclick="submitReenter()"]');
+            setBtnLoading(btn, true, '正在激活...');
             try {
                 const res = await authFetch(`/api/candidates/${currentCandidate.id}/transition`, {
                     method: 'POST',
@@ -1688,11 +1702,13 @@
                     closeReenterModal();
                     await loadDetail();
                 } else {
-                    const err = await res.json();
+                    const err = await res.json().catch(() => ({}));
                     showToast(err.detail || '操作失败', 'error');
                 }
             } catch(e) {
                 showToast('网络异常，操作失败', 'error');
+            } finally {
+                setBtnLoading(btn, false);
             }
         }
 
@@ -2519,6 +2535,8 @@
                 offer_details: offerDetails
             };
 
+            const saveBtn = document.querySelector('button[onclick="submitTabOfferLaunch()"]');
+            setBtnLoading(saveBtn, true, '正在保存并提交...');
             try {
                 const res = await authFetch('/api/approvals/launch', {
                     method: 'POST',
@@ -2526,18 +2544,21 @@
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) {
-                    showToast('🎉 Offer 详情修改保存成功！', 'success');
-                    loadOfferApproval();
+                    showToast('🎉 Offer 详情修改保存成功并已同步审批流程！', 'success');
+                    await loadOfferApproval();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.detail || '保存失败，请检查各必填字段', 'error');
                 }
             } catch(e) {
-                showToast('保存失败，检查网络', 'error');
+                showToast('保存失败，请检查网络连接', 'error');
+            } finally {
+                setBtnLoading(saveBtn, false);
             }
         }
 
         function eliminateCurrentCandidate() {
-            showConfirm('确定要淘汰该候选人吗？', async () => {
-                changeCandidateStage('已淘汰');
-            });
+            openRejectModal();
         }
 
         function togglePdfFullScreen() {
@@ -2669,31 +2690,50 @@
         }
 
         async function confirmCandidateOnboard() {
-            if (!confirm('确认将该候选人状态变更为【已入职】吗？')) return;
-            try {
-                const res = await fetch(`/api/candidates/${candidateId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        stage: '已入职',
-                        details: 'HR 在入职记录中确认候选人正式入职'
-                    })
-                });
-                if (res.ok) {
-                    showToast('🎉 候选人已正式入职！', 'success');
-                    await loadDetail();
-                } else {
-                    showToast('操作失败，请稍后重试', 'error');
+            if (!currentCandidate) return;
+            showDangerConfirm({
+                title: '确认正式录用入职？',
+                targetName: `候选人【${currentCandidate.name}】（岗位：${currentCandidate.job || '未指定'}）`,
+                description: '确认后，候选人将完成招聘全周期流转，状态变更为【已入职】。',
+                warning: '此操作将正式计入入职核算指标，并归档该候选人的全部在途招聘单据。',
+                confirmText: '确认正式入职',
+                theme: 'info',
+                onConfirm: async () => {
+                    try {
+                        const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+                        const res = await authFetch(`/api/candidates/${candidateId}/transition`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'advance',
+                                target_stage: '入职',
+                                reason: 'HR在入职跟进面板确认候选人正式办理入职手续',
+                                operator: user.name || 'HR'
+                            })
+                        });
+                        if (res.ok) {
+                            showToast('🎉 候选人已正式完成入职流转！', 'success');
+                            await loadDetail();
+                        } else {
+                            const err = await res.json().catch(() => ({}));
+                            showToast(err.detail || '操作失败，请稍后重试', 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showToast('网络异常，操作失败', 'error');
+                    }
                 }
-            } catch (err) {
-                console.error(err);
-                showToast('网络异常，操作失败', 'error');
-            }
+            });
         }
 
         document.addEventListener("DOMContentLoaded", () => {
             if (window.renderSidebar) renderSidebar('candidates');
-            loadDetail();
+            loadDetail().then(() => {
+                const urlTab = new URLSearchParams(window.location.search).get('tab');
+                if (urlTab === 'offer') {
+                    setTimeout(() => switchNavTab(3), 150);
+                }
+            });
             setTimeout(alignThreeColumnsHeight, 200);
             window.addEventListener('resize', alignThreeColumnsHeight);
         });
@@ -2855,6 +2895,6 @@
         </main>
     </div>
 
-    <script src="assets/js/app.js?v=20"></script>
+    <script src="assets/js/app.js?v=21"></script>
 </body>
 </html>

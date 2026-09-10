@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>候选人管理 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=20">
+    <link rel="stylesheet" href="assets/css/styles.css?v=21">
     <style>
         /* Moka 风格候选人管理全局布局与细节 */
         body {
@@ -827,7 +827,7 @@
         </div>
     </div>
 
-    <script src="assets/js/app.js?v=20"></script>
+    <script src="assets/js/app.js?v=21"></script>
     <script>
         // Moka 全局数据与过滤器状态
         let allCandidates = [];
@@ -1169,11 +1169,18 @@
             }
 
             if (displayData.length === 0) {
-                container.innerHTML = `
-                    <div style="background:#fff; border:1px solid #e5e6eb; border-radius:8px; padding:60px 20px; text-align:center; color:#86909c; font-size:13px;">
-                        当前筛选条件下暂无候选人数据，可尝试选择左侧其它职位或上方阶段切换
-                    </div>
-                `;
+                renderEmptyState(container, {
+                    title: '当前筛选下暂无候选人',
+                    desc: '未找到符合当前职位或流程阶段的候选人记录，您可以尝试更换筛选条件。',
+                    actionText: '查看全部活跃候选人',
+                    onAction: () => {
+                        currentFilterJob = '全部职位';
+                        currentStageFilter = '全部阶段';
+                        renderJobTree();
+                        renderStageTabs();
+                        renderMokaCandCards();
+                    }
+                });
                 return;
             }
 
@@ -1189,7 +1196,7 @@
                 if (role !== 'Interviewer') {
                     actionBtnHtml = `
                         <div class="cand-card-actions" onclick="event.stopPropagation();">
-                            <button class="btn-action-ghost" onclick="openLaunchOfferModal(${c.id}, '${c.name}', '${c.job}')">Offer审批</button>
+                            <button class="btn-action-ghost" onclick="viewDetail('${c.id}', 'offer')">Offer审批</button>
                             <button class="btn-action-ghost" onclick="openRecommendModal('${c.id}')">推荐</button>
                             <button class="btn-action-primary" onclick="openScheduleDrawer('${c.name}', '${c.email || ''}', '${c.job}', ${c.id})">面试</button>
                             ${perms.canDelete ? `<button class="btn-action-danger" onclick="eliminateCandidate('${c.id}')">淘汰</button>` : ''}
@@ -1255,8 +1262,9 @@
             container.innerHTML = html;
         }
 
-        function viewDetail(id) {
-            window.location.href = `candidate-detail.html?id=${id}`;
+        function viewDetail(id, tab = '') {
+            const url = tab ? `candidate-detail.html?id=${id}&tab=${tab}` : `candidate-detail.html?id=${id}`;
+            window.location.href = url;
         }
 
         function handleSearchKeyup(e) {
@@ -1290,21 +1298,49 @@
         async function applyBulkStageTransfer(stage) {
             const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
             if (!stage || checkboxes.length === 0) {
-                showToast('请勾选候选人并选择要转移的目标流程节点！', 'error');
+                showToast('请勾选候选人并选择要转移的目标流程节点！', 'warning');
                 return;
             }
             const ids = Array.from(checkboxes).map(cb => cb.value);
-            showConfirm(`确定要将这 ${ids.length} 名候选人批量转移到【${stage}】阶段吗？`, async () => {
-                try {
+
+            showDangerConfirm({
+                title: '批量流程流转确认',
+                targetName: `已勾选的 ${ids.length} 位候选人`,
+                description: `确认将这 ${ids.length} 名候选人批量转移至【${stage}】流程节点吗？`,
+                warning: stage === '已淘汰' ? '注意：批量淘汰将直接终止所选候选人的所有活跃面试与流程！' : '批量流转将自动同步相关负责人的工作台与待办事项。',
+                confirmText: stage === '已淘汰' ? '确认批量淘汰' : '确认批量流转',
+                theme: stage === '已淘汰' ? 'danger' : 'warning',
+                onConfirm: async () => {
+                    const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+                    const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+                    let successCount = 0;
                     for (let id of ids) {
-                        await fetch(`/api/candidates/${id}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ stage: stage })
-                        });
+                        try {
+                            const res = await fetch(`/api/candidates/${id}/transition`, {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                                },
+                                body: JSON.stringify({
+                                    action: stage === '已淘汰' ? 'reject' : 'advance',
+                                    target_stage: stage,
+                                    reason: `批量流转至【${stage}】`,
+                                    operator: user.name || 'HR'
+                                })
+                            });
+                            if (res.ok) {
+                                successCount++;
+                                const cand = allCandidates.find(c => String(c.id) === String(id));
+                                if (cand) cand.stage = stage;
+                            }
+                        } catch(e) {}
                     }
-                    showToast('批量转移阶段成功！', 'success');
-                    loadCandidates();
+                    showToast(`批量流转完成：成功转移 ${successCount}/${ids.length} 位候选人！`, 'success');
+                    checkboxes.forEach(cb => cb.checked = false);
+                    updateBulkActions();
+                    renderStageTabs();
+                    renderMokaCandCards();
                 } catch(e) {
                     showToast('批量转移出现异常', 'error');
                 }
@@ -1364,17 +1400,44 @@
         }
 
         async function eliminateCandidate(id) {
-            showConfirm('确定要淘汰该候选人并将其移入归档人才库吗？', async () => {
-                try {
-                    await fetch(`/api/candidates/${id}/screen`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'fail' })
-                    });
-                    showToast('候选人已淘汰归档', 'success');
-                    loadCandidates();
-                } catch(e) {
-                    showToast('操作过程发生错误', 'error');
+            const cand = allCandidates.find(c => String(c.id) === String(id));
+            const candName = cand ? cand.name : `ID:${id}`;
+            const candJob = cand ? (cand.job || '未指定职位') : '';
+
+            showDangerConfirm({
+                title: '确认淘汰该候选人？',
+                targetName: `${candName}（应聘职位：${candJob}）`,
+                description: '淘汰后，该候选人将被标记为【已淘汰】并移出当前活跃招聘管道。',
+                warning: '当前候选人的在途面试日程将自动终止；如需恢复可在已淘汰库中使用【重新进入流程】。',
+                confirmText: '确认淘汰',
+                theme: 'danger',
+                onConfirm: async () => {
+                    try {
+                        const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+                        const res = await fetch(`/api/candidates/${id}/transition`, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            },
+                            body: JSON.stringify({
+                                action: 'reject',
+                                reason: 'HR在大盘卡片快捷淘汰',
+                                operator: (JSON.parse(localStorage.getItem('aura_user') || '{}').name || 'HR')
+                            })
+                        });
+                        if (res.ok) {
+                            showToast(`已成功将【${candName}】淘汰归档`, 'info');
+                            if (cand) cand.stage = '已淘汰';
+                            renderStageTabs();
+                            renderMokaCandCards();
+                        } else {
+                            const err = await res.json().catch(() => ({}));
+                            showToast(err.detail || '淘汰操作失败', 'error');
+                        }
+                    } catch(e) {
+                        showToast('网络连接异常，操作失败', 'error');
+                    }
                 }
             });
         }

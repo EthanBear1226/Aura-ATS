@@ -934,3 +934,276 @@ body {
     flex: 1 1 40%;
   }
 }
+
+/* ==========================================================================
+   统一操作反馈系统与高风险操作二次确认样式 (v21)
+   ========================================================================== */
+
+/* 1. 高风险二次确认弹窗 (Danger / Risk Confirm Modal) */
+.danger-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.danger-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.danger-modal-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  width: 440px;
+  max-width: 95vw;
+  padding: 28px;
+  text-align: left;
+  transform: scale(0.94) translateY(8px);
+  opacity: 0;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.danger-modal-overlay.active .danger-modal-card {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+.danger-header-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.danger-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.danger-icon-box.danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.danger-icon-box.warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.danger-icon-box.info {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.danger-title-wrap h3 {
+  margin: 0 0 4px 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.danger-title-wrap p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.danger-highlight-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 16px 0;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.danger-highlight-box strong {
+  color: #0f172a;
+}
+
+.danger-warning-note {
+  font-size: 12px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.danger-action-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.danger-btn-cancel {
+  padding: 8px 18px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.danger-btn-cancel:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.danger-btn-confirm {
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s;
+}
+
+.danger-btn-confirm.danger {
+  background: #dc2626;
+}
+
+.danger-btn-confirm.danger:hover {
+  background: #b91c1c;
+}
+
+.danger-btn-confirm.warning {
+  background: #d97706;
+}
+
+.danger-btn-confirm.warning:hover {
+  background: #b45309;
+}
+
+/* 2. 按钮级统一 Loading 状态与微型 Spinner */
+@keyframes aura-spinner-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.aura-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  border-top-color: #ffffff;
+  animation: aura-spinner-spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+.aura-spinner.dark {
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-top-color: #1e293b;
+}
+
+.btn-is-loading {
+  position: relative !important;
+  opacity: 0.75 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+/* 3. 全局统一 Empty State 空状态组件 */
+.aura-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #e5e6eb;
+  border-radius: 10px;
+  margin: 12px 0;
+}
+
+.aura-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #f2f3f5;
+  color: #86909c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.aura-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2329;
+  margin-bottom: 6px;
+}
+
+.aura-empty-desc {
+  font-size: 13px;
+  color: #86909c;
+  max-width: 380px;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.aura-empty-btn {
+  background: #165dff;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aura-empty-btn:hover {
+  background: #0040c0;
+}
+
+/* 4. 无权限状态禁制 */
+.aura-forbidden-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  filter: grayscale(80%);
+}

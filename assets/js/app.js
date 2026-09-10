@@ -253,6 +253,154 @@ function showConfirm(message, onConfirm, onCancel = null) {
     };
 }
 
+// Global High-Risk / Danger Confirm Modal (企业级高风险操作二次确认)
+function showDangerConfirm(options = {}) {
+    const {
+        title = '高风险操作确认',
+        targetName = '',
+        description = '此操作影响重大，请仔细核对并确认。',
+        warning = '注意：该操作执行后将立即生效且不可撤销！',
+        confirmText = '确认执行',
+        cancelText = '取消',
+        theme = 'danger', // 'danger' | 'warning' | 'info'
+        onConfirm = null,
+        onCancel = null
+    } = options;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'danger-modal-overlay';
+
+    const iconSvg = theme === 'warning'
+        ? `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+        : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+
+    overlay.innerHTML = `
+        <div class="danger-modal-card">
+            <div class="danger-header-group">
+                <div class="danger-icon-box ${theme}">
+                    ${iconSvg}
+                </div>
+                <div class="danger-title-wrap">
+                    <h3>${title}</h3>
+                    <p>${description}</p>
+                </div>
+            </div>
+            ${targetName ? `<div class="danger-highlight-box">操作目标：<strong>${targetName}</strong></div>` : ''}
+            ${warning ? `<div class="danger-warning-note">⚠️ ${warning}</div>` : ''}
+            <div class="danger-action-footer">
+                <button class="danger-btn-cancel" id="dangerModalCancelBtn">${cancelText}</button>
+                <button class="danger-btn-confirm ${theme}" id="dangerModalConfirmBtn">${confirmText}</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('active'));
+
+    const close = () => {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.remove(), 220);
+    };
+
+    document.getElementById('dangerModalCancelBtn').onclick = () => {
+        close();
+        if (onCancel) onCancel();
+    };
+
+    const confirmBtn = document.getElementById('dangerModalConfirmBtn');
+    confirmBtn.onclick = async () => {
+        if (onConfirm) {
+            setBtnLoading(confirmBtn, true, '处理中...');
+            try {
+                await onConfirm();
+            } finally {
+                close();
+            }
+        } else {
+            close();
+        }
+    };
+}
+
+// Global Button Loading State Manager (统一按钮异步加载态)
+function setBtnLoading(btn, isLoading, loadingText = '') {
+    if (!btn) return;
+    if (isLoading) {
+        if (!btn.dataset.originalHtml) {
+            btn.dataset.originalHtml = btn.innerHTML;
+        }
+        btn.dataset.originalDisabled = btn.disabled ? 'true' : 'false';
+        btn.disabled = true;
+        btn.classList.add('btn-is-loading');
+        const text = loadingText || '处理中...';
+        btn.innerHTML = `<span class="aura-spinner"></span> <span>${text}</span>`;
+    } else {
+        if (btn.dataset.originalHtml) {
+            btn.innerHTML = btn.dataset.originalHtml;
+        }
+        btn.disabled = btn.dataset.originalDisabled === 'true';
+        btn.classList.remove('btn-is-loading');
+    }
+}
+
+// Global Empty State Renderer (统一美观空状态)
+function renderEmptyState(container, options = {}) {
+    if (!container) return;
+    const {
+        title = '暂无相关数据',
+        desc = '当前筛选条件下未查询到匹配记录，您可以尝试更换检索条件。',
+        actionText = '',
+        onAction = null
+    } = options;
+
+    container.innerHTML = `
+        <div class="aura-empty-box">
+            <div class="aura-empty-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="9" y1="9" x2="15" y2="9"/>
+                    <line x1="9" y1="13" x2="15" y2="13"/>
+                    <line x1="9" y1="17" x2="11" y2="17"/>
+                </svg>
+            </div>
+            <div class="aura-empty-title">${title}</div>
+            <div class="aura-empty-desc">${desc}</div>
+            ${actionText ? `<button class="aura-empty-btn" id="auraEmptyActionBtn">${actionText}</button>` : ''}
+        </div>
+    `;
+
+    if (actionText && onAction) {
+        const btn = container.querySelector('#auraEmptyActionBtn');
+        if (btn) btn.onclick = onAction;
+    }
+}
+
+// Global Standard authFetch Wrapper (全局安全请求与401/403拦截)
+async function authFetch(url, options = {}) {
+    const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+    options.headers = options.headers || {};
+    if (token) {
+        options.headers['Authorization'] = `Bearer ${token}`;
+    }
+    try {
+        const response = await fetch(url, options);
+        if (response.status === 401) {
+            console.warn('Authentication token expired or missing.');
+            if (window.showToast) window.showToast('登录状态已失效，请重新登录', 'error');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
+        } else if (response.status === 403) {
+            console.warn('Permission denied for this operation.');
+            if (window.showToast) window.showToast('当前账号角色无权执行此操作', 'error');
+        }
+        return response;
+    } catch (e) {
+        console.error('Fetch network error:', e);
+        throw e;
+    }
+}
+
 // Global Drawer Component
 function renderScheduleDrawer() {
     if (document.getElementById('globalScheduleDrawerOverlay')) return;
