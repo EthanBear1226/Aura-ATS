@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>候选人管理 | Aura</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=21">
+    <link rel="stylesheet" href="assets/css/styles.css?v=22">
     <style>
         /* Moka 风格候选人管理全局布局与细节 */
         body {
@@ -827,7 +827,7 @@
         </div>
     </div>
 
-    <script src="assets/js/app.js?v=21"></script>
+    <script src="assets/js/app.js?v=22"></script>
     <script>
         // Moka 全局数据与过滤器状态
         let allCandidates = [];
@@ -898,13 +898,13 @@
             'Assistant': { allowedJobs: 'ALL', canAdd: true, canDelete: false }
         };
 
-        // 全兼容安全初始化引擎 (彻底消除 DOMReady 漏判导致的第一次点开白屏问题)
+        // 全兼容安全初始化引擎 (彻底消除 DOMReady 漏判与子逻辑异常导致的白屏问题)
         function safeInitPage() {
-            if (window.renderSidebar) renderSidebar('candidates');
-            initRoleUI();
-            initJobSidebarState();
-            loadDictionariesForList();
-            loadCandidates();
+            try { if (window.renderSidebar) renderSidebar('candidates'); } catch(e) { console.warn('renderSidebar warning:', e); }
+            try { initRoleUI(); } catch(e) { console.warn('initRoleUI warning:', e); }
+            try { initJobSidebarState(); } catch(e) { console.warn('initJobSidebarState warning:', e); }
+            try { loadDictionariesForList(); } catch(e) { console.warn('loadDictionaries warning:', e); }
+            try { loadCandidates(); } catch(e) { console.error('loadCandidates error:', e); }
         }
 
         if (document.readyState === 'loading') {
@@ -1311,38 +1311,40 @@
                 confirmText: stage === '已淘汰' ? '确认批量淘汰' : '确认批量流转',
                 theme: stage === '已淘汰' ? 'danger' : 'warning',
                 onConfirm: async () => {
-                    const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
-                    const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-                    let successCount = 0;
-                    for (let id of ids) {
-                        try {
-                            const res = await fetch(`/api/candidates/${id}/transition`, {
-                                method: 'POST',
-                                headers: { 
-                                    'Content-Type': 'application/json',
-                                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                                },
-                                body: JSON.stringify({
-                                    action: stage === '已淘汰' ? 'reject' : 'advance',
-                                    target_stage: stage,
-                                    reason: `批量流转至【${stage}】`,
-                                    operator: user.name || 'HR'
-                                })
-                            });
-                            if (res.ok) {
-                                successCount++;
-                                const cand = allCandidates.find(c => String(c.id) === String(id));
-                                if (cand) cand.stage = stage;
-                            }
-                        } catch(e) {}
+                    try {
+                        const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+                        const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+                        let successCount = 0;
+                        for (let id of ids) {
+                            try {
+                                const res = await fetch(`/api/candidates/${id}/transition`, {
+                                    method: 'POST',
+                                    headers: { 
+                                        'Content-Type': 'application/json',
+                                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                                    },
+                                    body: JSON.stringify({
+                                        action: stage === '已淘汰' ? 'reject' : 'advance',
+                                        target_stage: stage,
+                                        reason: `批量流转至【${stage}】`,
+                                        operator: user.name || 'HR'
+                                    })
+                                });
+                                if (res.ok) {
+                                    successCount++;
+                                    const cand = allCandidates.find(c => String(c.id) === String(id));
+                                    if (cand) cand.stage = stage;
+                                }
+                            } catch(e) {}
+                        }
+                        showToast(`批量流转完成：成功转移 ${successCount}/${ids.length} 位候选人！`, 'success');
+                        checkboxes.forEach(cb => cb.checked = false);
+                        updateBulkActions();
+                        renderStageTabs();
+                        renderMokaCandCards();
+                    } catch(e) {
+                        showToast('批量转移出现异常', 'error');
                     }
-                    showToast(`批量流转完成：成功转移 ${successCount}/${ids.length} 位候选人！`, 'success');
-                    checkboxes.forEach(cb => cb.checked = false);
-                    updateBulkActions();
-                    renderStageTabs();
-                    renderMokaCandCards();
-                } catch(e) {
-                    showToast('批量转移出现异常', 'error');
                 }
             });
         }
