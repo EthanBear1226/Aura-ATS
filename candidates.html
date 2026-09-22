@@ -923,9 +923,21 @@
             }
         }
 
+        // 全局安全带 Token 认证请求封装 authFetch
+        async function authFetch(url, options = {}) {
+            const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+            options.headers = options.headers || {};
+            if (token) {
+                options.headers['Authorization'] = `Bearer ${token}`;
+            }
+            return fetch(url, options);
+        }
+
         async function loadDictionariesForList() {
             try {
-                const interviewers = await fetch('/api/settings/interviewers').then(r => r.json());
+                const res = await authFetch('/api/settings/interviewers');
+                if (!res.ok) return;
+                const interviewers = await res.json();
                 const managers = interviewers.filter(i => i.role_type === 'HiringManager' || i.role_type === 'Manager');
                 const recSelect = document.getElementById('recommend-manager-select');
                 if (recSelect && managers.length > 0) {
@@ -939,74 +951,67 @@
             const bar = document.getElementById('stage-tabs-bar');
             if (!bar) return;
 
-            let html = '';
-            MOKA_STAGES.forEach(st => {
-                const isActive = currentStageFilter === st.name;
-                // 计算当前阶段匹配的候选人数量
-                const realCount = allCandidates.filter(c => isStageMatch(c.stage, st.name)).length;
-                const displayVal = realCount > 0 ? realCount : st.defaultCount;
-                const formattedVal = displayVal >= 1000 ? `${(displayVal / 1000).toFixed(1)}k` : displayVal;
+            const stages = [
+                { name: '初筛', count: allCandidates.filter(c => c.stage === '初筛').length },
+                { name: '部门筛选', count: allCandidates.filter(c => c.stage === '部门筛选' || c.stage === '用人部门筛选').length },
+                { name: '面试', count: allCandidates.filter(c => c.stage === '面试' || c.stage === '面试中').length },
+                { name: 'Offer', count: allCandidates.filter(c => c.stage === 'Offer' || c.stage === '沟通offer').length },
+                { name: '背调', count: allCandidates.filter(c => c.stage === '背调' || c.stage === '背景调查').length },
+                { name: '入职', count: allCandidates.filter(c => c.stage === '入职' || c.stage === '待入职' || c.stage === '已入职').length },
+                { name: '已淘汰', count: allCandidates.filter(c => c.stage === '已淘汰' || c.stage === '淘汰').length }
+            ];
 
-                html += `
-                    <div class="moka-stage-tab-item ${isActive ? 'active' : ''}" onclick="switchStageTab('${st.name}')">
-                        <div class="tab-val">
-                            ${formattedVal}
-                        </div>
-                        <div class="tab-name">${st.name}</div>
+            bar.innerHTML = stages.map(s => {
+                const isActive = activeStageFilter === s.name;
+                return `
+                    <div class="moka-stage-item ${isActive ? 'active' : ''}" onclick="switchStageFilter('${s.name}')">
+                        <div class="stage-name">${s.name}</div>
+                        <div class="stage-count">${s.count}</div>
                     </div>
                 `;
-            });
-            bar.innerHTML = html;
+            }).join('');
         }
 
-        function switchStageTab(stageName) {
-            currentStageFilter = stageName;
+        function switchStageFilter(stage) {
+            activeStageFilter = stage;
             renderStageTabs();
             renderMokaCandCards();
         }
 
-        // 渲染左侧职位树列表
         function renderJobTree() {
-            const treeContainer = document.getElementById('job-filters-tree');
-            if (!treeContainer) return;
+            const container = document.getElementById('moka-job-tree');
+            if (!container) return;
 
-            let jobsSet = new Set();
-            allCandidates.forEach(c => { if(c.job) jobsSet.add(c.job); });
-            const availableJobs = Array.from(jobsSet);
+            // 统计岗位招聘数量
+            const jobCounts = {};
+            allCandidates.forEach(c => {
+                const job = c.job || '未归类职位';
+                jobCounts[job] = (jobCounts[job] || 0) + 1;
+            });
 
-            const totalBadge = document.getElementById('job-total-count-badge');
-            if (totalBadge) {
-                totalBadge.innerText = `共 ${availableJobs.length} 个`;
-            }
-
+            const jobs = Object.keys(jobCounts);
             let html = `
-                <div class="moka-job-tree-item ${currentFilterJob === '全部职位' ? 'active' : ''}" onclick="switchJobFilter('全部职位')">
-                    <span>全部在招</span>
-                    <span class="count-badge">${allCandidates.length || 20}</span>
+                <div class="moka-job-tree-item ${!activeJobFilter ? 'active' : ''}" onclick="switchJobFilter('')">
+                    <span>全部职位</span>
+                    <span class="count">${allCandidates.length}</span>
                 </div>
             `;
 
-            availableJobs.forEach(job => {
-                const count = allCandidates.filter(c => c.job === job).length;
+            jobs.forEach(j => {
+                const isActive = activeJobFilter === j;
                 html += `
-                    <div class="moka-job-tree-item ${currentFilterJob === job ? 'active' : ''}" onclick="switchJobFilter('${job}')">
-                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;" title="${job}">${job}</span>
-                        <span class="count-badge">${count}</span>
+                    <div class="moka-job-tree-item ${isActive ? 'active' : ''}" onclick="switchJobFilter('${j}')">
+                        <span>${j}</span>
+                        <span class="count">${jobCounts[j]}</span>
                     </div>
                 `;
             });
 
-            treeContainer.innerHTML = html;
-
-            // 同时填充弹窗里的职位下拉
-            const modalSelect = document.getElementById('modal-job-select');
-            if (modalSelect) {
-                modalSelect.innerHTML = '<option value="" disabled selected>请选择投递职位</option>' + availableJobs.map(j => `<option value="${j}">${j}</option>`).join('');
-            }
+            container.innerHTML = html;
         }
 
-        function switchJobFilter(jobName) {
-            currentFilterJob = jobName;
+        function switchJobFilter(job) {
+            activeJobFilter = job;
             renderJobTree();
             renderMokaCandCards();
         }
@@ -1038,9 +1043,9 @@
                 renderMokaCandCards();
             }
 
-            // 2. 异步平滑同步真实后端数据库数据
+            // 2. 异步平滑同步真实后端数据库数据 (使用 authFetch 携带安全 Token)
             try {
-                const response = await fetch('/api/candidates');
+                const response = await authFetch('/api/candidates');
                 if (!response.ok) throw new Error("Failed to fetch");
                 const data = await response.json();
                 if (data && Array.isArray(data) && data.length > 0) {

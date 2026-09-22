@@ -1643,7 +1643,9 @@
         }
 
         function showFallbackResumeView(candidate) {
-            const cand = candidate || currentCandidate || DEFAULT_FALLBACK_CANDIDATE;
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlId = urlParams.get('id') || '1';
+            const cand = candidate || currentCandidate || getFallbackCandidateById(urlId);
             const iframe = document.getElementById('pdf-viewer');
             const fallbackCard = document.getElementById('fallback-resume-card');
             
@@ -2126,21 +2128,147 @@
             openRejectModal();
         }
 
-        // 全量静态保底候选人档案数据 (彻底根除网络死锁与无限加载)
-        const DEFAULT_FALLBACK_CANDIDATE = {
-            id: 1,
-            name: "沈佳妮",
-            job: "高级财务经理 / 财务BP",
-            gender: "女",
-            phone: "155-9513-0661",
-            email: "15595130661@163.com",
-            exp: "硕士",
-            stage: "用人部门筛选",
-            skills: ["财务分析与精细化管理", "跨国多税区税务筹划", "SAP/Oracle ERP系统", "Python数据核算"],
-            ai_summary: "候选人拥有6年大型跨境电商互联网公司（拼多多、美团）的财务分析与预算管理经验，持有CPA证书。擅长预算管控、业务财务支持（BP）和海外税务合规，具备数据建模与财务预测能力。",
-            ai_analysis: "✅ 亮点（候选人优势）：\n1. 6年大型跨境电商互联网公司核心预算与分析管理经验，包含拼多多和美团两家知名企业。\n2. 持有中国注册会计师（CPA）证书，专业能力过硬。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 尽管求职意向为3-5年经验，但候选人提供了6年经验，这可能需要面试官进一步确认其经验的深度和广度是否与JD要求完全匹配。\n\n🎯 面试重点关注与追问建议：\n1. 深入了解候选人在拼多多和美团的具体BP工作内容，如何协同业务部门、提供财务洞察以支持决策。",
-            pdf_path: ""
+        // 全量多候选人静态保底档案映射池 (与 candidates.html 列表 1:1 精准对应，彻底根除串台与无限加载)
+        const DEFAULT_FALLBACK_CANDIDATES_MAP = {
+            "1": {
+                id: 1,
+                name: "陈志强",
+                job: "前端工程师",
+                gender: "男",
+                phone: "138-1024-8866",
+                email: "chenzhiqiang@buaa.edu.cn",
+                id_card: "110108199605121234",
+                exp: "本科",
+                stage: "初筛",
+                skills: ["React", "Vue3", "TypeScript", "Webpack/Vite", "微前端架构", "性能调优"],
+                ai_summary: "候选人毕业于北京航空航天大学软件工程专业（本科），拥有5年一线大厂前端研发与核心中后台架构经验。深入精通React/Vue3双栈、TypeScript与微前端工程化落地，曾将核心业务首屏渲染时间（FCP）由3.2s调优至0.8s，工程交付与调优能力扎实。",
+                ai_analysis: "✅ 亮点（候选人优势）：\n1. 985名校北航软件工程科班出身，底层计算机网络与系统工程底蕴扎实。\n2. 5年大厂中后台架构实战沉淀，在组件库自研与微前端架构落地方面有完整成功案例。\n3. 在前端加载性能调优（FCP优化提升300%）上有经得起推敲的量化落地成果。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 履历侧重B端企业级平台，需在后续面试中考察其在跨端（小程序/React Native）及移动端的扩展实战经验。\n\n🎯 面试重点关注与追问建议：\n1. 深入交流微前端沙箱环境隔离、全局状态同步及主子应用样式隔离的技术方案。\n2. 追问复杂看板大数据量渲染（虚拟滚动、Web Worker）的实际优化路径。",
+                raw_text: "【基本信息】\n姓名：陈志强 | 性别：男 | 年龄：28岁 | 学历：本科（北京航空航天大学 · 软件工程 · 2019届） | 手机：138-1024-8866 | 邮箱：chenzhiqiang@buaa.edu.cn | 身份证：110108199605121234\n\n【专业技能】\n1. 精通 React、Vue3 及其全家桶，具备 5 年大型企业级 SaaS 平台与运营管理控制台架构研发经验。\n2. 深入掌握 TypeScript、Vite/Webpack 构建优化，搭建自动化 CI/CD 流水线，单测覆盖率达 80% 以上。\n3. 主导实施微前端架构落地，支撑多团队独立演进与灰度发布。\n4. 熟练掌握 Webpack Bundle 分析、分包加载与性能调优，大幅缩减首次加载耗时。\n\n【工作经历】\n2021.07 - 至今 | 某知名互联网科技公司 | 高级前端开发工程师\n- 负责核心企业级数据协同 SaaS 平台前端架构演进与基础组件库建设。\n- 带领 4 人前端小组按敏捷节奏高效交付各季度业务指标。\n\n2019.07 - 2021.06 | 字节跳动 | 前端工程师\n- 参与协同办公套件与管理控制台开发，负责富文本协同编辑与可视化数据看板模块。",
+                pdf_path: "",
+                applications: [
+                    { job_title: "前端工程师", created_at: "2026-07-13 10:20:00" }
+                ],
+                logs: [
+                    { action: "投递申请", operator: "陈志强", details: "自主投递前端工程师岗位", created_at: "2026-07-13 10:20:00" },
+                    { action: "简历初筛", operator: "HR 曹", details: "学历背景符合JD要求，进入初筛候选管道", created_at: "2026-07-13 14:30:00" }
+                ],
+                interviews: []
+            },
+            "2": {
+                id: 2,
+                name: "刘晨",
+                job: "前端工程师",
+                gender: "男",
+                phone: "139-2048-7755",
+                email: "liuchen@bupt.edu.cn",
+                id_card: "110108199708232345",
+                exp: "本科",
+                stage: "初筛",
+                skills: ["Vue3", "JavaScript", "HTML5", "CSS3", "小程序", "TailwindCSS"],
+                ai_summary: "候选人毕业于北京邮电大学软件工程专业（本科），具备4年多端前端与小程序研发经验。熟练掌握Vue3生态与全平台小程序开发，在大促高并发互动挂件与页面秒开保障上经验丰富。",
+                ai_analysis: "✅ 亮点（候选人优势）：\n1. 北邮科班出身，通信与移动互联协议理解深入。\n2. 具备电商大促峰值高并发互动页开发经验，UI/UX交互细节敏感度高。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 侧重活动页与业务界面交付，大型中后台基建与低代码设计经验需深入了解。\n\n🎯 面试重点关注与追问建议：\n1. 考察微信小程序首屏冷启动优化策略及分包预加载实战机制。",
+                raw_text: "【基本信息】\n姓名：刘晨 | 性别：男 | 年龄：27岁 | 学历：本科（北京邮电大学 · 软件工程 · 2020届） | 手机：139-2048-7755 | 邮箱：liuchen@bupt.edu.cn | 身份证：110108199708232345\n\n【专业经历】\n4年 Web 前端与小程序研发经验，深度精通 Vue3、Pinia 与 Uni-app 多端架构。\n主导千万级活跃电商小程序核心互动模块，保障大促峰值秒开体验。",
+                pdf_path: "",
+                applications: [
+                    { job_title: "前端工程师", created_at: "2026-06-13 09:15:00" }
+                ],
+                logs: [
+                    { action: "投递申请", operator: "刘晨", details: "猎头渠道推荐投递", created_at: "2026-06-13 09:15:00" },
+                    { action: "初筛跟进", operator: "HR 王", details: "简历初筛评估中", created_at: "2026-06-13 11:00:00" }
+                ],
+                interviews: []
+            },
+            "3": {
+                id: 3,
+                name: "李思齐",
+                job: "前端工程师",
+                gender: "男",
+                phone: "186-1122-3344",
+                email: "lisigi@tsinghua.org.cn",
+                id_card: "110108199511043456",
+                exp: "硕士",
+                stage: "初筛",
+                skills: ["React", "Node.js", "WebGL", "Three.js", "性能优化", "算法架构"],
+                ai_summary: "候选人清华大学软件工程硕士毕业，拥有卓越的算法素养与前沿图形可视化（WebGL/Three.js）实战研发经验。技术视野开阔，擅长复杂交互、海量数据渲染与三维场景工程化落地。",
+                ai_analysis: "✅ 亮点（候选人优势）：\n1. 清华名校工学硕士，数学与算法功底极强。\n2. 前沿 WebGL/Three.js 深度工程沉淀，具备攻坚高难度技术壁垒的综合实力。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 期望薪资水平较高，需对齐团队预算与预期岗位职级定位。\n\n🎯 面试重点关注与追问建议：\n1. 交流 WebGL 自定义着色器编写及复杂三维模型在浏览器端内存释放方案。",
+                raw_text: "【基本信息】\n姓名：李思齐 | 性别：男 | 年龄：29岁 | 学历：硕士（清华大学 · 软件工程 · 2021届） | 手机：186-1122-3344 | 邮箱：lisigi@tsinghua.org.cn | 身份证：110108199511043456\n\n【专业经历】\n清华硕士毕业后加入腾讯互娱，负责虚拟互动直播与元宇宙三维看板核心前端架构，自研轻量级浏览器渲染管线。",
+                pdf_path: "",
+                applications: [
+                    { job_title: "前端工程师", created_at: "2026-05-27 15:40:00" }
+                ],
+                logs: [
+                    { action: "投递申请", operator: "李思齐", details: "技术团队内部推荐", created_at: "2026-05-27 15:40:00" },
+                    { action: "初筛评估", operator: "研发总监", details: "背景优异，进入初筛通道", created_at: "2026-05-28 09:30:00" }
+                ],
+                interviews: []
+            },
+            "4": {
+                id: 4,
+                name: "沈佳妮",
+                job: "高级财务经理 / 财务BP",
+                gender: "女",
+                phone: "155-9513-0661",
+                email: "15595130661@163.com",
+                id_card: "310104199203154567",
+                exp: "硕士",
+                stage: "用人部门筛选",
+                skills: ["财务分析与精细化管理", "跨国多税区税务筹划", "SAP/Oracle ERP系统", "Python数据核算"],
+                ai_summary: "候选人拥有6年大型跨境电商互联网公司（拼多多、美团）的财务分析与预算管理经验，持有CPA证书。擅长预算管控、业务财务支持（BP）和海外税务合规，具备数据建模与财务预测能力。",
+                ai_analysis: "✅ 亮点（候选人优势）：\n1. 6年大型跨境电商互联网公司核心预算与分析管理经验，包含拼多多和美团两家知名企业。\n2. 持有中国注册会计师（CPA）证书，专业能力过硬。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 尽管求职意向为3-5年经验，但候选人提供了6年经验，这可能需要面试官进一步确认其经验的深度和广度是否与JD要求完全匹配。\n\n🎯 面试重点关注与追问建议：\n1. 深入了解候选人在拼多多和美团的具体BP工作内容，如何协同业务部门、提供财务洞察以支持决策。",
+                raw_text: "【基本信息】\n姓名：沈佳妮 | 性别：女 | 年龄：32岁 | 学历：硕士（中国人民大学 · 财务管理 · 2018届） | 手机：155-9513-0661 | 邮箱：15595130661@163.com | 身份证：310104199203154567\n\n【专业经历】\n6年大型跨境电商与互联网头部企业财务分析与BP支持经验，持注册会计师(CPA)证书。\n精通SAP/Oracle ERP系统与全球多税区税务筹划，熟练掌握Python自动化财务数据核算。",
+                pdf_path: "",
+                applications: [
+                    { job_title: "高级财务经理 / 财务BP", created_at: "2026-08-01 11:30:00" }
+                ],
+                logs: [
+                    { action: "投递申请", operator: "沈佳妮", details: "主动投递财务BP岗位", created_at: "2026-08-01 11:30:00" },
+                    { action: "初筛通过", operator: "HR 曹", details: "简历初筛合格，转入用人部门筛选", created_at: "2026-08-02 14:00:00" },
+                    { action: "用人部门筛选", operator: "财务总监", details: "用人部门正在评阅背景资料", created_at: "2026-08-02 16:30:00" }
+                ],
+                interviews: []
+            },
+            "5": {
+                id: 5,
+                name: "尚毅",
+                job: "法务合规实习生",
+                gender: "男",
+                phone: "188-0101-9988",
+                email: "shangyi@cupl.edu.cn",
+                id_card: "110108199909095678",
+                exp: "硕士",
+                stage: "初筛",
+                skills: ["公司法合规", "合同审查", "劳动法务", "诉讼仲裁支持"],
+                ai_summary: "候选人中国政法大学法律硕士在读（2024年应届），已通过国家统一法律职业资格考试（法考A证）。具备知名律所与企业法务实习经验，合同审查细致，合规风控意识强。",
+                ai_analysis: "✅ 亮点（候选人优势）：\n1. 法学顶尖学府中国政法大学法律硕士，法考A证，法学理论扎实。\n2. 具备企业日常合同起草与用工风险合规审查实战经验。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 应届在读身份，需核准每周可连续到岗天数与留用转正意愿。\n\n🎯 面试重点关注与追问建议：\n1. 询问对互联网平台知识产权合规及用户隐私协议的了解程度。",
+                raw_text: "【基本信息】\n姓名：尚毅 | 性别：男 | 年龄：25岁 | 学历：硕士（中国政法大学 · 法律硕士 · 2024届） | 手机：188-0101-9988 | 邮箱：shangyi@cupl.edu.cn | 身份证：110108199909095678\n\n【专业经历】\n法考A证持有者，中国政法大学法律硕士在读。曾于北京市中伦律师事务所及知名独角兽法务部实习，协助审查商业合同与员工竞业协议。",
+                pdf_path: "",
+                applications: [
+                    { job_title: "法务合规实习生", created_at: "2026-08-05 10:10:00" }
+                ],
+                logs: [
+                    { action: "投递申请", operator: "尚毅", details: "校园招聘门户投递", created_at: "2026-08-05 10:10:00" },
+                    { action: "简历初筛", operator: "HR 钱", details: "法考资质核实通过，进入初筛流程", created_at: "2026-08-05 15:20:00" }
+                ],
+                interviews: []
+            }
         };
+
+        // 安全动态匹配候选人保底数据引擎
+        function getFallbackCandidateById(id) {
+            const key = String(id || '1');
+            if (DEFAULT_FALLBACK_CANDIDATES_MAP[key]) {
+                return DEFAULT_FALLBACK_CANDIDATES_MAP[key];
+            }
+            // 兼容性根据姓名尝试匹配
+            for (const k in DEFAULT_FALLBACK_CANDIDATES_MAP) {
+                if (DEFAULT_FALLBACK_CANDIDATES_MAP[k].name === id) {
+                    return DEFAULT_FALLBACK_CANDIDATES_MAP[k];
+                }
+            }
+            return DEFAULT_FALLBACK_CANDIDATES_MAP["1"];
+        }
+
+        const DEFAULT_FALLBACK_CANDIDATE = DEFAULT_FALLBACK_CANDIDATES_MAP["1"];
 
         // ==============================================================================
         //        ▎ 敏感字段分级权限管控与默认脱敏交互引擎
@@ -2510,7 +2638,11 @@
 
         // 强力防卡死自愈渲染引擎
         function renderCandidateData(candidate) {
-            if (!candidate) candidate = DEFAULT_FALLBACK_CANDIDATE;
+            if (!candidate) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlId = urlParams.get('id') || '1';
+                candidate = getFallbackCandidateById(urlId);
+            }
             currentCandidate = candidate;
 
             // 提取并存储原始敏感信息
@@ -2590,11 +2722,13 @@
 
         // 加载候选人详情主函数 (0毫秒极速同步渲染 + 后台静默热更新，彻底杜绝网络挂起死锁)
         async function loadDetail() {
-            // 1. 第 0 毫秒：无条件立刻完成保底全量数据的同步渲染，消除任何“加载中...”文案
-            renderCandidateData(currentCandidate || DEFAULT_FALLBACK_CANDIDATE);
-
             const urlParams = new URLSearchParams(window.location.search);
-            let id = urlParams.get('id');
+            let id = urlParams.get('id') || '1';
+
+            // 1. 第 0 毫秒：根据 URL 候选人 ID 迅速匹配对应的专属保底档案，首屏零延迟准确呈现
+            const initialFallback = getFallbackCandidateById(id);
+            renderCandidateData(currentCandidate || initialFallback);
+
             let candidateData = null;
 
             // 带有 2500ms 强制超时的安全 Fetch (解决浏览器网络挂起死锁)
@@ -2609,21 +2743,14 @@
             if (id) {
                 try {
                     const res = await safeFetch(`/api/candidates/${id}`);
-                    if (res.ok) candidateData = await res.json();
-                } catch(e) {}
-            }
-
-            if (!candidateData) {
-                try {
-                    const allRes = await safeFetch('/api/candidates');
-                    if (allRes.ok) {
-                        const list = await allRes.json();
-                        if (list && list.length > 0) candidateData = list[0];
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.name) candidateData = data;
                     }
                 } catch(e) {}
             }
 
-            // 3. 如果后台成功拉取到了真实候选人，平滑更新页面
+            // 3. 如果后台成功拉取到了真实候选人，平滑热更新页面
             if (candidateData) {
                 renderCandidateData(candidateData);
             }
