@@ -20,12 +20,14 @@ class Candidate(Base):
     match_score = Column(Integer, nullable=True) # 0-100 系统推荐匹配分
     match_reason = Column(Text, nullable=True) # 匹配维度点评
     pdf_path = Column(String(255))
+    id_card = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     # Relationships
     logs = relationship("CandidateLog", back_populates="candidate", cascade="all, delete-orphan", order_by="desc(CandidateLog.created_at)")
     applications = relationship("JobApplication", back_populates="candidate", cascade="all, delete-orphan", order_by="desc(JobApplication.created_at)")
+    interviews = relationship("Interview", back_populates="candidate", cascade="all, delete-orphan", order_by="desc(Interview.created_at)")
 
 class CandidateLog(Base):
     __tablename__ = "candidate_logs"
@@ -127,7 +129,7 @@ class Interview(Base):
     feedback_text = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
-    candidate = relationship("Candidate")
+    candidate = relationship("Candidate", back_populates="interviews")
 
 class User(Base):
     __tablename__ = "users"

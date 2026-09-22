@@ -54,11 +54,17 @@ try:
 except Exception as e:
     print(f"Failed to auto-seed startup data: {e}")
 
-# Auto-migrate: add phone column if it doesn't exist
+# Auto-migrate: add phone and id_card column if they don't exist
 from sqlalchemy import text
 try:
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE candidates ADD COLUMN phone VARCHAR(50);"))
+except Exception:
+    pass  # column already exists or other error
+
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE candidates ADD COLUMN id_card VARCHAR(50);"))
 except Exception:
     pass  # column already exists or other error
 

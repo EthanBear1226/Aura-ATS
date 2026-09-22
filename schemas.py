@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pydantic import BaseModel
 from typing import List, Optional, Any, Union
 from datetime import datetime
@@ -9,6 +10,7 @@ class CandidateBase(BaseModel):
     exp: str
     phone: Optional[str] = None
     email: Optional[str] = None
+    id_card: Optional[str] = None
     skills: Optional[List[str]] = []
     raw_text: Optional[str] = None
     ai_summary: Optional[str] = None
@@ -67,6 +69,7 @@ class Candidate(CandidateBase):
     updated_at: datetime
     logs: List[CandidateLog] = []
     applications: List[JobApplicationBase] = []
+    interviews: List[Interview] = []
 
     class Config:
         from_attributes = True
@@ -193,7 +196,7 @@ class Interview(InterviewCreate):
     feedback_result: Optional[str] = None
     feedback_text: Optional[str] = None
     created_at: datetime
-    candidate: Optional[CandidateBase] = None
+    candidate: Optional[Any] = None
     class Config: from_attributes = True
 
 # --- Workbench Dashboard Schemas ---
@@ -382,3 +385,5 @@ class OfferApprovalInstanceResponse(BaseModel):
 class OfferApprovalActionRequest(BaseModel):
     action: str  # "approve" / "reject"
     comment: Optional[str] = ""
+
+Candidate.model_rebuild()

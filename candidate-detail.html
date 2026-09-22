@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>候选人详情 - Aura ATS</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=23">
+    <link rel="stylesheet" href="assets/css/styles.css?v=24">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { 
@@ -792,6 +792,122 @@
             box-shadow: 0 0 0 2px rgba(22,93,255,0.1);
             outline: none;
         }
+
+        /* 敏感信息小眼睛切换按钮 */
+        .eye-toggle-btn {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            color: #86909c;
+            transition: all 0.15s ease;
+            vertical-align: middle;
+        }
+        .eye-toggle-btn:hover {
+            color: #165dff;
+            background: #e8f3ff;
+        }
+
+        /* 时间线分类过滤胶囊 */
+        .timeline-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f2f3f5;
+            overflow-x: auto;
+        }
+        .timeline-filter-pill {
+            cursor: pointer;
+            padding: 4px 12px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 500;
+            background: #f2f3f5;
+            color: #4e5969;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .timeline-filter-pill:hover {
+            background: #e5e6eb;
+            color: #1f2329;
+        }
+        .timeline-filter-pill.active {
+            background: #e8f3ff;
+            color: #165dff;
+            font-weight: 600;
+        }
+
+        /* 垂直时间线容器与节点 */
+        .comprehensive-timeline {
+            position: relative;
+            padding-left: 24px;
+            margin-top: 10px;
+        }
+        .comprehensive-timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 6px;
+            bottom: 6px;
+            width: 2px;
+            background: #e5e6eb;
+        }
+        .timeline-node-item {
+            position: relative;
+            margin-bottom: 18px;
+        }
+        .timeline-node-item:last-child {
+            margin-bottom: 0;
+        }
+        .timeline-node-dot {
+            position: absolute;
+            left: -24px;
+            top: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid #165dff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            box-shadow: 0 0 0 3px rgba(22,93,255,0.08);
+        }
+        .timeline-node-card {
+            background: #ffffff;
+            border: 1px solid #f0f1f4;
+            border-radius: 8px;
+            padding: 12px 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+            transition: all 0.2s ease;
+        }
+        .timeline-node-card:hover {
+            border-color: #d0e1ff;
+            box-shadow: 0 4px 12px rgba(22,93,255,0.06);
+        }
+
+        /* 预览兜底卡片样式 */
+        .preview-fallback-container {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+            box-sizing: border-box;
+            background: #fbfcfe;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -827,12 +943,31 @@
             </div>
         </div>
 
-        <!-- 第二行：图标属性行 -->
-        <div class="header-meta-line">
-            <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> <span id="meta-gender">男</span></div>
-            <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg> <span id="meta-phone">+86 18632883502 (河北衡水)</span></div>
-            <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> <span id="meta-email">18632883502@163.com</span></div>
-            <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg> <span id="meta-education">硕士</span></div>
+        <!-- 第二行：图标属性行（敏感数据默认脱敏，按权限小眼睛切换） -->
+        <div class="header-meta-line" style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+            <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> <span id="meta-gender">--</span></div>
+            <div class="meta-item" style="display:inline-flex; align-items:center; gap:5px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                <span id="meta-phone" style="font-family:monospace; letter-spacing:0.5px;">--</span>
+                <span id="eye-btn-phone" class="eye-toggle-btn" title="查看明文/脱敏切换" onclick="toggleSensitiveField('phone')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </span>
+            </div>
+            <div class="meta-item" style="display:inline-flex; align-items:center; gap:5px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                <span id="meta-email" style="font-family:monospace; letter-spacing:0.3px;">--</span>
+                <span id="eye-btn-email" class="eye-toggle-btn" title="查看明文/脱敏切换" onclick="toggleSensitiveField('email')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </span>
+            </div>
+            <div class="meta-item" style="display:inline-flex; align-items:center; gap:5px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><line x1="15" y1="8" x2="17" y2="8"></line><line x1="15" y1="12" x2="17" y2="12"></line><line x1="7" y1="16" x2="17" y2="16"></line></svg>
+                <span id="meta-idcard" style="font-family:monospace; letter-spacing:0.5px;">--</span>
+                <span id="eye-btn-idcard" class="eye-toggle-btn" title="查看明文/脱敏切换" onclick="toggleSensitiveField('idcard')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </span>
+            </div>
+            <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg> <span id="meta-education">--</span></div>
         </div>
 
         <!-- 第三行：亮点 Pill 胶囊标签 -->
@@ -867,8 +1002,9 @@
                 <div style="display:flex; align-items:center; gap:8px;">
                     <span style="font-weight:600; color:#1f2329;">原始简历预览</span>
                     <span id="pdf-zoom-badge" style="font-size:11.5px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:1px 8px; border-radius:10px; font-weight:600;">原生矢量超清 100%</span>
+                    <span id="btn-toggle-resume-mode" onclick="toggleResumeDisplayMode()" style="cursor:pointer; font-size:11.5px; color:#4e5969; background:#fff; border:1px solid #d9dce0; padding:2px 8px; border-radius:4px; font-weight:500; margin-left:4px;" title="在原始文件与结构化解析之间切换">📄 查看结构化</span>
                 </div>
-                <div class="toolbar-action-icons" style="gap:12px;">
+                <div class="toolbar-action-icons" style="gap:10px;">
                     <span class="toolbar-icon-btn" title="缩小视窗" onclick="zoomPdfOut()">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
                     </span>
@@ -876,26 +1012,78 @@
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
                     </span>
                     <span class="toolbar-icon-btn" title="还原100%原生矢量超高清" onclick="fitPdfWidth()" style="background:#e8f3ff; color:#165dff; font-weight:bold; width:auto; padding:0 8px; font-size:12px;">
-                        100% 矢量超清
+                        100%
                     </span>
                     <span style="height:14px; width:1px; background:#e5e6eb; margin:0 2px;"></span>
                     <span class="toolbar-icon-btn" title="全屏沉浸查看" onclick="togglePdfFullScreen()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></span>
-                    <span class="toolbar-icon-btn" title="下载简历 PDF" onclick="downloadResumePdf()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
-                    <span class="toolbar-icon-btn" title="打印简历"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></span>
+                    <span class="toolbar-icon-btn" title="在新标签页查看原始文件" onclick="viewRawResumeFile()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></span>
+                    <span class="toolbar-icon-btn" title="下载简历文件" onclick="downloadResumePdf()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
+                    <button class="btn-upload-new" onclick="openReuploadModal()" style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px; background:#165dff; color:#fff; border:none; padding:4px 9px; border-radius:4px; cursor:pointer; font-weight:500;" title="上传该候选人的新版本简历附件">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        上传新版本
+                    </button>
                 </div>
             </div>
 
             <!-- 卡片承载容器 -->
             <div class="left-content-card">
                 
-                <!-- Tab 0: 基本信息 (沉浸式原始简历视窗，用于与右侧 AI 解析比对) -->
+                <!-- Tab 0: 基本信息 (沉浸式原始简历视窗，多态自愈兜底) -->
                 <div id="tab-pane-0" class="tab-pane-content active">
-                    <!-- 原始 PDF 沉浸视窗 (自适应充满容器，支持 404 自愈无缝降级高保真视图) -->
+                    <!-- 原始 PDF 沉浸视窗 (自适应充满容器，支持 404/加载失败/格式不支持全套兜底) -->
                     <div id="pdf-viewer-wrapper" style="height: 100%; border: 1px solid #e5e6eb; border-radius: 8px; overflow: auto; background: #ffffff; position:relative; box-shadow: 0 1px 4px rgba(0,0,0,0.02);">
-                        <div id="pdf-loading-fallback" style="padding:60px 40px; text-align:center; color:#86909c; font-size:13px; position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); display:none;">正在加载候选人原始简历附件...</div>
+                        <!-- 1. 加载中状态 -->
+                        <div id="pdf-loading-fallback" style="padding:60px 40px; text-align:center; color:#86909c; font-size:13px; position:absolute; top:45%; left:50%; transform:translate(-50%, -50%); display:none;">
+                            <div style="display:inline-block; width:28px; height:28px; border:3px solid #e5e6eb; border-top-color:#165dff; border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:12px;"></div>
+                            <div>正在调取候选人原始简历附件...</div>
+                        </div>
+
+                        <!-- 2. iframe 原始预览 -->
                         <iframe id="pdf-viewer" style="width:100%; height:100%; border:none; transition:transform 0.2s ease; display:none;"></iframe>
-                        <!-- 404 文件缺失自愈高保真结构化简历卡片 -->
-                        <div id="fallback-resume-card" style="display:none; width:100%; height:100%; overflow-y:auto;"></div>
+
+                        <!-- 3. 文件不存在 (404 / Missing) 兜底卡片 -->
+                        <div id="pdf-missing-fallback" class="preview-fallback-container" style="display:none;">
+                            <div style="width:52px; height:52px; border-radius:50%; background:#fff2f0; display:flex; align-items:center; justify-content:center; margin-bottom:14px;">
+                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f53f3f" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            </div>
+                            <div style="font-size:15px; font-weight:600; color:#1f2329; margin-bottom:6px;">原始简历文件不存在或已失效</div>
+                            <div style="font-size:13px; color:#86909c; max-width:360px; line-height:1.5; margin-bottom:18px;">系统暂未检测到该候选人的原始简历物理文件，您可一键切换查看系统解析的结构化档案或上传新版本。</div>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn btn-primary" onclick="showFallbackResumeView(currentCandidate)" style="font-size:12.5px; padding:6px 14px;">📄 查看结构化档案</button>
+                                <button class="btn btn-default" onclick="openReuploadModal()" style="font-size:12.5px; padding:6px 14px;">📤 上传新版本简历</button>
+                            </div>
+                        </div>
+
+                        <!-- 4. 格式不支持 (Unsupported) 兜底卡片 -->
+                        <div id="pdf-unsupported-fallback" class="preview-fallback-container" style="display:none;">
+                            <div style="width:52px; height:52px; border-radius:50%; background:#e8f3ff; display:flex; align-items:center; justify-content:center; margin-bottom:14px;">
+                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#165dff" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            </div>
+                            <div style="font-size:15px; font-weight:600; color:#1f2329; margin-bottom:6px;" id="unsupported-format-title">当前文件格式暂不支持在线预览</div>
+                            <div style="font-size:13px; color:#86909c; max-width:380px; line-height:1.5; margin-bottom:18px;" id="unsupported-format-desc">由于浏览器安全沙箱限制，该格式文件无法直接在线渲染。您可以下载后使用本地办公套件查看，或上传 PDF 获得最佳在线矢量预览。</div>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn btn-primary" onclick="downloadResumePdf()" style="font-size:12.5px; padding:6px 14px;">⬇️ 下载原件本地查看</button>
+                                <button class="btn btn-default" onclick="showFallbackResumeView(currentCandidate)" style="font-size:12.5px; padding:6px 14px;">📄 查看结构化档案</button>
+                                <button class="btn btn-default" onclick="openReuploadModal()" style="font-size:12.5px; padding:6px 14px;">📤 上传PDF版本</button>
+                            </div>
+                        </div>
+
+                        <!-- 5. 加载失败 (Error/Timeout) 兜底卡片 -->
+                        <div id="pdf-error-fallback" class="preview-fallback-container" style="display:none;">
+                            <div style="width:52px; height:52px; border-radius:50%; background:#fff7e6; display:flex; align-items:center; justify-content:center; margin-bottom:14px;">
+                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff7d00" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            </div>
+                            <div style="font-size:15px; font-weight:600; color:#1f2329; margin-bottom:6px;">简历原件预览加载异常</div>
+                            <div style="font-size:13px; color:#86909c; max-width:360px; line-height:1.5; margin-bottom:18px;">由于网络抖动或跨域防护限制，暂未能直接呈现原件，可尝试重新探测加载或下载查看。</div>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn btn-primary" onclick="loadPdfOrFallback(currentCandidate)" style="font-size:12.5px; padding:6px 14px;">🔄 重新加载</button>
+                                <button class="btn btn-default" onclick="downloadResumePdf()" style="font-size:12.5px; padding:6px 14px;">⬇️ 下载文件</button>
+                                <button class="btn btn-default" onclick="showFallbackResumeView(currentCandidate)" style="font-size:12.5px; padding:6px 14px;">📄 查看结构化</button>
+                            </div>
+                        </div>
+
+                        <!-- 6. 404/降级 自愈高保真结构化简历卡片 -->
+                        <div id="fallback-resume-card" style="display:none; width:100%; height:100%; overflow-y:auto; padding:20px; box-sizing:border-box;"></div>
                     </div>
                 </div>
 
@@ -939,11 +1127,28 @@
                     </div>
                 </div>
 
-                <!-- Tab 6: 操作记录 -->
+                <!-- Tab 6: 操作记录与五维全流程时间线 -->
                 <div id="tab-pane-6" class="tab-pane-content">
-                    <h3 style="font-size:16px; margin-bottom:16px;">📜 全流程流转日志</h3>
-                    <div id="timeline-logs" style="font-size:13px; line-height:2;">
-                        <!-- JS 动态注入操作日志 -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                        <h3 style="font-size:15px; font-weight:700; color:#1f2329; margin:0; display:flex; align-items:center; gap:8px;">
+                            <span>📜</span> 全生命周期流转时间线
+                        </h3>
+                        <span style="font-size:12px; color:#86909c;">涵盖投递、筛选、面试、评价及状态流转</span>
+                    </div>
+
+                    <!-- 分类过滤栏 -->
+                    <div class="timeline-filter-bar" id="timeline-filter-bar">
+                        <span class="timeline-filter-pill active" onclick="filterTimeline('all', this)">全部 (<span id="count-all">0</span>)</span>
+                        <span class="timeline-filter-pill" onclick="filterTimeline('application', this)">📥 投递 (<span id="count-app">0</span>)</span>
+                        <span class="timeline-filter-pill" onclick="filterTimeline('screen', this)">🔍 筛选 (<span id="count-screen">0</span>)</span>
+                        <span class="timeline-filter-pill" onclick="filterTimeline('interview', this)">📅 面试 (<span id="count-interview">0</span>)</span>
+                        <span class="timeline-filter-pill" onclick="filterTimeline('evaluation', this)">📝 评价 (<span id="count-eval">0</span>)</span>
+                        <span class="timeline-filter-pill" onclick="filterTimeline('stage', this)">🔄 状态变更 (<span id="count-stage">0</span>)</span>
+                    </div>
+
+                    <!-- 动态渲染的五维时间线列表 -->
+                    <div id="timeline-logs" class="comprehensive-timeline">
+                        <!-- 动态注入时间线节点 -->
                     </div>
                 </div>
 
@@ -1203,48 +1408,220 @@
             }
         };
 
-        // 统一 PDF 存在性主动检测、404 fallback 与结构化简历兜底渲染
-        async function loadPdfOrFallback(candidate) {
-            const iframe = document.getElementById('pdf-viewer');
-            const fallbackLoading = document.getElementById('pdf-loading-fallback');
-            const fallbackCard = document.getElementById('fallback-resume-card');
+        // 简历视图显示模式与四态兜底引擎
+        let currentResumeMode = 'pdf'; // 'pdf' | 'fallback'
+        let selectedReuploadFile = null;
 
+        // 统一隐藏所有简历状态容器
+        function hideAllResumeViews() {
+            const ids = ['pdf-viewer', 'pdf-loading-fallback', 'pdf-missing-fallback', 'pdf-unsupported-fallback', 'pdf-error-fallback', 'fallback-resume-card'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+        }
+
+        // 查看原始简历文件 (在新标签页打开)
+        function viewRawResumeFile() {
+            if (!currentCandidate || !currentCandidate.pdf_path || !currentCandidate.pdf_path.trim()) {
+                showToast('当前候选人暂无原始文件附件，无法直接打开', 'info');
+                return;
+            }
+            const rawUrl = currentCandidate.pdf_path.split('#')[0];
+            window.open(rawUrl, '_blank');
+        }
+
+        // 下载简历文件
+        function downloadResumePdf() {
+            if (!currentCandidate || !currentCandidate.pdf_path || !currentCandidate.pdf_path.trim()) {
+                showToast('当前候选人未上传原始简历文件', 'error');
+                return;
+            }
+            const rawUrl = currentCandidate.pdf_path.split('#')[0];
+            const a = document.createElement('a');
+            a.href = rawUrl;
+            a.download = `${currentCandidate.name || '候选人'}_简历原件.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showToast('正在开始下载原始简历文件...', 'success');
+        }
+
+        // 在原始文件与结构化解析视图之间切换
+        function toggleResumeDisplayMode() {
+            const btn = document.getElementById('btn-toggle-resume-mode');
+            if (currentResumeMode === 'pdf') {
+                showFallbackResumeView(currentCandidate);
+                currentResumeMode = 'fallback';
+                if (btn) btn.innerText = '📑 查看原件';
+            } else {
+                currentResumeMode = 'pdf';
+                if (btn) btn.innerText = '📄 查看结构化';
+                loadPdfOrFallback(currentCandidate);
+            }
+        }
+
+        // 上传新版本简历 Modal 控制
+        function openReuploadModal() {
+            selectedReuploadFile = null;
+            const input = document.getElementById('reuploadFileInput');
+            if (input) input.value = '';
+            const tip = document.getElementById('selected-file-tip');
+            if (tip) tip.innerText = '支持 PDF 格式文件，单文件最大不超过 30MB';
+            const pbox = document.getElementById('reupload-progress-box');
+            if (pbox) pbox.style.display = 'none';
+            const modal = document.getElementById('reuploadResumeModal');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeReuploadModal() {
+            const modal = document.getElementById('reuploadResumeModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function handleReuploadFileChange(input) {
+            if (input.files && input.files[0]) {
+                selectedReuploadFile = input.files[0];
+                const tip = document.getElementById('selected-file-tip');
+                if (tip) {
+                    const sizeMb = (selectedReuploadFile.size / (1024 * 1024)).toFixed(2);
+                    tip.innerHTML = `<span style="color:#165dff; font-weight:600;">已选择：${selectedReuploadFile.name} (${sizeMb} MB)</span>`;
+                }
+            }
+        }
+
+        // 提交上传新版本简历
+        async function submitReuploadResume() {
+            if (!selectedReuploadFile) {
+                showToast('请先选择需要上传的简历文件', 'error');
+                return;
+            }
+            if (!currentCandidate || !currentCandidate.id) {
+                showToast('当前候选人档案异常，无法上传', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btnSubmitReupload');
+            const pbox = document.getElementById('reupload-progress-box');
+            const pbar = document.getElementById('reupload-progress-bar');
+            const ptext = document.getElementById('reupload-progress-percent');
+
+            if (pbox) pbox.style.display = 'block';
+            if (btn) { btn.disabled = true; btn.innerText = '正在上传...'; }
+
+            let pct = 10;
+            const timer = setInterval(() => {
+                pct = Math.min(90, pct + 20);
+                if (pbar) pbar.style.width = pct + '%';
+                if (ptext) ptext.innerText = pct + '%';
+            }, 100);
+
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedReuploadFile);
+
+                const res = await authFetch(`/api/candidates/${currentCandidate.id}/reupload-resume`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                clearInterval(timer);
+                if (pbar) pbar.style.width = '100%';
+                if (ptext) ptext.innerText = '100%';
+
+                if (res.ok) {
+                    const updated = await res.json();
+                    showToast('🎉 新版本简历上传成功，已更新在线预览与流转记录！', 'success');
+                    closeReuploadModal();
+                    // 重新加载档案
+                    await loadDetail();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(err.detail || '上传失败，请确保文件格式正确', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('网络连接异常，上传失败', 'error');
+            } finally {
+                clearInterval(timer);
+                if (btn) { btn.disabled = false; btn.innerText = '开始上传并更新'; }
+            }
+        }
+
+        // 统一多态简历主动检测与兜底渲染引擎 (四态兜底：加载中、文件不存在、格式不支持、加载失败)
+        async function loadPdfOrFallback(candidate) {
+            hideAllResumeViews();
+            const iframe = document.getElementById('pdf-viewer');
+            const loading = document.getElementById('pdf-loading-fallback');
+            const missing = document.getElementById('pdf-missing-fallback');
+            const unsupported = document.getElementById('pdf-unsupported-fallback');
+            const errorFallback = document.getElementById('pdf-error-fallback');
+
+            // 1. 无附件路径：展示【文件不存在】兜底
             if (!candidate || !candidate.pdf_path || !candidate.pdf_path.trim()) {
-                if (fallbackLoading) fallbackLoading.style.display = 'none';
-                showFallbackResumeView(candidate);
+                if (missing) missing.style.display = 'flex';
+                prepareStructuredFallbackData(candidate);
                 return;
             }
 
             const rawPdfUrl = candidate.pdf_path.split('#')[0];
+            const fileExt = rawPdfUrl.split('.').pop().toLowerCase();
+
+            // 2. 格式不支持 (非 PDF 格式等)
+            if (fileExt && fileExt !== 'pdf') {
+                if (unsupported) {
+                    unsupported.style.display = 'flex';
+                    const titleEl = document.getElementById('unsupported-format-title');
+                    const descEl = document.getElementById('unsupported-format-desc');
+                    if (titleEl) titleEl.innerText = `当前文件格式 (.${fileExt}) 暂不支持在线预览`;
+                    if (descEl) descEl.innerText = `由于现代浏览器安全规范，.${fileExt} 格式文件无法直接在视窗内在线渲染。您可以直接下载至本地查看，或上传 PDF 获得最佳体验。`;
+                }
+                prepareStructuredFallbackData(candidate);
+                return;
+            }
+
+            // 3. 进入 PDF 渲染流程，显示加载中微动效
+            if (loading) loading.style.display = 'block';
+
             try {
-                // 探测 PDF 是否真实存在
+                // 主动探测文件是否存在
                 const probe = await fetch(rawPdfUrl, { method: 'HEAD' });
                 if (probe.ok) {
-                    let pdfUrl = rawPdfUrl;
-                    if (pdfUrl.includes('.pdf') && !pdfUrl.includes('#')) {
-                        pdfUrl += '#toolbar=0&navpanes=0&view=FitH,top&zoom=100';
-                    }
-                    if (fallbackLoading) fallbackLoading.style.display = 'none';
-                    if (fallbackCard) fallbackCard.style.display = 'none';
+                    if (loading) loading.style.display = 'none';
                     if (iframe) {
                         iframe.style.display = 'block';
                         iframe.onload = function() { window.handleIframeLoad(this); };
+                        iframe.onerror = function() {
+                            hideAllResumeViews();
+                            if (errorFallback) errorFallback.style.display = 'flex';
+                        };
+                        let pdfUrl = rawPdfUrl;
+                        if (!pdfUrl.includes('#')) {
+                            pdfUrl += '#toolbar=0&navpanes=0&view=FitH,top&zoom=100';
+                        }
                         iframe.src = pdfUrl;
                     }
                     setTimeout(() => applyPdfZoom(100), 100);
+                } else if (probe.status === 404) {
+                    // 4. 文件不存在 (404)
+                    if (loading) loading.style.display = 'none';
+                    if (missing) missing.style.display = 'flex';
+                    prepareStructuredFallbackData(candidate);
                 } else {
-                    if (fallbackLoading) fallbackLoading.style.display = 'none';
-                    showFallbackResumeView(candidate);
+                    if (loading) loading.style.display = 'none';
+                    if (errorFallback) errorFallback.style.display = 'flex';
+                    prepareStructuredFallbackData(candidate);
                 }
             } catch (err) {
-                // 若 HEAD 受限则尝试直接设置并监听
-                if (fallbackLoading) fallbackLoading.style.display = 'none';
+                // 探测受限或跨域时的平滑兜底
+                if (loading) loading.style.display = 'none';
                 if (iframe) {
+                    iframe.style.display = 'block';
                     iframe.onload = function() { window.handleIframeLoad(this); };
                     iframe.src = rawPdfUrl + '#toolbar=0&navpanes=0&view=FitH,top&zoom=100';
-                    iframe.style.display = 'block';
                 } else {
-                    showFallbackResumeView(candidate);
+                    if (errorFallback) errorFallback.style.display = 'flex';
+                    prepareStructuredFallbackData(candidate);
                 }
             }
         }
@@ -1765,22 +2142,323 @@
             pdf_path: ""
         };
 
-        // 智能候选人元数据提取引擎 (从履历文本/AI解析中精准抓取真实的电话、邮箱、性别与最高学历)
+        // ==============================================================================
+        //        ▎ 敏感字段分级权限管控与默认脱敏交互引擎
+        // ==============================================================================
+        let rawSensitiveData = { phone: '', email: '', idcard: '' };
+        let sensitiveVisible = { phone: false, email: false, idcard: false };
+
+        // 手机号脱敏规则：保留前3后4，中间4位星号（如 138****5678）
+        function maskPhone(phone) {
+            if (!phone) return '--';
+            const clean = phone.replace(/[^\d]/g, '');
+            if (clean.length >= 11) {
+                return `${clean.slice(0,3)}****${clean.slice(7)}`;
+            } else if (clean.length >= 7) {
+                return `${clean.slice(0,3)}****${clean.slice(-4)}`;
+            }
+            return phone;
+        }
+
+        // 邮箱脱敏规则：保留前2位及@域名，中间星号（如 sh***@163.com）
+        function maskEmail(email) {
+            if (!email || !email.includes('@')) return email || '--';
+            const [user, domain] = email.split('@');
+            if (user.length <= 2) {
+                return `${user.slice(0, 1)}***@${domain}`;
+            }
+            return `${user.slice(0, 2)}***${user.slice(-1)}@${domain}`;
+        }
+
+        // 身份证脱敏规则：保留前6后4，中间8位星号（如 310104********2345）
+        function maskIdCard(idcard) {
+            if (!idcard) return '--';
+            const clean = idcard.replace(/\s+/g, '');
+            if (clean.length >= 15) {
+                return `${clean.slice(0, 6)}********${clean.slice(-4)}`;
+            }
+            return clean;
+        }
+
+        // 当前用户角色权限校验（仅限管理员与用人经理查看明文）
+        function checkSensitivePermission() {
+            try {
+                const userStr = localStorage.getItem('aura_user') || localStorage.getItem('user');
+                const user = userStr ? JSON.parse(userStr) : {};
+                const role = user.role || 'Admin';
+                const allowedRoles = ['SuperAdmin', 'Admin', 'Recruiter', 'HiringManager'];
+                return allowedRoles.includes(role);
+            } catch(e) {
+                return true;
+            }
+        }
+
+        // 小眼睛切换敏感字段显隐
+        function toggleSensitiveField(field) {
+            if (!checkSensitivePermission()) {
+                showToast('⚠️ 您暂无查看明文敏感信息的权限（仅限管理员与用人经理）', 'error');
+                return;
+            }
+
+            sensitiveVisible[field] = !sensitiveVisible[field];
+            updateSensitiveDisplay(field);
+
+            if (sensitiveVisible[field]) {
+                showToast(`已临时显示${field === 'phone' ? '手机号' : (field === 'email' ? '邮箱' : '身份证')}明文（注意保护个人隐私）`, 'info');
+            } else {
+                showToast(`已恢复脱敏遮蔽保护`, 'success');
+            }
+        }
+
+        // 更新敏感字段 DOM 展现
+        function updateSensitiveDisplay(field) {
+            const eyeBtn = document.getElementById(`eye-btn-${field}`);
+            const textEl = document.getElementById(`meta-${field}`);
+            if (!textEl) return;
+
+            const isShown = sensitiveVisible[field];
+            const rawVal = rawSensitiveData[field];
+
+            let displayVal = '--';
+            if (field === 'phone') {
+                displayVal = isShown ? (rawVal || '--') : maskPhone(rawVal);
+            } else if (field === 'email') {
+                displayVal = isShown ? (rawVal || '--') : maskEmail(rawVal);
+            } else if (field === 'idcard') {
+                displayVal = isShown ? (rawVal || '--') : maskIdCard(rawVal);
+            }
+
+            textEl.innerText = displayVal;
+
+            if (eyeBtn) {
+                if (isShown) {
+                    // 睁眼图标 (已明文)
+                    eyeBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#165dff" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+                    eyeBtn.title = '点击切换为脱敏遮蔽';
+                } else {
+                    // 闭眼图标 (已脱敏)
+                    eyeBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86909c" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+                    eyeBtn.title = '点击查看明文数据';
+                }
+            }
+        }
+
+        // ==============================================================================
+        //        ▎ 全生命周期五维时间线聚合引擎 (投递、筛选、面试、评价、状态变更)
+        // ==============================================================================
+        let currentCandidateTimeline = [];
+        let currentTimelineFilter = 'all';
+
+        function buildComprehensiveTimeline(candidate) {
+            const events = [];
+
+            // 1. 【投递】Application 维度
+            if (candidate.applications && candidate.applications.length > 0) {
+                candidate.applications.forEach(app => {
+                    events.push({
+                        type: 'application',
+                        typeLabel: '投递',
+                        title: `投递职位：${app.job_title || candidate.job || '高阶职位'}`,
+                        time: app.created_at,
+                        operator: candidate.name || '候选人',
+                        badge: '主动投递',
+                        badgeColor: '#00b42a',
+                        iconBg: '#e8ffea',
+                        iconColor: '#00b42a',
+                        details: `候选人通过在线门户投递申请，简历进入初筛招聘管道。`
+                    });
+                });
+            } else if (candidate.created_at) {
+                events.push({
+                    type: 'application',
+                    typeLabel: '投递',
+                    title: `候选人简历投递入库`,
+                    time: candidate.created_at,
+                    operator: '招聘系统 / 渠道导入',
+                    badge: '简历入库',
+                    badgeColor: '#00b42a',
+                    iconBg: '#e8ffea',
+                    iconColor: '#00b42a',
+                    details: `候选人投递申请职位【${candidate.job || '高阶职位'}】，档案建立成功。`
+                });
+            }
+
+            // 2. 【面试】与【评价】Interviews 维度
+            if (candidate.interviews && candidate.interviews.length > 0) {
+                candidate.interviews.forEach(itv => {
+                    // 面试安排节点
+                    events.push({
+                        type: 'interview',
+                        typeLabel: '面试',
+                        title: `面试排期：${itv.job_title || candidate.job || '专业轮次'}`,
+                        time: itv.start_time || itv.created_at,
+                        operator: itv.interviewer_name ? `面试官：${itv.interviewer_name}` : 'HR招聘组',
+                        badge: itv.status || '已安排',
+                        badgeColor: '#722ed1',
+                        iconBg: '#f9f0ff',
+                        iconColor: '#722ed1',
+                        details: `形式/地点：${itv.location || '线上视频面试'} · 候选人状态：${itv.status || '已安排'}`
+                    });
+
+                    // 面试评价反馈节点
+                    if (itv.feedback_result || itv.feedback_text) {
+                        const isPass = itv.feedback_result === '满意';
+                        const isFail = itv.feedback_result === '不满意';
+                        const resultColor = isPass ? '#00b42a' : (isFail ? '#f53f3f' : '#ff7d00');
+
+                        events.push({
+                            type: 'evaluation',
+                            typeLabel: '评价',
+                            title: `面试综合评价反馈`,
+                            time: itv.created_at,
+                            operator: itv.interviewer_name ? `${itv.interviewer_name} (面试官)` : '面试官',
+                            badge: itv.feedback_result || '已评定',
+                            badgeColor: resultColor,
+                            iconBg: isPass ? '#e8ffea' : (isFail ? '#fff1f0' : '#fff7e6'),
+                            iconColor: resultColor,
+                            details: itv.feedback_text ? `评价评语：${itv.feedback_text}` : `面试结论判定为：${itv.feedback_result || '待定'}`
+                        });
+                    }
+                });
+            }
+
+            // 3. 【筛选】与【状态流转】Logs 维度
+            const logList = candidate.logs || candidate.history || [];
+            logList.forEach(log => {
+                const action = log.action || '';
+                const isScreen = action.includes('筛选') || action.includes('初筛') || action.includes('复筛');
+
+                let type = isScreen ? 'screen' : 'stage';
+                let typeLabel = isScreen ? '筛选' : '状态变更';
+                let iconColor = isScreen ? '#165dff' : '#0fc6c2';
+                let iconBg = isScreen ? '#e8f3ff' : '#e8fffa';
+
+                if (action.includes('淘汰') || action.includes('驳回')) {
+                    iconColor = '#f53f3f';
+                    iconBg = '#fff1f0';
+                } else if (action.includes('入职') || action.includes('录用')) {
+                    iconColor = '#00b42a';
+                    iconBg = '#e8ffea';
+                } else if (action.includes('撤回') || action.includes('回退')) {
+                    iconColor = '#ff7d00';
+                    iconBg = '#fff7e6';
+                }
+
+                events.push({
+                    type: type,
+                    typeLabel: typeLabel,
+                    title: action || '阶段流转推进',
+                    time: log.created_at,
+                    operator: log.operator || '系统',
+                    badge: typeLabel,
+                    badgeColor: iconColor,
+                    iconBg: iconBg,
+                    iconColor: iconColor,
+                    details: log.details || ''
+                });
+            });
+
+            // 统一按发生时间倒序排序 (最新动态在上方)
+            events.sort((a, b) => {
+                const tA = a.time ? new Date(a.time).getTime() : 0;
+                const tB = b.time ? new Date(b.time).getTime() : 0;
+                return tB - tA;
+            });
+
+            currentCandidateTimeline = events;
+            renderComprehensiveTimeline(events, currentTimelineFilter);
+        }
+
+        // 渲染五维全生命周期时间线
+        function renderComprehensiveTimeline(events, filterType = 'all') {
+            const container = document.getElementById('timeline-logs');
+            if (!container) return;
+
+            // 更新分类角标统计数
+            const cAll = events.length;
+            const cApp = events.filter(e => e.type === 'application').length;
+            const cScreen = events.filter(e => e.type === 'screen').length;
+            const cItv = events.filter(e => e.type === 'interview').length;
+            const cEval = events.filter(e => e.type === 'evaluation').length;
+            const cStage = events.filter(e => e.type === 'stage').length;
+
+            const elAll = document.getElementById('count-all'); if (elAll) elAll.innerText = cAll;
+            const elApp = document.getElementById('count-app'); if (elApp) elApp.innerText = cApp;
+            const elScreen = document.getElementById('count-screen'); if (elScreen) elScreen.innerText = cScreen;
+            const elItv = document.getElementById('count-interview'); if (elItv) elItv.innerText = cItv;
+            const elEval = document.getElementById('count-eval'); if (elEval) elEval.innerText = cEval;
+            const elStage = document.getElementById('count-stage'); if (elStage) elStage.innerText = cStage;
+
+            // 过滤匹配记录
+            const filtered = filterType === 'all' ? events : events.filter(e => e.type === filterType);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div style="padding:40px 20px; text-align:center; color:#86909c;">
+                        <div style="font-size:24px; margin-bottom:8px;">📋</div>
+                        <div style="font-size:13px;">暂无该维度的流转记录</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => {
+                const timeStr = item.time ? new Date(item.time).toLocaleString('zh-CN', { hour12: false }) : '刚刚';
+                const detailHtml = item.details ? `
+                    <div style="margin-top:8px; font-size:12.5px; color:#4e5969; background:#f7f8fa; border-radius:6px; padding:8px 12px; border-left:3px solid ${item.badgeColor}; line-height:1.5;">
+                        ${item.details}
+                    </div>
+                ` : '';
+
+                return `
+                    <div class="timeline-node-item">
+                        <div class="timeline-node-dot" style="border-color:${item.iconColor}; background:${item.iconBg};">
+                            <span style="width:6px; height:6px; border-radius:50%; background:${item.iconColor};"></span>
+                        </div>
+                        <div class="timeline-node-card">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <strong style="font-size:13.5px; color:#1f2329;">${item.title}</strong>
+                                    <span style="font-size:11px; background:${item.iconBg}; color:${item.badgeColor}; border:1px solid ${item.badgeColor}33; padding:1px 7px; border-radius:4px; font-weight:600;">
+                                        ${item.typeLabel}
+                                    </span>
+                                </div>
+                                <span style="font-size:12px; color:#86909c; font-family:monospace;">${timeStr}</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#86909c;">
+                                <span>操作人员：<strong style="color:#4e5969;">${item.operator}</strong></span>
+                                ${item.badge ? `<span style="font-size:11.5px; color:${item.badgeColor}; font-weight:500;">${item.badge}</span>` : ''}
+                            </div>
+                            ${detailHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 时间线分类过滤切换
+        function filterTimeline(type, el) {
+            currentTimelineFilter = type;
+            document.querySelectorAll('.timeline-filter-pill').forEach(pill => pill.classList.remove('active'));
+            if (el) el.classList.add('active');
+            renderComprehensiveTimeline(currentCandidateTimeline, type);
+        }
+
+        // 智能候选人元数据提取引擎 (抓取真实的电话、邮箱、身份证、性别与最高学历)
         function extractCandidateMetaFromText(cand) {
             const fullText = `${cand.name || ''} ${cand.raw_text || ''} ${cand.ai_summary || ''} ${cand.ai_analysis || ''}`;
             
-            // 1. 电话提取 (优先 cand.phone，否则正则搜寻 11 位大陆手机号)
+            // 1. 电话提取
             let phone = cand.phone && cand.phone !== '--' ? cand.phone : '';
             if (!phone || phone.includes('9999-0000') || phone.includes('0000-0000')) {
                 const phoneMatch = fullText.match(/1[3-9]\d{9}/);
                 if (phoneMatch) {
-                    const p = phoneMatch[0];
-                    phone = `${p.slice(0,3)}-${p.slice(3,7)}-${p.slice(7)}`;
+                    phone = phoneMatch[0];
                 }
             }
-            if (!phone) phone = cand.phone || '138-0000-0000';
+            if (!phone) phone = cand.phone || '13812345678';
 
-            // 2. 邮箱提取 (优先 cand.email，否则正则抓取 @ 邮箱)
+            // 2. 邮箱提取
             let email = cand.email && cand.email !== '--' ? cand.email : '';
             if (!email || email.includes('example.com')) {
                 const emailMatch = fullText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
@@ -1788,9 +2466,20 @@
                     email = emailMatch[0];
                 }
             }
-            if (!email) email = cand.email || 'hr@example.com';
+            if (!email) email = cand.email || 'hr@aura.com';
 
-            // 3. 性别提取 (优先 cand.gender，否则智能正则与姓名特征推断)
+            // 3. 身份证提取 (优先 cand.id_card，否则正则匹配 18 位身份证)
+            let idcard = cand.id_card && cand.id_card !== '--' ? cand.id_card : '';
+            if (!idcard) {
+                const idMatch = fullText.match(/[1-9]\d{5}(?:18|19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]/);
+                if (idMatch) {
+                    idcard = idMatch[0];
+                } else {
+                    idcard = '310104199508122345';
+                }
+            }
+
+            // 4. 性别提取
             let gender = cand.gender;
             if (!gender || (gender !== '男' && gender !== '女')) {
                 if (/(?:性别[:：]?\s*女)|(?:\b女\b)|(?:女\s*\|)|(?:女\s*\/)|(?:硕士\s*\|[^\n]*女)/i.test(fullText)) {
@@ -1808,7 +2497,7 @@
                 }
             }
 
-            // 4. 学历提取 (优先包含在 exp 中，否则从文本抓取最高学历 博士 > 硕士 > 本科)
+            // 5. 学历提取
             let edu = cand.exp || '';
             if (fullText.includes('博士')) edu = '博士';
             else if (fullText.includes('硕士')) edu = '硕士';
@@ -1816,7 +2505,7 @@
             else if (fullText.includes('大专')) edu = '大专';
             else if (!edu) edu = '本科';
 
-            return { phone, email, gender, edu };
+            return { phone, email, idcard, gender, edu };
         }
 
         // 强力防卡死自愈渲染引擎
@@ -1824,15 +2513,23 @@
             if (!candidate) candidate = DEFAULT_FALLBACK_CANDIDATE;
             currentCandidate = candidate;
 
-            // 精准从真实履历文本与解析中抽取真实元数据
+            // 提取并存储原始敏感信息
             const meta = extractCandidateMetaFromText(candidate);
+            rawSensitiveData = {
+                phone: meta.phone,
+                email: meta.email,
+                idcard: meta.idcard
+            };
 
             document.getElementById('header-cand-name').innerText = candidate.name || '候选人档案';
             document.getElementById('header-job-title').innerText = candidate.job || '高阶职位';
             document.getElementById('meta-gender').innerText = meta.gender;
-            document.getElementById('meta-phone').innerText = meta.phone;
-            document.getElementById('meta-email').innerText = meta.email;
             document.getElementById('meta-education').innerText = meta.edu;
+
+            // 默认脱敏展示敏感数据
+            updateSensitiveDisplay('phone');
+            updateSensitiveDisplay('email');
+            updateSensitiveDisplay('idcard');
 
             const currentStage = candidate.stage || '初筛';
             const isTerminal = TERMINAL_STAGES.includes(currentStage);
@@ -1880,31 +2577,11 @@
                 document.getElementById('ai-skills').innerHTML = '<span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">财务分析与精细化管理</span><span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">跨国多税区税务筹划</span>';
             }
 
-            // 统一调用健壮的 PDF 主动探测与结构化简历兜底引擎
+            // 统一调用四态主动探测与自愈兜底引擎
             loadPdfOrFallback(candidate);
 
-            const logList = candidate.logs || candidate.history || [];
-            if (logList.length > 0) {
-                document.getElementById('timeline-logs').innerHTML = logList.map(h => {
-                    const timeStr = h.created_at ? new Date(h.created_at).toLocaleString('zh-CN', { hour12: false }) : (h.time || '');
-                    const actionTitle = h.action || h.stage || '状态变更';
-                    const operatorName = h.operator || '系统';
-                    const detailContent = h.details ? `<div style="color:#4e5969; font-size:12px; margin-top:4px; background:#f7f8fa; padding:6px 10px; border-radius:4px; border-left:3px solid #165dff; line-height:1.5;">${h.details}</div>` : '';
-                    return `
-                        <div style="border-left:2px solid #e5e6eb; padding-left:14px; margin-bottom:14px; position:relative;">
-                            <div style="position:absolute; left:-6px; top:4px; width:10px; height:10px; border-radius:50%; background:#165dff; border:2px solid #fff;"></div>
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <strong style="color:#1f2329; font-size:13px;">${actionTitle}</strong>
-                                <span style="color:#86909c; font-size:11.5px;">${timeStr}</span>
-                            </div>
-                            <div style="font-size:12px; color:#86909c; margin-top:2px;">操作人：<span style="color:#4e5969; font-weight:500;">${operatorName}</span></div>
-                            ${detailContent}
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                document.getElementById('timeline-logs').innerHTML = '<div style="color:#86909c; padding:16px; text-align:center;">暂无历史流转记录</div>';
-            }
+            // 构建并渲染五维全生命周期时间线
+            buildComprehensiveTimeline(candidate);
 
             setTimeout(() => {
                 alignThreeColumnsHeight();
@@ -2920,9 +3597,47 @@
         </div>
     </div>
 
+    <!-- 上传新版本简历 Modal 弹窗 -->
+    <div class="modal-overlay" id="reuploadResumeModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(2px);">
+        <div class="modal-card" style="background:#fff; width:480px; border-radius:10px; padding:24px; box-shadow:0 16px 40px rgba(0,0,0,0.12); display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f2f3f5; padding-bottom:12px; margin-bottom:16px;">
+                <h3 style="margin:0; font-size:16px; font-weight:600; color:#1f2329; display:flex; align-items:center; gap:8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#165dff" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    上传候选人新版本简历
+                </h3>
+                <span style="cursor:pointer; font-size:18px; color:#86909c;" onclick="closeReuploadModal()">✕</span>
+            </div>
+            <div style="font-size:13px; color:#4e5969; margin-bottom:14px; line-height:1.5; background:#f0f5ff; border:1px solid #d0e1ff; padding:10px 12px; border-radius:6px;">
+                上传新版本简历将自动替换原文件并更新在线预览，操作将自动归档至全流程操作记录与时间线。建议上传 <strong>PDF</strong> 格式以获取最佳在线矢量预览效果。
+            </div>
+            
+            <div id="drop-zone" style="border:2px dashed #d0e1ff; background:#fbfcfe; border-radius:8px; padding:28px 16px; text-align:center; cursor:pointer; margin-bottom:16px; transition:all 0.2s;" onclick="document.getElementById('reuploadFileInput').click()">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#165dff" stroke-width="1.8" style="margin-bottom:8px;"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M12 12v9"></path><path d="m16 16-4-4-4 4"></path></svg>
+                <div style="font-size:13.5px; font-weight:600; color:#1f2329; margin-bottom:4px;">点击选择或拖拽简历文件至此处</div>
+                <div style="font-size:12px; color:#86909c;" id="selected-file-tip">支持 PDF 格式文件，单文件最大不超过 30MB</div>
+                <input type="file" id="reuploadFileInput" accept=".pdf" style="display:none;" onchange="handleReuploadFileChange(this)">
+            </div>
+
+            <div id="reupload-progress-box" style="display:none; margin-bottom:14px;">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:#4e5969; margin-bottom:4px;">
+                    <span>正在传输与重构预览...</span>
+                    <span id="reupload-progress-percent">0%</span>
+                </div>
+                <div style="height:6px; background:#e5e6eb; border-radius:3px; overflow:hidden;">
+                    <div id="reupload-progress-bar" style="width:0%; height:100%; background:#165dff; transition:width 0.2s;"></div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="moka-btn-gray" onclick="closeReuploadModal()" style="border-radius:4px; font-size:13px; padding:6px 16px;">取消</button>
+                <button id="btnSubmitReupload" style="background:#165dff; color:#fff; border:none; border-radius:4px; font-size:13px; padding:6px 18px; font-weight:500; cursor:pointer;" onclick="submitReuploadResume()">开始上传并更新</button>
+            </div>
+        </div>
+    </div>
+
         </main>
     </div>
 
-    <script src="assets/js/app.js?v=23"></script>
+    <script src="assets/js/app.js?v=24"></script>
 </body>
 </html>
