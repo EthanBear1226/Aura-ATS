@@ -32,13 +32,33 @@ SQLALCHEMY_DATABASE_URL = raw_url
 
 # 如果是 MySQL，在创建主引擎前，先确保数据库本身存在
 if SQLALCHEMY_DATABASE_URL.startswith("mysql+pymysql://"):
-    from sqlalchemy_utils import database_exists, create_database
     try:
-        if not database_exists(SQLALCHEMY_DATABASE_URL):
-            create_database(SQLALCHEMY_DATABASE_URL)
-            print("Successfully created missing MySQL database automatically.")
+        from sqlalchemy.engine import make_url
+        import pymysql
+
+        parsed_url = make_url(SQLALCHEMY_DATABASE_URL)
+        database_name = parsed_url.database
+        if database_name:
+            connection = pymysql.connect(
+                host=parsed_url.host or "localhost",
+                port=parsed_url.port or 3306,
+                user=parsed_url.username or "root",
+                password=parsed_url.password or "",
+                charset="utf8mb4",
+                autocommit=True,
+            )
+            try:
+                with connection.cursor() as cursor:
+                    safe_database_name = database_name.replace("`", "``")
+                    cursor.execute(
+                        f"CREATE DATABASE IF NOT EXISTS `{safe_database_name}` "
+                        "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+                    )
+                print("Successfully ensured MySQL database exists.")
+            finally:
+                connection.close()
     except Exception as e:
-        print(f"Warning: Failed to auto-create database: {e}")
+        print(f"Warning: Failed to ensure MySQL database exists: {e}")
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,

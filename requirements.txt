@@ -6,7 +6,6 @@ python-dotenv
 python-multipart
 sqlalchemy
 pymysql
-sqlalchemy_utils
 pyjwt
 pytest
 httpx2

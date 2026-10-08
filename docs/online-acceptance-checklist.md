@@ -100,3 +100,5 @@ After GitHub deployment finishes, verify:
 - Running `python main.py` now disables uvicorn reload by default; set `AURA_RELOAD=true` only for local development.
 
 Recheck after commits `351072c` and `a924c72`: `/healthz`, `/login.html`, and `/api/public/jobs/1` still return Zeabur `502: SERVICE_UNAVAILABLE`. The request does not reach the FastAPI app, so the next required artifact is Zeabur build/runtime logs.
+
+Runtime log root cause found: `database.py` imported `sqlalchemy_utils`, which crashed on Zeabur with `AttributeError: module 'sqlalchemy.orm.attributes' has no attribute 'ScalarAttributeImpl'`. The dependency was removed and MySQL database bootstrap now uses native `pymysql`.
