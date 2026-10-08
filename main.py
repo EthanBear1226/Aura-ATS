@@ -20,8 +20,12 @@ import schemas
 import services
 from database import engine, get_db
 
-# Create database tables
-models.Base.metadata.create_all(bind=engine)
+# Create database tables. Keep startup observable if a remote database is
+# temporarily unavailable; health checks will expose dependency status.
+try:
+    models.Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Database startup check failed: {e}")
 
 # 自动注入隐藏审计日志种子与默认Offer审批流（如果表为空）
 from database import SessionLocal
@@ -301,6 +305,18 @@ init_admin_user()
 load_dotenv()
 
 app = FastAPI(title="Aura API", description="Backend API for Aura Recruitment System")
+
+@app.get("/healthz")
+def healthz():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "ok"}
+    except Exception as e:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "degraded", "database": "error", "detail": str(e)[:300]},
+        )
 
 
 app.add_middleware(

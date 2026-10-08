@@ -37,6 +37,7 @@ Do not delete historical artifacts blindly. The repo currently contains many gen
 - Candidate sensitive fields masked by default and explicit reveal limited to authorized HR/admin roles.
 - Offer approval detail/action ownership checks.
 - Public resume upload rejects non-PDF files and oversized PDFs.
+- Deployment health check verifies app/database readiness via `/healthz`.
 - Frontend static checks for fake controls and stray interview drawer mounts.
 
 ## Next Coverage Targets

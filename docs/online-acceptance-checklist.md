@@ -82,3 +82,17 @@ Follow-up:
 - Check Zeabur runtime logs for startup exceptions.
 - Confirm `PORT` is passed to `main.py` and the app binds `0.0.0.0`.
 - Re-run this checklist after the deployment becomes reachable.
+
+## Deployment Hardening - 2026-10-08
+
+Local follow-up completed:
+
+- Added `.dockerignore` so Zeabur/Docker builds do not package local virtual environments, SQLite databases, uploads, logs, screenshots, or historical tool artifacts.
+- Added `/healthz` to expose app/database readiness.
+- Wrapped initial `create_all` startup work so a temporary remote database problem is printed and diagnosable instead of hiding behind an import-time crash.
+
+After GitHub deployment finishes, verify:
+
+- `GET /healthz` returns `{"status":"ok","database":"ok"}`.
+- `GET /login.html` loads the login page instead of Zeabur 502.
+- If `/healthz` returns `503`, inspect `detail` and Zeabur database environment variables first.

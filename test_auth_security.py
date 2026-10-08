@@ -1,6 +1,14 @@
 import models
 
 
+def test_health_check_reports_database_status(client):
+    response = client.get("/healthz")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "ok"
+    assert response.json()["database"] == "ok"
+
+
 def test_internal_business_apis_require_login(client):
     protected_endpoints = [
         "/api/candidates",
