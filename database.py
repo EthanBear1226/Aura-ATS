@@ -119,7 +119,8 @@ def auto_migrate_columns():
             conn.commit()
             print("Auto seeding: initialized high quality JD for demo jobs")
         except Exception as e:
-            print(f"Auto seeding skipped: {e}")
+            if "no such table" not in str(e).lower():
+                print(f"Auto seeding skipped: {e}")
 
 # 立即执行一次自动平滑迁移与数据初始化
 try:

@@ -110,4 +110,36 @@ python main.py
 *   详细的日常开发决策与版本里程碑见：[Progress_Newton-(牛顿).md](Progress_Newton-(牛顿).md)。
 *   V2.6 -> V3.0 的生产化迁移蓝图见：[Aura_V2.6_至_V3.0_生产化演进蓝图.md](进度汇报/Aura_V2.6_至_V3.0_生产化演进蓝图.md)。
 
+## 自动化测试
 
+项目提供后端接口回归测试、候选人生命周期测试、Offer 审批测试、鉴权安全测试和前端伪功能静态回归测试。
+
+推荐运行方式：
+
+```powershell
+$env:AURA_TEST_DATABASE_URL="sqlite:///C:/path/to/aura-test.db"
+.\venv\Scripts\python.exe run_tests.py
+```
+
+测试运行器只允许使用 SQLite 测试库，并拒绝对 MySQL/PostgreSQL 执行清库操作。
+
+GitHub Actions 已配置 `.github/workflows/aura-tests.yml`，会在 push / PR 时运行同一套回归测试。
+
+如本机 pytest 环境可稳定退出，也可以使用：
+
+```powershell
+$env:AURA_TEST_DATABASE_URL="sqlite:///C:/path/to/aura-test.db"
+.\venv\Scripts\python.exe -m pytest -q
+```
+
+覆盖范围包括：
+
+- 未登录访问内部接口必须返回 `401`
+- 公开职位详情无需登录可访问
+- 候选人阶段推进、终态保护和操作日志
+- Offer 字段配置静态路由不被动态 ID 路由捕获
+- Offer 待审批与我的发起接口序列化
+- 系统设置基础 CRUD
+- 非管理员/面试官关键权限边界必须返回 `403`
+- 候选人页伪功能入口清理
+- 无关页面不应常驻面试安排抽屉

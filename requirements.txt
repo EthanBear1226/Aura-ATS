@@ -8,4 +8,6 @@ sqlalchemy
 pymysql
 sqlalchemy_utils
 pyjwt
+pytest
+httpx2
 

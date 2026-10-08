@@ -28,12 +28,12 @@ from database import SessionLocal
 try:
     db_seed = SessionLocal()
     if db_seed.query(models.UserLoginLog).count() == 0:
-        import datetime
-        now = datetime.datetime.utcnow()
-        db_seed.add(models.UserLoginLog(email="hr@aura.com", login_time=now - datetime.timedelta(hours=5), is_online=False))
-        db_seed.add(models.UserLoginLog(email="manager@aura.com", login_time=now - datetime.timedelta(hours=2), is_online=False))
-        db_seed.add(models.UserLoginLog(email="interviewer@aura.com", login_time=now - datetime.timedelta(minutes=45), is_online=False))
-        db_seed.add(models.UserLoginLog(email="admin@aura.com", login_time=now - datetime.timedelta(minutes=5), is_online=True))
+        import datetime as dt
+        now = dt.datetime.utcnow()
+        db_seed.add(models.UserLoginLog(email="hr@aura.com", login_time=now - dt.timedelta(hours=5), is_online=False))
+        db_seed.add(models.UserLoginLog(email="manager@aura.com", login_time=now - dt.timedelta(hours=2), is_online=False))
+        db_seed.add(models.UserLoginLog(email="interviewer@aura.com", login_time=now - dt.timedelta(minutes=45), is_online=False))
+        db_seed.add(models.UserLoginLog(email="admin@aura.com", login_time=now - dt.timedelta(minutes=5), is_online=True))
         db_seed.commit()
         
     if db_seed.query(models.OfferApprovalRule).count() == 0:

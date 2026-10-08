@@ -212,7 +212,12 @@ class FeishuNotificationService:
         print(f"\n[Feishu Integration] =========================================")
         print(f"[Feishu Integration] 成功向 {step['approver_email']} 发送飞书交互消息卡片:")
         import json
-        print(json.dumps(feishu_card, ensure_ascii=False, indent=2))
+        card_json = json.dumps(feishu_card, ensure_ascii=False, indent=2)
+        try:
+            print(card_json)
+        except UnicodeEncodeError:
+            safe_json = card_json.encode("utf-8", errors="replace").decode("utf-8")
+            print(safe_json.encode("gbk", errors="replace").decode("gbk"))
         print(f"[Feishu Integration] =========================================\n")
         return True
 
