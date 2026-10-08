@@ -96,3 +96,5 @@ After GitHub deployment finishes, verify:
 - `GET /healthz` returns `{"status":"ok","database":"ok"}`.
 - `GET /login.html` loads the login page instead of Zeabur 502.
 - If `/healthz` returns `503`, inspect `detail` and Zeabur database environment variables first.
+- If Zeabur does not use the Dockerfile path, `zbpack.json` pins Python `3.11`, `main.py`, and `pip` as the fallback Python build configuration.
+- Running `python main.py` now disables uvicorn reload by default; set `AURA_RELOAD=true` only for local development.
