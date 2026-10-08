@@ -98,3 +98,5 @@ After GitHub deployment finishes, verify:
 - If `/healthz` returns `503`, inspect `detail` and Zeabur database environment variables first.
 - If Zeabur does not use the Dockerfile path, `zbpack.json` pins Python `3.11`, `main.py`, and `pip` as the fallback Python build configuration.
 - Running `python main.py` now disables uvicorn reload by default; set `AURA_RELOAD=true` only for local development.
+
+Recheck after commits `351072c` and `a924c72`: `/healthz`, `/login.html`, and `/api/public/jobs/1` still return Zeabur `502: SERVICE_UNAVAILABLE`. The request does not reach the FastAPI app, so the next required artifact is Zeabur build/runtime logs.
