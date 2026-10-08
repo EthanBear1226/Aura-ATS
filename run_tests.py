@@ -21,6 +21,7 @@ TEST_MODULES = [
     "test_offer_approvals_api",
     "test_frontend_practicality_static",
     "test_role_permissions",
+    "test_security_boundaries",
     "test_settings_api",
 ]
 

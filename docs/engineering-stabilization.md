@@ -33,12 +33,15 @@ Do not delete historical artifacts blindly. The repo currently contains many gen
 - Offer pending and my-launches serialization.
 - Settings CRUD smoke tests.
 - Role permission checks for settings and job creation boundaries.
+- Candidate detail RBAC, including interviewer assignment and hiring-manager department isolation.
+- Candidate sensitive fields masked by default and explicit reveal limited to authorized HR/admin roles.
+- Offer approval detail/action ownership checks.
+- Public resume upload rejects non-PDF files and oversized PDFs.
 - Frontend static checks for fake controls and stray interview drawer mounts.
 
 ## Next Coverage Targets
 
-- File upload validation: PDF-only and size limits.
 - Public application submission: duplicate applicant and closed job behavior.
-- More role-based `403` tests for candidate detail, sensitive fields, and approval actions.
+- Browser-based online acceptance after the hosted Zeabur service is reachable.
 - Interview scheduling and feedback submission.
 - Candidate detail sensitive-field access audit trail.

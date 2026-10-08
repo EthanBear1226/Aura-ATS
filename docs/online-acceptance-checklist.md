@@ -60,3 +60,25 @@ Only ship when:
 - Local `run_tests.py` passes.
 - The online checks above pass against the deployed URL.
 - No browser console errors appear during login, candidate list, candidate detail, settings, and portal flows.
+
+## Latest Online Check - 2026-10-08
+
+Target: `https://aura-ats.zeabur.app/`
+
+Result: blocked by deployment availability. The following paths all returned Zeabur `502: SERVICE_UNAVAILABLE`:
+
+- `/`
+- `/api/candidates`
+- `/api/jobs`
+- `/api/approvals/pending`
+- `/api/public/jobs/1`
+- `/portal.html?job_id=1`
+- `/login.html`
+
+Observed message: the service is not responding, likely because the app is not listening on the expected port or the service crashed.
+
+Follow-up:
+
+- Check Zeabur runtime logs for startup exceptions.
+- Confirm `PORT` is passed to `main.py` and the app binds `0.0.0.0`.
+- Re-run this checklist after the deployment becomes reachable.

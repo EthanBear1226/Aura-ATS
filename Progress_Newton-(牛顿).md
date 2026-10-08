@@ -275,3 +275,4 @@
 - [2026-09-11 10:47:37] 补齐try块消除SyntaxError，升级safeInitPage全子步骤try-catch容错隔离，静态资源升至v22
 - [2026-09-22 17:08:55] 全站建立多候选人字典池(陈志强/刘晨/李思齐/沈佳妮/尚毅)统一映射体系，彻底消灭单一硬编码保底导致的跨候选人张冠李戴
 - **v1.26.1**: 完成历史文件归档/清理第一阶段与第二阶段：将未跟踪历史快照、哈希备份、调试脚本、截图产物、旧 Superpowers 设计记录、旧 JS 验证脚本和被忽略的历史输出移动到 `C:\AI Project\Codex\Aura_archive_20261008_untracked` 与 `C:\AI Project\Codex\Aura_archive_20261008_tracked_and_ignored`，保留 MANIFEST 可回溯清单；主工程目录仅保留当前运行、测试门禁、部署与产品文档所需文件，并补充 `docs/archive-cleanup-2026-10-08.md` 记录清理边界。(2026-10-08 16:10:00)
+- **v1.27.0**: 补齐权限边界与公开投递上传限制：候选人详情统一 RBAC 校验，面试官仅可查看指派候选人，用人经理必须命中部门职位边界；手机号、邮箱、身份证默认脱敏，仅 SuperAdmin/Admin/Recruiter 显式 `reveal_sensitive=true` 可查看明文；Offer 审批详情增加可见性校验，审批动作绑定当前节点审批人且邮箱大小写不敏感；公开/内部简历上传统一限制 PDF 后缀与 5MB 大小。新增 `test_security_boundaries.py` 并纳入 `run_tests.py`，本地门禁扩展至 20 项全部通过；线上 `https://aura-ats.zeabur.app/` 实测当前所有关键路径返回 Zeabur 502，已记录到线上验收清单，待部署服务恢复后复测。(2026-10-08 16:45:00)

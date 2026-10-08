@@ -121,6 +121,7 @@ from fastapi.security import OAuth2PasswordBearer
 SECRET_KEY = "aura-ats-super-secret-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+MAX_RESUME_UPLOAD_BYTES = int(os.getenv("MAX_RESUME_UPLOAD_BYTES", str(5 * 1024 * 1024)))
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
@@ -167,6 +168,99 @@ async def get_current_user(db: Session = Depends(get_db), token: Optional[str] =
 def check_admin_permission(current_user: models.User):
     if current_user.role not in ["SuperAdmin", "Admin"]:
         raise HTTPException(status_code=403, detail="无权操作系统设置，仅限管理员角色操作")
+
+def _normalized_email(value: Optional[str]) -> str:
+    return (value or "").strip().lower()
+
+def _mask_sensitive_value(value: Optional[str], keep_start: int = 3, keep_end: int = 2) -> Optional[str]:
+    if value is None:
+        return None
+    text = str(value)
+    if not text or text in ["暂无", "未知", "None"]:
+        return text
+    if "@" in text:
+        name, domain = text.split("@", 1)
+        visible = name[:1] if name else ""
+        return f"{visible}***@{domain}"
+    if len(text) <= keep_start + keep_end:
+        return "*" * len(text)
+    return f"{text[:keep_start]}{'*' * max(3, len(text) - keep_start - keep_end)}{text[-keep_end:]}"
+
+def _can_access_candidate(db: Session, candidate: models.Candidate, current_user: models.User) -> bool:
+    role = current_user.role or "Admin"
+    name = current_user.name or ""
+    email = current_user.email or ""
+
+    if role == "Interviewer":
+        return db.query(models.Interview).filter(
+            models.Interview.candidate_id == candidate.id,
+            models.Interview.interviewer_name == name
+        ).first() is not None
+
+    if role == "HiringManager":
+        user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first()
+        dept_name = user_invite.department if user_invite else None
+        if not dept_name or not candidate.job:
+            return False
+        job_obj = db.query(models.Job).filter(models.Job.title == candidate.job).first()
+        return bool(job_obj and job_obj.department == dept_name)
+
+    return True
+
+def _can_reveal_candidate_sensitive(current_user: models.User) -> bool:
+    return (current_user.role or "") in ["SuperAdmin", "Admin", "Recruiter"]
+
+def _candidate_response(candidate: models.Candidate, reveal_sensitive: bool = False) -> dict:
+    data = schemas.Candidate.model_validate(candidate).model_dump(
+        mode="json",
+        exclude={"interviews": {"__all__": {"candidate"}}},
+    )
+    if not reveal_sensitive:
+        data["phone"] = _mask_sensitive_value(data.get("phone"), keep_start=3, keep_end=2)
+        data["email"] = _mask_sensitive_value(data.get("email"), keep_start=1, keep_end=0)
+        data["id_card"] = _mask_sensitive_value(data.get("id_card"), keep_start=6, keep_end=2)
+    return data
+
+def _validate_resume_upload(file: UploadFile):
+    filename = file.filename or ""
+    if not filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+    try:
+        file.file.seek(0, os.SEEK_END)
+        size = file.file.tell()
+        file.file.seek(0)
+    except Exception:
+        return
+    if size > MAX_RESUME_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"PDF file is too large. Max size is {MAX_RESUME_UPLOAD_BYTES} bytes")
+
+def _approval_steps(inst: models.OfferApprovalInstance) -> list:
+    steps = inst.steps_data or []
+    if isinstance(steps, str):
+        try:
+            steps = json.loads(steps)
+        except Exception:
+            steps = []
+    return steps if isinstance(steps, list) else []
+
+def _approval_current_step(inst: models.OfferApprovalInstance) -> dict:
+    steps = _approval_steps(inst)
+    idx = inst.current_step_index if inst.current_step_index is not None else 0
+    if 0 <= idx < len(steps) and isinstance(steps[idx], dict):
+        return steps[idx]
+    return {}
+
+def _is_current_approver(inst: models.OfferApprovalInstance, current_user: models.User) -> bool:
+    step_email = _normalized_email(_approval_current_step(inst).get("approver_email"))
+    return bool(step_email and step_email == _normalized_email(current_user.email))
+
+def _can_view_approval(inst: models.OfferApprovalInstance, current_user: models.User) -> bool:
+    role = current_user.role or ""
+    if role in ["SuperAdmin", "Admin"]:
+        return True
+    if _normalized_email(inst.creator_email) == _normalized_email(current_user.email):
+        return True
+    return _is_current_approver(inst, current_user)
 
 async def get_current_user_optional(db: Session = Depends(get_db), token: Optional[str] = Depends(oauth2_scheme)):
     if not token:
@@ -546,34 +640,21 @@ def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail="Database error")
 
 @app.get("/api/candidates/{candidate_id}", response_model=schemas.Candidate)
-def get_candidate(candidate_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def get_candidate(
+    candidate_id: int,
+    reveal_sensitive: bool = False,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
     if candidate is None:
         raise HTTPException(status_code=404, detail="Candidate not found")
-    
-    # RBAC 防越权校验
-    role = current_user.role or "Admin"
-    name = current_user.name or "系统"
-    email = current_user.email or ""
 
-    if role == "Interviewer":
-        # 面试官仅可查看与自己绑定的候选人
-        has_interview = db.query(models.Interview).filter(
-            models.Interview.candidate_id == candidate.id,
-            models.Interview.interviewer_name == name
-        ).first()
-        if not has_interview:
-            raise HTTPException(status_code=403, detail="无权查看非指派面试的候选人档案")
-    elif role == "HiringManager":
-        # 用人经理仅可查看属于本部门职位的候选人
-        user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first()
-        dept_name = user_invite.department if user_invite else None
-        if dept_name and candidate.job:
-            job_obj = db.query(models.Job).filter(models.Job.title == candidate.job).first()
-            if job_obj and job_obj.department != dept_name:
-                raise HTTPException(status_code=403, detail="无权查看非本部门管辖的候选人档案")
+    if not _can_access_candidate(db, candidate, current_user):
+        raise HTTPException(status_code=403, detail="无权查看该候选人档案")
 
-    return candidate
+    reveal = bool(reveal_sensitive and _can_reveal_candidate_sensitive(current_user))
+    return _candidate_response(candidate, reveal_sensitive=reveal)
 
 @app.post("/api/candidates/{candidate_id}/screen", response_model=schemas.Candidate)
 def screen_candidate(candidate_id: int, request: schemas.CandidateScreenRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -621,8 +702,7 @@ def screen_candidate(candidate_id: int, request: schemas.CandidateScreenRequest,
 
 @app.post("/api/candidates/{candidate_id}/reupload-resume", response_model=schemas.Candidate)
 async def reupload_resume(candidate_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+    _validate_resume_upload(file)
     
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
     if not candidate:
@@ -649,8 +729,7 @@ async def reupload_resume(candidate_id: int, file: UploadFile = File(...), db: S
 
 
 async def _process_resume_upload(file: UploadFile, job_title: str, operator: str, db: Session, current_user: Optional[models.User] = None):
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+    _validate_resume_upload(file)
     
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     safe_filename = f"{timestamp}_{file.filename}"
@@ -2044,6 +2123,8 @@ def get_candidate_approval(candidate_id: int, db: Session = Depends(get_db), cur
     instance = db.query(models.OfferApprovalInstance).filter(
         models.OfferApprovalInstance.candidate_id == candidate_id
     ).order_by(models.OfferApprovalInstance.id.desc()).first()
+    if instance and not _can_view_approval(instance, current_user):
+        raise HTTPException(status_code=403, detail="无权查看该审批实例")
     return _format_approval_instance(instance)
 
 @app.get("/api/approvals/{id:int}", response_model=schemas.OfferApprovalInstanceResponse)
@@ -2051,6 +2132,8 @@ def get_approval_detail(id: int, db: Session = Depends(get_db), current_user: mo
     inst = db.query(models.OfferApprovalInstance).filter(models.OfferApprovalInstance.id == id).first()
     if not inst:
         raise HTTPException(status_code=404, detail="Instance not found")
+    if not _can_view_approval(inst, current_user):
+        raise HTTPException(status_code=403, detail="无权查看该审批实例")
     return _format_approval_instance(inst)
 
 @app.post("/api/approvals/{id:int}/action", response_model=schemas.OfferApprovalInstanceResponse)
@@ -2066,7 +2149,7 @@ def action_offer_approval(id: int, req: schemas.OfferApprovalActionRequest, db: 
         raise HTTPException(status_code=400, detail="异常的节点流转位置")
         
     current_step = steps[inst.current_step_index]
-    if current_step.get("approver_email") != current_user.email:
+    if _normalized_email(current_step.get("approver_email")) != _normalized_email(current_user.email):
         raise HTTPException(status_code=403, detail="您不是当前节点的审批人")
         
     import datetime
