@@ -274,3 +274,4 @@
 - [2026-09-10 15:24:31] 封装全局通用showDangerConfirm、setBtnLoading、renderEmptyState与authFetch统一拦截；淘汰与批量流转后即时更新内存大盘与平滑剔除卡片；职位停招增加后果警告与状态胶囊即时响应；静态版本全面升至v21
 - [2026-09-11 10:47:37] 补齐try块消除SyntaxError，升级safeInitPage全子步骤try-catch容错隔离，静态资源升至v22
 - [2026-09-22 17:08:55] 全站建立多候选人字典池(陈志强/刘晨/李思齐/沈佳妮/尚毅)统一映射体系，彻底消灭单一硬编码保底导致的跨候选人张冠李戴
+- **v1.26.1**: 完成历史文件归档/清理第一阶段与第二阶段：将未跟踪历史快照、哈希备份、调试脚本、截图产物、旧 Superpowers 设计记录、旧 JS 验证脚本和被忽略的历史输出移动到 `C:\AI Project\Codex\Aura_archive_20261008_untracked` 与 `C:\AI Project\Codex\Aura_archive_20261008_tracked_and_ignored`，保留 MANIFEST 可回溯清单；主工程目录仅保留当前运行、测试门禁、部署与产品文档所需文件，并补充 `docs/archive-cleanup-2026-10-08.md` 记录清理边界。(2026-10-08 16:10:00)
