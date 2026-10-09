@@ -126,6 +126,8 @@ SECRET_KEY = "aura-ats-super-secret-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 MAX_RESUME_UPLOAD_BYTES = int(os.getenv("MAX_RESUME_UPLOAD_BYTES", str(5 * 1024 * 1024)))
+DEFAULT_AUTO_JOB_TITLE = "默认（AI自动提取）"
+OPEN_JOB_STATUSES = {"热招中", "Open", "open", "active"}
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
@@ -237,6 +239,18 @@ def _validate_resume_upload(file: UploadFile):
         return
     if size > MAX_RESUME_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail=f"PDF file is too large. Max size is {MAX_RESUME_UPLOAD_BYTES} bytes")
+
+def _validate_public_job_submission(db: Session, job_title: str) -> models.Job:
+    normalized_title = (job_title or "").strip()
+    if not normalized_title or normalized_title == DEFAULT_AUTO_JOB_TITLE:
+        raise HTTPException(status_code=400, detail="Public applications must target a published job")
+
+    job_obj = db.query(models.Job).filter(models.Job.title == normalized_title).first()
+    if not job_obj:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if (job_obj.status or "") not in OPEN_JOB_STATUSES:
+        raise HTTPException(status_code=400, detail="Job is closed for applications")
+    return job_obj
 
 def _approval_steps(inst: models.OfferApprovalInstance) -> list:
     steps = inst.steps_data or []
@@ -744,7 +758,10 @@ async def reupload_resume(candidate_id: int, file: UploadFile = File(...), db: S
     return candidate
 
 
-async def _process_resume_upload(file: UploadFile, job_title: str, operator: str, db: Session, current_user: Optional[models.User] = None):
+async def _process_resume_upload(file: UploadFile, job_title: str, operator: str, db: Session, current_user: Optional[models.User] = None, public_submission: bool = False):
+    if public_submission:
+        _validate_public_job_submission(db, job_title)
+
     _validate_resume_upload(file)
     
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -947,17 +964,19 @@ async def _process_resume_upload(file: UploadFile, job_title: str, operator: str
 
         return db_candidate
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Server Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/parse-resume", response_model=schemas.Candidate)
-async def parse_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), operator: str = Form("系统"), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+async def parse_resume(file: UploadFile = File(...), job_title: str = Form(DEFAULT_AUTO_JOB_TITLE), operator: str = Form("系统"), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return await _process_resume_upload(file=file, job_title=job_title, operator=operator, db=db, current_user=current_user)
 
 @app.post("/api/public/submit-resume", response_model=schemas.Candidate)
-async def submit_public_resume(file: UploadFile = File(...), job_title: str = Form("默认（AI自动提取）"), db: Session = Depends(get_db)):
-    return await _process_resume_upload(file=file, job_title=job_title, operator="Candidate (Self-Submitted)", db=db, current_user=None)
+async def submit_public_resume(file: UploadFile = File(...), job_title: str = Form(DEFAULT_AUTO_JOB_TITLE), db: Session = Depends(get_db)):
+    return await _process_resume_upload(file=file, job_title=job_title, operator="Candidate (Self-Submitted)", db=db, current_user=None, public_submission=True)
 
 PIPELINE_STAGES = ["初筛", "部门筛选", "面试", "Offer", "背调", "入职"]
 TERMINAL_STAGES = ["已淘汰", "已归档"]

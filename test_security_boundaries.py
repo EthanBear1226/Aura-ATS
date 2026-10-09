@@ -1,6 +1,19 @@
 import datetime
+import json
 
 import models
+
+
+def _valid_pdf_bytes(text="Aura Candidate Resume"):
+    from io import BytesIO
+
+    from reportlab.pdfgen import canvas
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer)
+    pdf.drawString(100, 750, text)
+    pdf.save()
+    return buffer.getvalue()
 
 
 def _make_candidate(db_session, **overrides):
@@ -193,11 +206,22 @@ def test_offer_approval_detail_and_action_are_bound_to_owner_or_current_approver
     assert approve.json()["status"] == "approved"
 
 
-def test_public_resume_upload_rejects_non_pdf_and_oversized_pdf(client):
+def test_public_resume_upload_rejects_non_pdf_and_oversized_pdf(client, db_session):
+    job = models.Job(
+        title="Upload Validation Job",
+        department="Engineering",
+        location="Beijing",
+        status="热招中",
+        hr_name="HR",
+        description="<p>Open role</p>",
+    )
+    db_session.add(job)
+    db_session.commit()
+
     non_pdf = client.post(
         "/api/public/submit-resume",
         files={"file": ("resume.txt", b"plain text", "text/plain")},
-        data={"job_title": "Backend Engineer"},
+        data={"job_title": job.title},
     )
     assert non_pdf.status_code == 400
 
@@ -210,6 +234,91 @@ def test_public_resume_upload_rejects_non_pdf_and_oversized_pdf(client):
                 "application/pdf",
             )
         },
-        data={"job_title": "Backend Engineer"},
+        data={"job_title": job.title},
     )
     assert oversized.status_code == 413
+
+
+def test_public_resume_upload_rejects_unknown_and_closed_jobs(client, db_session):
+    unknown_job = client.post(
+        "/api/public/submit-resume",
+        files={"file": ("resume.pdf", b"not parsed", "application/pdf")},
+        data={"job_title": "Missing Public Job"},
+    )
+    assert unknown_job.status_code == 404
+
+    closed_job = models.Job(
+        title="Closed Public Job",
+        department="Engineering",
+        location="Beijing",
+        status="已停招",
+        hr_name="HR",
+        description="<p>Closed role</p>",
+    )
+    db_session.add(closed_job)
+    db_session.commit()
+
+    closed = client.post(
+        "/api/public/submit-resume",
+        files={"file": ("resume.pdf", b"not parsed", "application/pdf")},
+        data={"job_title": closed_job.title},
+    )
+    assert closed.status_code == 400
+
+
+def test_public_resume_upload_rejects_duplicate_active_application(client, db_session):
+    import main
+
+    job = models.Job(
+        title="Open Public Job",
+        department="Engineering",
+        location="Beijing",
+        status="热招中",
+        hr_name="HR",
+        description="<p>Open role</p>",
+    )
+    db_session.add(job)
+    db_session.commit()
+
+    parsed_resume = {
+        "name": "Duplicate Applicant",
+        "job": job.title,
+        "exp": "Bachelor",
+        "phone": "13900000000",
+        "email": "duplicate@test.local",
+        "skills": ["Python"],
+        "ai_summary": "Qualified",
+        "ai_analysis": "Qualified",
+    }
+
+    class FakeModel:
+        def __init__(self, model_name):
+            self.model_name = model_name
+
+        def generate_content(self, prompt, generation_config=None):
+            class Response:
+                text = json.dumps(parsed_resume)
+
+            return Response()
+
+    original_api_key = main.api_key
+    original_model = main.genai.GenerativeModel
+    main.api_key = "test-api-key"
+    main.genai.GenerativeModel = FakeModel
+    try:
+        first = client.post(
+            "/api/public/submit-resume",
+            files={"file": ("resume.pdf", _valid_pdf_bytes(), "application/pdf")},
+            data={"job_title": job.title},
+        )
+        assert first.status_code == 200, first.text
+
+        duplicate = client.post(
+            "/api/public/submit-resume",
+            files={"file": ("resume.pdf", _valid_pdf_bytes(), "application/pdf")},
+            data={"job_title": job.title},
+        )
+        assert duplicate.status_code == 400, duplicate.text
+    finally:
+        main.api_key = original_api_key
+        main.genai.GenerativeModel = original_model

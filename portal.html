@@ -406,7 +406,7 @@
                     <i data-lucide="cloud-upload" class="upload-icon"></i>
                     <div>
                         <p class="upload-text">点击或将 PDF 简历拖拽至此</p>
-                        <p class="upload-hint">仅支持 .pdf 格式，最大 10MB</p>
+                        <p class="upload-hint">仅支持 .pdf 格式，最大 5MB</p>
                     </div>
                 </div>
                 <input type="file" id="fileInput" accept="application/pdf">
@@ -446,6 +446,8 @@
         lucide.createIcons();
         let selectedFile = null;
         let currentJobId = null;
+        const MAX_RESUME_UPLOAD_BYTES = 5 * 1024 * 1024;
+        const MAX_RESUME_UPLOAD_LABEL = "5MB";
 
         document.addEventListener("DOMContentLoaded", async () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -612,8 +614,8 @@
                 showToast("仅支持 PDF 格式的文件", "error");
                 return;
             }
-            if (file.size > 10 * 1024 * 1024) {
-                showToast("文件不能超过 10MB", "error");
+            if (file.size > MAX_RESUME_UPLOAD_BYTES) {
+                showToast(`文件不能超过 ${MAX_RESUME_UPLOAD_LABEL}`, "error");
                 return;
             }
 

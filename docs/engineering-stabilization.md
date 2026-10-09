@@ -37,12 +37,14 @@ Do not delete historical artifacts blindly. The repo currently contains many gen
 - Candidate sensitive fields masked by default and explicit reveal limited to authorized HR/admin roles.
 - Offer approval detail/action ownership checks.
 - Public resume upload rejects non-PDF files and oversized PDFs.
+- Public application submission rejects missing/closed jobs and duplicate active applications.
 - Deployment health check verifies app/database readiness via `/healthz`.
 - Frontend static checks for fake controls and stray interview drawer mounts.
+- Frontend static checks keep the public portal upload copy aligned with the backend 5MB limit.
 
 ## Next Coverage Targets
 
-- Public application submission: duplicate applicant and closed job behavior.
+- Public application submission: successful happy-path browser flow with a real PDF fixture.
 - Browser-based online acceptance after the hosted Zeabur service is reachable.
 - Interview scheduling and feedback submission.
 - Candidate detail sensitive-field access audit trail.

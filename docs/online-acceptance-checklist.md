@@ -38,6 +38,8 @@ Use this checklist after each deployment to verify that the hosted site matches 
 - Open `/portal.html?job_id=1`. Expected: job responsibilities, requirements, location, salary, and application instructions are present.
 - Try non-PDF upload. Expected: rejected.
 - Try a PDF over configured size limit. Expected: rejected.
+- Submit to a closed or deleted job. Expected: rejected before resume parsing.
+- Submit the same active applicant to the same open job twice. Expected: second submission returns a clear duplicate-application error.
 - Submit a valid PDF. Expected: success state and a candidate/application record in the admin side.
 
 ## 6. Settings And Permissions

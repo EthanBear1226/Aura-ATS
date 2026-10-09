@@ -32,3 +32,11 @@ def test_schedule_drawer_is_not_globally_mounted_on_unrelated_pages():
         html = read_page(page_name)
         assert "安排新面试" not in html
         assert "submitDrawerSchedule" not in html
+
+
+def test_public_portal_upload_limit_matches_backend_copy():
+    html = read_page("portal.html")
+
+    assert "10MB" not in html
+    assert "最大 5MB" in html
+    assert "MAX_RESUME_UPLOAD_BYTES = 5 * 1024 * 1024" in html
