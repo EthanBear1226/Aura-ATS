@@ -23,6 +23,18 @@
             background: #f0f7ff;
         }
         #upload-progress { display: none; margin-top: 24px; }
+        #upload-results { display: none; margin-top: 16px; }
+        .upload-result {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+        .upload-result:last-child { border-bottom: 0; }
+        .upload-result.success { color: #18794e; }
+        .upload-result.failed { color: #c62828; }
         .form-group {
             margin-bottom: 24px;
             text-align: left;
@@ -53,7 +65,7 @@
 
                     <p style="color:var(--text-secondary); font-size:14px; margin-bottom: 16px;">支持拖拽或点击上传，Aura 将自动提取结构化数据并存入数据库。</p>
 
-                    <input type="file" id="resume-file" accept="application/pdf" style="display:none;">
+                    <input type="file" id="resume-file" accept="application/pdf" multiple style="display:none;">
                     <div class="upload-area" onclick="handleUploadAreaClick()">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="var(--primary-color)" style="opacity:0.8"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.36 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
                         <div style="margin-top:16px; font-weight:500;">点击或拖拽 PDF 文件到此处</div>
@@ -67,6 +79,7 @@
                             <div id="progress-bar" style="width:0%; height:100%; background:var(--primary-color); transition:width 0.3s;"></div>
                         </div>
                     </div>
+                    <div id="upload-results" class="card" style="padding: 0;"></div>
                 </div>
             </div>
         </main>
@@ -155,7 +168,7 @@
                 select.innerHTML = '<option value="" disabled selected>请选择投递职位</option>';
                 jobs.forEach(job => {
                     if (job.status === '热招中') {
-                        select.innerHTML += `<option value="${job.title}">${job.title}</option>`;
+                        select.innerHTML += `<option value="${job.id}">${job.title}</option>`;
                     }
                 });
             } catch (e) {
@@ -166,65 +179,91 @@
         }
         
         function handleUploadAreaClick() {
-            const jobTitle = document.getElementById('modal-job-select').value;
-            if (!jobTitle) {
+            const jobId = document.getElementById('modal-job-select').value;
+            if (!jobId) {
                 showToast("请先选择投递职位", "error");
                 return;
             }
             document.getElementById('resume-file').click();
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[character]));
+        }
+
         document.getElementById('resume-file').addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+            const files = Array.from(e.target.files || []);
+            if (!files.length) return;
 
             document.getElementById('upload-progress').style.display = 'block';
+            document.getElementById('upload-results').style.display = 'none';
+            document.getElementById('upload-results').innerHTML = '';
             const progressBar = document.getElementById('progress-bar');
             const progressText = document.getElementById('progress-text');
 
             progressBar.style.width = '30%';
-            progressText.innerText = '正在上传文件...';
+            progressText.innerText = `正在上传 ${files.length} 份简历...`;
 
             const formData = new FormData();
-            const jobTitle = document.getElementById('modal-job-select').value;
+            const jobId = document.getElementById('modal-job-select').value;
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const operatorName = user.name || '系统';
 
-            formData.append("file", file);
-            formData.append("job_title", jobTitle);
+            files.forEach(file => formData.append("files", file));
+            formData.append("job_id", jobId);
             formData.append("operator", operatorName);
 
             try {
                 progressBar.style.width = '60%';
-                progressText.innerText = 'AI 模型深度解析中... (需等待几秒)';
+                progressText.innerText = `AI 正在解析 ${files.length} 份简历...`;
                 
-                const response = await fetch('/api/parse-resume', {
+                const response = await fetch('/api/parse-resumes', {
                     method: 'POST',
                     body: formData
                 });
                 
                 if(!response.ok) {
-                    throw new Error(`API 返回错误状态: ${response.status}`);
+                    const errorBody = await response.json().catch(() => ({}));
+                    throw new Error(errorBody.detail || `API 返回错误状态: ${response.status}`);
                 }
                 
-                const result = await response.json();
-                
-                try {
-                    sessionStorage.setItem('last_parsed_candidate', JSON.stringify(result));
-                } catch(err) {
-                    console.warn('sessionStorage not available', err);
-                }
-                
-                progressBar.style.width = '100%';
-                progressText.innerText = '解析并入库完成！正在进入详情...';
+                const batchResult = await response.json();
+                const resultBox = document.getElementById('upload-results');
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = batchResult.results.map(item => {
+                    const filename = escapeHtml(item.filename || '未命名文件');
+                    const candidateName = escapeHtml(item.candidate?.name || item.filename || '未命名候选人');
+                    const detail = escapeHtml(item.detail || '未知错误');
+                    const label = item.status === 'success'
+                        ? `解析成功：${candidateName}`
+                        : `解析失败：${detail}`;
+                    return `<div class="upload-result ${item.status}">
+                        <span>${item.status === 'success' ? '✓' : '×'}</span>
+                        <span><strong>${filename}</strong><br>${label}</span>
+                    </div>`;
+                }).join('');
 
-                setTimeout(() => {
-                    window.location.href = `candidate-detail.html?id=${result.id}`;
-                }, 1000);
+                progressBar.style.width = '100%';
+                progressText.innerText = `处理完成：成功 ${batchResult.succeeded} 份，失败 ${batchResult.failed} 份`;
+
+                const firstSuccess = batchResult.results.find(item => item.status === 'success');
+                if (firstSuccess && firstSuccess.candidate) {
+                    try {
+                        sessionStorage.setItem('last_parsed_candidate', JSON.stringify(firstSuccess.candidate));
+                    } catch(err) {
+                        console.warn('sessionStorage not available', err);
+                    }
+                }
 
             } catch (error) {
                 console.error(error);
-                showToast("解析失败，请确保后端服务正在运行。", "error");
+                showToast(error.message || "解析失败，请确保后端服务正在运行。", "error");
                 progressBar.style.width = '0%';
                 document.getElementById('upload-progress').style.display = 'none';
             }

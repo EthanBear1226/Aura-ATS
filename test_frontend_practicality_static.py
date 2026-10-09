@@ -40,3 +40,16 @@ def test_public_portal_upload_limit_matches_backend_copy():
     assert "10MB" not in html
     assert "最大 5MB" in html
     assert "MAX_RESUME_UPLOAD_BYTES = 5 * 1024 * 1024" in html
+
+
+def test_add_candidate_page_supports_job_id_and_multiple_pdf_uploads():
+    html = read_page("add-candidate.html")
+
+    assert 'accept="application/pdf" multiple' in html
+    assert 'formData.append("job_id", jobId)' in html
+    assert "formData.append(\"files\", file)" in html
+    assert "/api/parse-resumes" in html
+    assert "function escapeHtml(value)" in html
+    assert "const filename = escapeHtml" in html
+    assert "const detail = escapeHtml" in html
+    assert "e.target.files[0]" not in html

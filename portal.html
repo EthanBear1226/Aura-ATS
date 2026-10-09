@@ -650,7 +650,8 @@
 
             const formData = new FormData();
             formData.append('file', selectedFile);
-            formData.append('job_title', jobTitleText); // Pass the job title to the backend
+            formData.append('job_id', currentJobId);
+            formData.append('job_title', jobTitleText); // Fallback for older backend versions
             formData.append('operator', 'Candidate (Self-Submitted)');
 
             try {

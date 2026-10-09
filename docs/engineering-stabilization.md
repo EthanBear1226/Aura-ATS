@@ -38,6 +38,7 @@ Do not delete historical artifacts blindly. The repo currently contains many gen
 - Offer approval detail/action ownership checks.
 - Public resume upload rejects non-PDF files and oversized PDFs.
 - Public application submission rejects missing/closed jobs and duplicate active applications.
+- Internal resume parsing binds to a selected job ID and supports batch PDF processing with per-file results.
 - Deployment health check verifies app/database readiness via `/healthz`.
 - Frontend static checks for fake controls and stray interview drawer mounts.
 - Frontend static checks keep the public portal upload copy aligned with the backend 5MB limit.
@@ -45,6 +46,7 @@ Do not delete historical artifacts blindly. The repo currently contains many gen
 ## Next Coverage Targets
 
 - Public application submission: successful happy-path browser flow with a real PDF fixture.
+- Browser acceptance for multi-file internal resume import, including mixed success/failure results.
 - Browser-based online acceptance after the hosted Zeabur service is reachable.
 - Interview scheduling and feedback submission.
 - Candidate detail sensitive-field access audit trail.

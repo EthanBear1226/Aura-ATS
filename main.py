@@ -240,17 +240,56 @@ def _validate_resume_upload(file: UploadFile):
     if size > MAX_RESUME_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail=f"PDF file is too large. Max size is {MAX_RESUME_UPLOAD_BYTES} bytes")
 
-def _validate_public_job_submission(db: Session, job_title: str) -> models.Job:
+def _find_job_for_upload(
+    db: Session,
+    job_title: str,
+    job_id: Optional[int] = None,
+    require_existing_job: bool = False,
+) -> Optional[models.Job]:
+    if job_id is not None:
+        job_obj = db.query(models.Job).filter(models.Job.id == job_id).first()
+        if not job_obj:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return job_obj
+
     normalized_title = (job_title or "").strip()
-    if not normalized_title or normalized_title == DEFAULT_AUTO_JOB_TITLE:
+    if normalized_title and normalized_title != DEFAULT_AUTO_JOB_TITLE:
+        job_obj = db.query(models.Job).filter(models.Job.title == normalized_title).first()
+        if job_obj:
+            return job_obj
+        if require_existing_job:
+            raise HTTPException(status_code=404, detail="Job not found")
+    elif require_existing_job:
+        raise HTTPException(status_code=400, detail="A job must be selected")
+    return None
+
+def _validate_public_job_submission(
+    db: Session,
+    job_title: str,
+    job_id: Optional[int] = None,
+) -> models.Job:
+    job_obj = _find_job_for_upload(
+        db,
+        job_title,
+        job_id=job_id,
+        require_existing_job=True,
+    )
+    if not job_obj:
         raise HTTPException(status_code=400, detail="Public applications must target a published job")
 
-    job_obj = db.query(models.Job).filter(models.Job.title == normalized_title).first()
-    if not job_obj:
-        raise HTTPException(status_code=404, detail="Job not found")
     if (job_obj.status or "") not in OPEN_JOB_STATUSES:
         raise HTTPException(status_code=400, detail="Job is closed for applications")
     return job_obj
+
+def _resolve_internal_upload_job(
+    db: Session,
+    job_title: str,
+    job_id: Optional[int] = None,
+) -> str:
+    job_obj = _find_job_for_upload(db, job_title, job_id=job_id)
+    if job_obj:
+        return job_obj.title
+    return job_title
 
 def _approval_steps(inst: models.OfferApprovalInstance) -> list:
     steps = inst.steps_data or []
@@ -758,9 +797,20 @@ async def reupload_resume(candidate_id: int, file: UploadFile = File(...), db: S
     return candidate
 
 
-async def _process_resume_upload(file: UploadFile, job_title: str, operator: str, db: Session, current_user: Optional[models.User] = None, public_submission: bool = False):
+async def _process_resume_upload(
+    file: UploadFile,
+    job_title: str,
+    operator: str,
+    db: Session,
+    current_user: Optional[models.User] = None,
+    public_submission: bool = False,
+    job_id: Optional[int] = None,
+):
     if public_submission:
-        _validate_public_job_submission(db, job_title)
+        job_obj = _validate_public_job_submission(db, job_title, job_id=job_id)
+        job_title = job_obj.title
+    else:
+        job_title = _resolve_internal_upload_job(db, job_title, job_id=job_id)
 
     _validate_resume_upload(file)
     
@@ -971,12 +1021,90 @@ async def _process_resume_upload(file: UploadFile, job_title: str, operator: str
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/parse-resume", response_model=schemas.Candidate)
-async def parse_resume(file: UploadFile = File(...), job_title: str = Form(DEFAULT_AUTO_JOB_TITLE), operator: str = Form("系统"), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return await _process_resume_upload(file=file, job_title=job_title, operator=operator, db=db, current_user=current_user)
+async def parse_resume(
+    file: UploadFile = File(...),
+    job_title: str = Form(DEFAULT_AUTO_JOB_TITLE),
+    job_id: Optional[int] = Form(None),
+    operator: str = Form("系统"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return await _process_resume_upload(
+        file=file,
+        job_title=job_title,
+        job_id=job_id,
+        operator=operator,
+        db=db,
+        current_user=current_user,
+    )
+
+@app.post("/api/parse-resumes")
+async def parse_resumes(
+    files: list[UploadFile] = File(...),
+    job_title: str = Form(DEFAULT_AUTO_JOB_TITLE),
+    job_id: Optional[int] = Form(None),
+    operator: str = Form("系统"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="At least one PDF file is required")
+
+    results = []
+    for file in files:
+        try:
+            candidate = await _process_resume_upload(
+                file=file,
+                job_title=job_title,
+                job_id=job_id,
+                operator=operator,
+                db=db,
+                current_user=current_user,
+            )
+            results.append({
+                "filename": file.filename,
+                "status": "success",
+                "candidate": schemas.Candidate.model_validate(candidate).model_dump(mode="json"),
+            })
+        except HTTPException as exc:
+            results.append({
+                "filename": file.filename,
+                "status": "failed",
+                "status_code": exc.status_code,
+                "detail": exc.detail,
+            })
+        except Exception as exc:
+            results.append({
+                "filename": file.filename,
+                "status": "failed",
+                "status_code": 500,
+                "detail": str(exc),
+            })
+
+    succeeded = sum(1 for item in results if item["status"] == "success")
+    return {
+        "total": len(results),
+        "succeeded": succeeded,
+        "failed": len(results) - succeeded,
+        "results": results,
+    }
 
 @app.post("/api/public/submit-resume", response_model=schemas.Candidate)
-async def submit_public_resume(file: UploadFile = File(...), job_title: str = Form(DEFAULT_AUTO_JOB_TITLE), db: Session = Depends(get_db)):
-    return await _process_resume_upload(file=file, job_title=job_title, operator="Candidate (Self-Submitted)", db=db, current_user=None, public_submission=True)
+async def submit_public_resume(
+    file: UploadFile = File(...),
+    job_title: str = Form(DEFAULT_AUTO_JOB_TITLE),
+    job_id: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+):
+    return await _process_resume_upload(
+        file=file,
+        job_title=job_title,
+        job_id=job_id,
+        operator="Candidate (Self-Submitted)",
+        db=db,
+        current_user=None,
+        public_submission=True,
+    )
 
 PIPELINE_STAGES = ["初筛", "部门筛选", "面试", "Offer", "背调", "入职"]
 TERMINAL_STAGES = ["已淘汰", "已归档"]

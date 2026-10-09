@@ -322,3 +322,129 @@ def test_public_resume_upload_rejects_duplicate_active_application(client, db_se
     finally:
         main.api_key = original_api_key
         main.genai.GenerativeModel = original_model
+
+
+def test_internal_resume_upload_can_bind_by_job_id(client, db_session, admin_headers):
+    import main
+
+    job = models.Job(
+        title="Job ID Binding",
+        department="Engineering",
+        location="Beijing",
+        status="热招中",
+        hr_name="HR",
+        description="<p>Open role</p>",
+    )
+    db_session.add(job)
+    db_session.commit()
+
+    parsed_resume = {
+        "name": "Job ID Candidate",
+        "job": "Wrong AI Job",
+        "exp": "Bachelor",
+        "phone": "13900000001",
+        "email": "job-id@test.local",
+        "skills": ["Python"],
+        "ai_summary": "Qualified",
+        "ai_analysis": "Qualified",
+    }
+
+    class FakeModel:
+        def __init__(self, model_name):
+            self.model_name = model_name
+
+        def generate_content(self, prompt, generation_config=None):
+            class Response:
+                text = json.dumps(parsed_resume)
+
+            return Response()
+
+    original_api_key = main.api_key
+    original_model = main.genai.GenerativeModel
+    main.api_key = "test-api-key"
+    main.genai.GenerativeModel = FakeModel
+    try:
+        response = client.post(
+            "/api/parse-resume",
+            headers=admin_headers,
+            files={"file": ("resume.pdf", _valid_pdf_bytes(), "application/pdf")},
+            data={"job_id": str(job.id), "operator": "Admin"},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["job"] == job.title
+    finally:
+        main.api_key = original_api_key
+        main.genai.GenerativeModel = original_model
+
+
+def test_internal_batch_resume_upload_returns_per_file_results(client, db_session, admin_headers):
+    import main
+
+    job = models.Job(
+        title="Batch Upload Job",
+        department="Engineering",
+        location="Beijing",
+        status="热招中",
+        hr_name="HR",
+        description="<p>Open role</p>",
+    )
+    db_session.add(job)
+    db_session.commit()
+
+    responses = iter([
+        {
+            "name": "Batch Candidate One",
+            "job": job.title,
+            "exp": "Bachelor",
+            "phone": "13900000002",
+            "email": "batch-one@test.local",
+            "skills": ["Python"],
+            "ai_summary": "Qualified",
+            "ai_analysis": "Qualified",
+        },
+        {
+            "name": "Batch Candidate Two",
+            "job": job.title,
+            "exp": "Master",
+            "phone": "13900000003",
+            "email": "batch-two@test.local",
+            "skills": ["FastAPI"],
+            "ai_summary": "Qualified",
+            "ai_analysis": "Qualified",
+        },
+    ])
+
+    class FakeModel:
+        def __init__(self, model_name):
+            self.model_name = model_name
+
+        def generate_content(self, prompt, generation_config=None):
+            class Response:
+                text = json.dumps(next(responses))
+
+            return Response()
+
+    original_api_key = main.api_key
+    original_model = main.genai.GenerativeModel
+    main.api_key = "test-api-key"
+    main.genai.GenerativeModel = FakeModel
+    try:
+        response = client.post(
+            "/api/parse-resumes",
+            headers=admin_headers,
+            files=[
+                ("files", ("one.pdf", _valid_pdf_bytes("one"), "application/pdf")),
+                ("files", ("two.pdf", _valid_pdf_bytes("two"), "application/pdf")),
+            ],
+            data={"job_id": str(job.id), "operator": "Admin"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["total"] == 2
+        assert body["succeeded"] == 2
+        assert body["failed"] == 0
+        assert [item["status"] for item in body["results"]] == ["success", "success"]
+        assert all(item["candidate"]["job"] == job.title for item in body["results"])
+    finally:
+        main.api_key = original_api_key
+        main.genai.GenerativeModel = original_model

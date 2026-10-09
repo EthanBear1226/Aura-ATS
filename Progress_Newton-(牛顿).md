@@ -1,11 +1,12 @@
 # 🚀 开发进展：Newton-(牛顿)
 - **主负责人**: EthanBear1226
-- **当前版本**: Newton-(牛顿)-v1.28.0
+- **当前版本**: Newton-(牛顿)-v1.29.0
 
 ## 📝 阶段概览
 > 当前状态：工程稳定化与发布门禁上线（隔离测试库、15 条核心回归、GitHub Actions、秘钥治理模板、线上验收清单与仓库归档规范）
 
 ## 📈 变更流 (Timeline)
+- **v1.29.0**: 修复简历上传绑定指定职位不稳定的问题，并扩展后台批量导入能力：内部 `/api/parse-resume` 支持 `job_id` 精确绑定职位，新增 `/api/parse-resumes` 批量接口按 `files[]` 逐份解析 PDF 并返回每个文件的成功/失败明细；后台“添加候选人”页面改为提交职位 ID、支持一次选择多个 PDF，并显示批量处理结果；公开投递页同步提交 `job_id` 以避免仅靠职位标题绑定；新增职位 ID 上传、批量 PDF 上传和前端批量控件静态回归，隔离门禁提升至 27 项全部通过（2026-10-09）。
 - **v1.28.0**: 继续补齐公开投递业务边界：公开入口必须绑定真实且开放的职位，不存在职位返回 404，已停招职位返回 400，并在解析流程前拦截；保留后台 HR 的默认 AI 自动提取入口；修复业务 `HTTPException` 被宽泛异常处理误包装为 500 的问题；统一 `portal.html` 与后端上传限制为 5MB；新增未知职位、关闭职位、重复活跃投递和前端文案一致性回归测试，隔离门禁提升至 24 项全部通过（2026-10-09）。
 - **v1.26.0**: 完成 Aura 工程稳定化第一阶段：1. 建立隔离 SQLite 测试运行器 run_tests.py 与 conftest.py，覆盖鉴权安全、候选人生命周期、Offer 审批、系统设置 CRUD、权限边界与前端伪功能静态回归共 15 条核心用例；2. 新增 GitHub Actions 发布门禁 `.github/workflows/aura-tests.yml`，push/PR 自动运行同一套回归；3. 补齐 `.env.example` 并扩展 `.gitignore`，防止真实秘钥、SQLite、日志、截图、上传文件继续进入版本控制；4. 新增工程稳定化文档与线上验收清单；5. 修复 main.py 中 datetime 被启动种子逻辑覆盖导致登录 Token 生成失败的问题；6. 修复飞书模拟卡片在 Windows GBK 控制台打印 emoji 触发 UnicodeEncodeError 造成 Offer 发起失败的问题；7. 新增非管理员系统设置写入与面试官创建职位的 403 权限边界测试。验证结果：`15 tests passed`。 (2026-10-08 00:00:00)
 - **v1.25.1**: 彻底修复详情页候选人串台缺陷：为candidate-detail.html构建DEFAULT_FALLBACK_CANDIDATES_MAP多候选人完整字典映射池与getFallbackCandidateById引擎，loadDetail与首屏渲染100%按URL ID精准匹配；同步对齐seed_data.py候选人种子与操作日志；解决列表接口401拦截 (2026-09-22 17:08:55)

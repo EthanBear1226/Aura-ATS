@@ -18,6 +18,8 @@ Use this checklist after each deployment to verify that the hosted site matches 
 - Collapse and expand the job sidebar. Expected: actual layout width changes and state persists after refresh.
 - Select a candidate and advance stage. Expected: card/list state changes and detail log records the action.
 - Try advancing a terminal candidate. Expected: blocked with clear message unless using re-enter flow.
+- Open Add Candidate, select an existing open job, and upload one PDF. Expected: candidate is linked to that job ID, not only its display title.
+- Select multiple PDFs in one upload. Expected: each file gets an independent success/failure result and successful files are persisted.
 
 ## 3. Candidate Detail
 
