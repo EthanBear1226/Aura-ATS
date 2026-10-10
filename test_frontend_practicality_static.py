@@ -53,3 +53,15 @@ def test_add_candidate_page_supports_job_id_and_multiple_pdf_uploads():
     assert "const filename = escapeHtml" in html
     assert "const detail = escapeHtml" in html
     assert "e.target.files[0]" not in html
+
+
+def test_interviewer_login_and_workbench_entry_are_role_specific():
+    login_html = read_page("login.html")
+    workbench_html = read_page("interviewer-workbench.html")
+    app_js = read_page("assets/js/app.js")
+
+    assert "interviewer-workbench.html" in login_html
+    assert "user.role === 'Interviewer'" in login_html
+    assert "id === 'interviewer-workbench'" in app_js
+    assert "fetch('/api/interviewer/workbench')" in workbench_html
+    assert "user.role !== 'Interviewer'" in workbench_html

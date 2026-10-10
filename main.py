@@ -1331,6 +1331,10 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 async def read_index():
     return FileResponse('index.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
+@app.get("/interviewer-workbench.html")
+async def read_interviewer_workbench():
+    return FileResponse('interviewer-workbench.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+
 @app.get("/candidates.html")
 async def read_candidates():
     return FileResponse('candidates.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
@@ -1698,6 +1702,38 @@ def get_interviews(db: Session = Depends(get_db), current_user: models.User = De
         return []
         
     return db.query(models.Interview).all()
+
+@app.get("/api/interviewer/workbench")
+def get_interviewer_workbench(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.role != "Interviewer":
+        raise HTTPException(status_code=403, detail="Only interviewers can access this workbench")
+
+    interviews = (
+        db.query(models.Interview)
+        .filter(models.Interview.interviewer_name == current_user.name)
+        .order_by(models.Interview.start_time.asc())
+        .all()
+    )
+    result = []
+    for interview in interviews:
+        candidate = db.query(models.Candidate).filter(
+            models.Candidate.id == interview.candidate_id
+        ).first()
+        result.append({
+            "id": interview.id,
+            "candidate_id": interview.candidate_id,
+            "candidate_name": candidate.name if candidate else "未知候选人",
+            "job_title": interview.job_title,
+            "start_time": interview.start_time,
+            "end_time": interview.end_time,
+            "location": interview.location,
+            "status": interview.status,
+            "feedback_result": interview.feedback_result,
+        })
+    return result
 
 @app.patch("/api/interviews/{interview_id}/feedback", response_model=schemas.Interview)
 def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

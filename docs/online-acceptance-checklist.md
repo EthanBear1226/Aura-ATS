@@ -7,10 +7,15 @@ Use this checklist after each deployment to verify that the hosted site matches 
 - Open `/api/candidates` without a token. Expected: `401`.
 - Open `/api/jobs` without a token. Expected: `401`.
 - Open `/api/approvals/pending` without a token. Expected: `401`.
+- Log in as an `Interviewer`. Expected: redirect to `/interviewer-workbench.html`.
+- Open `/api/interviewer/workbench` as an HR user. Expected: `403`.
 - Open `/portal.html?job_id=1` without login. Expected: public job page loads.
 - Open `/api/public/jobs/1` without login. Expected: `200` and complete job data.
 
 ## 2. Candidate Management
+
+- On the interviewer workbench, confirm only assigned interviews are shown.
+- Confirm the interviewer view contains today's interviews, pending feedback, upcoming interviews, and recent completed interviews.
 
 - Log in as `hr@example.com / 123456`.
 - Open `candidates.html`. Expected: candidate list renders without blank page.

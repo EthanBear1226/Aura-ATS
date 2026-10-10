@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>我的面试 | Aura</title>
+    <link rel="stylesheet" href="assets/css/styles.css?v=19">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .page-content { max-width: 1240px; margin: 0 auto; }
+        .workbench-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 24px; }
+        .workbench-heading h1 { margin: 0; font-size: 28px; }
+        .workbench-heading p { margin: 8px 0 0; color: var(--text-secondary); font-size: 14px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 28px; }
+        .summary-card { padding: 18px; border: 1px solid var(--border-color); background: var(--card-bg); border-radius: 8px; }
+        .summary-label { color: var(--text-secondary); font-size: 13px; }
+        .summary-value { margin-top: 8px; font-size: 28px; font-weight: 700; }
+        .section { margin-top: 24px; }
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .section-header h2 { margin: 0; font-size: 17px; }
+        .section-header span { color: var(--text-secondary); font-size: 13px; }
+        .interview-list { display: grid; gap: 10px; }
+        .interview-card { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(190px, 1fr) minmax(170px, .9fr) auto; align-items: center; gap: 18px; padding: 18px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg); }
+        .interview-card:hover { border-color: var(--primary-color); box-shadow: var(--shadow-sm); }
+        .eyebrow { color: var(--text-secondary); font-size: 12px; margin-bottom: 5px; }
+        .candidate-name { font-size: 15px; font-weight: 650; }
+        .interview-meta { color: var(--text-primary); font-size: 14px; line-height: 1.6; }
+        .status { display: inline-flex; align-items: center; width: fit-content; padding: 4px 9px; border-radius: 999px; background: #eef6ff; color: var(--primary-color); font-size: 12px; }
+        .status.overdue { background: #fff1f0; color: #d4380d; }
+        .status.done { background: #eff9f1; color: #18794e; }
+        .empty-state { padding: 28px; text-align: center; color: var(--text-secondary); border: 1px dashed var(--border-color); border-radius: 8px; background: rgba(255,255,255,.55); }
+        .loading { color: var(--text-secondary); padding: 40px; text-align: center; }
+        @media (max-width: 900px) {
+            .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .interview-card { grid-template-columns: 1fr 1fr; }
+            .interview-card .card-action { grid-column: 1 / -1; }
+        }
+        @media (max-width: 560px) {
+            .workbench-heading { display: block; }
+            .summary-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .summary-card { padding: 14px; }
+            .summary-value { font-size: 24px; }
+            .interview-card { grid-template-columns: 1fr; gap: 10px; }
+            .interview-card .card-action { grid-column: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar-container"></aside>
+        <main class="main-content">
+            <header class="header" id="header-container"></header>
+            <div class="page-content">
+                <div class="workbench-heading">
+                    <div>
+                        <h1>我的面试</h1>
+                        <p id="workbench-subtitle">只展示分配给你的面试安排和待办反馈</p>
+                    </div>
+                    <a class="btn" href="interviews.html?v=19">查看面试日程</a>
+                </div>
+
+                <div class="summary-grid">
+                    <div class="summary-card"><div class="summary-label">今日面试</div><div class="summary-value" id="todayCount">0</div></div>
+                    <div class="summary-card"><div class="summary-label">待填写反馈</div><div class="summary-value" id="feedbackCount">0</div></div>
+                    <div class="summary-card"><div class="summary-label">即将开始</div><div class="summary-value" id="upcomingCount">0</div></div>
+                    <div class="summary-card"><div class="summary-label">最近完成</div><div class="summary-value" id="completedCount">0</div></div>
+                </div>
+
+                <section class="section">
+                    <div class="section-header"><h2>今日面试</h2><span>优先处理今天的安排</span></div>
+                    <div class="interview-list" id="todayList"><div class="loading">正在加载面试安排...</div></div>
+                </section>
+
+                <section class="section">
+                    <div class="section-header"><h2>待填写反馈</h2><span>面试结束后请及时提交</span></div>
+                    <div class="interview-list" id="feedbackList"><div class="loading">正在加载待办...</div></div>
+                </section>
+
+                <section class="section">
+                    <div class="section-header"><h2>即将开始</h2><span>未来 7 天</span></div>
+                    <div class="interview-list" id="upcomingList"><div class="loading">正在加载安排...</div></div>
+                </section>
+
+                <section class="section">
+                    <div class="section-header"><h2>最近完成</h2><span>最近 5 场</span></div>
+                    <div class="interview-list" id="completedList"><div class="loading">正在加载记录...</div></div>
+                </section>
+            </div>
+        </main>
+    </div>
+    <script src="assets/js/app.js?v=19"></script>
+    <script>
+        let myInterviews = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+            if (user.role !== 'Interviewer') {
+                window.location.replace('index.html');
+                return;
+            }
+            renderSidebar('interviewer-workbench');
+            renderHeader();
+            loadInterviewerWorkbench();
+        });
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[character]));
+        }
+
+        async function loadInterviewerWorkbench() {
+            try {
+                const response = await fetch('/api/interviewer/workbench');
+                if (response.status === 403) {
+                    window.location.replace('index.html');
+                    return;
+                }
+                if (!response.ok) throw new Error('load failed');
+                myInterviews = await response.json();
+                renderWorkbench();
+            } catch (error) {
+                console.error(error);
+                ['todayList', 'feedbackList', 'upcomingList', 'completedList'].forEach(id => {
+                    document.getElementById(id).innerHTML = '<div class="empty-state">暂时无法加载面试安排，请稍后重试。</div>';
+                });
+            }
+        }
+
+        function dateAtStart(value) {
+            const date = new Date(value);
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        }
+
+        function isToday(value) {
+            return dateAtStart(value).getTime() === dateAtStart(new Date()).getTime();
+        }
+
+        function formatDateTime(value) {
+            return new Date(value).toLocaleString('zh-CN', {
+                month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function card(interview, actionLabel = '查看日程') {
+            const start = new Date(interview.start_time);
+            const isOverdue = start < new Date() && interview.status === '已安排' && !interview.feedback_result;
+            const statusClass = interview.feedback_result ? 'done' : (isOverdue ? 'overdue' : '');
+            const statusText = interview.feedback_result ? `已评价：${escapeHtml(interview.feedback_result)}` : (isOverdue ? '待填写反馈' : escapeHtml(interview.status || '已安排'));
+            const action = interview.feedback_result || isOverdue
+                ? `<a class="btn btn-primary card-action" href="interviews.html?v=19">填写/查看反馈</a>`
+                : `<a class="btn card-action" href="interviews.html?v=19">查看面试</a>`;
+            return `<div class="interview-card">
+                <div><div class="eyebrow">候选人</div><div class="candidate-name">${escapeHtml(interview.candidate_name || '未知候选人')}</div></div>
+                <div><div class="eyebrow">职位与时间</div><div class="interview-meta">${escapeHtml(interview.job_title || '--')}<br>${formatDateTime(interview.start_time)}</div></div>
+                <div><div class="eyebrow">地点与状态</div><div class="interview-meta">${escapeHtml(interview.location || '线上面试')}<br><span class="status ${statusClass}">${statusText}</span></div></div>
+                <div class="interview-actions">${action}</div>
+            </div>`;
+        }
+
+        function renderSection(id, items, emptyText) {
+            const element = document.getElementById(id);
+            element.innerHTML = items.length ? items.map(item => card(item)).join('') : `<div class="empty-state">${emptyText}</div>`;
+        }
+
+        function renderWorkbench() {
+            const now = new Date();
+            const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+            const today = myInterviews.filter(item => isToday(item.start_time));
+            const feedback = myInterviews.filter(item => item.status === '已安排' && new Date(item.start_time) <= now && !item.feedback_result);
+            const upcoming = myInterviews.filter(item => new Date(item.start_time) > now && new Date(item.start_time) <= nextWeek);
+            const completed = myInterviews.filter(item => item.feedback_result || item.status === '已完成')
+                .sort((a, b) => new Date(b.start_time) - new Date(a.start_time)).slice(0, 5);
+
+            document.getElementById('todayCount').innerText = today.length;
+            document.getElementById('feedbackCount').innerText = feedback.length;
+            document.getElementById('upcomingCount').innerText = upcoming.length;
+            document.getElementById('completedCount').innerText = completed.length;
+            renderSection('todayList', today, '今天没有面试安排');
+            renderSection('feedbackList', feedback, '当前没有待填写反馈');
+            renderSection('upcomingList', upcoming, '未来 7 天没有面试安排');
+            renderSection('completedList', completed, '还没有已完成的面试评价');
+        }
+    </script>
+</body>
+</html>
