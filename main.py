@@ -1350,6 +1350,10 @@ async def read_detail():
 async def read_interviews():
     return FileResponse('interviews.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
+@app.get("/interview-detail.html")
+async def read_interview_detail():
+    return FileResponse('interview-detail.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+
 @app.get("/jobs.html")
 async def read_jobs():
     return FileResponse('jobs.html', headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
@@ -1747,6 +1751,48 @@ def get_interview_detail(
     if not _can_access_interview(interview, current_user):
         raise HTTPException(status_code=403, detail="You do not have access to this interview")
     return _interview_response_data(interview)
+
+@app.get("/api/interviews/{interview_id}/feedback-revisions")
+def get_interview_feedback_revisions(
+    interview_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+    if not _can_access_interview(interview, current_user):
+        raise HTTPException(status_code=403, detail="You do not have access to this interview")
+
+    revisions = (
+        db.query(models.InterviewFeedbackRevision)
+        .filter(models.InterviewFeedbackRevision.interview_id == interview_id)
+        .order_by(models.InterviewFeedbackRevision.revision_number.asc())
+        .all()
+    )
+    result = []
+    for revision in revisions:
+        try:
+            snapshot = json.loads(revision.feedback_snapshot)
+        except (TypeError, json.JSONDecodeError):
+            snapshot = {}
+        result.append({
+            "id": revision.id,
+            "revision_number": revision.revision_number,
+            "action": revision.action,
+            "actor_name": revision.actor_name,
+            "actor_role": revision.actor_role,
+            "created_at": revision.created_at,
+            "feedback_result": snapshot.get("feedback_result"),
+            "feedback_text": snapshot.get("feedback_text"),
+            "professional_score": snapshot.get("professional_score"),
+            "communication_score": snapshot.get("communication_score"),
+            "business_score": snapshot.get("business_score"),
+            "collaboration_score": snapshot.get("collaboration_score"),
+            "potential_score": snapshot.get("potential_score"),
+            "interviewer_notes": snapshot.get("interviewer_notes"),
+        })
+    return result
 
 @app.get("/api/interviewer/workbench")
 def get_interviewer_workbench(

@@ -187,6 +187,12 @@
                 const response = await fetch('/api/interviews');
                 allInterviews = await response.json();
                 renderList();
+                const params = new URLSearchParams(window.location.search);
+                const interviewId = Number(params.get('interview_id'));
+                if (interviewId) {
+                    const mode = params.get('mode') === 'view';
+                    openFeedbackModal(interviewId, mode);
+                }
             } catch(e) { console.error(e); }
         }
 

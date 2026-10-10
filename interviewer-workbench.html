@@ -159,6 +159,23 @@
             </div>`;
         }
 
+        function card(interview, actionLabel = '查看面试') {
+            const start = new Date(interview.start_time);
+            const isOverdue = start < new Date() && interview.status === '已安排' && !interview.feedback_result;
+            const statusClass = interview.feedback_result ? 'done' : (isOverdue ? 'overdue' : '');
+            const statusText = interview.feedback_result ? `已评价：${escapeHtml(interview.feedback_result)}` : (isOverdue ? '待填写反馈' : escapeHtml(interview.status || '已安排'));
+            const detailUrl = `interview-detail.html?id=${encodeURIComponent(interview.id)}&v=20`;
+            const action = interview.feedback_result || isOverdue
+                ? `<a class="btn btn-primary card-action" href="${detailUrl}">填写/查看反馈</a>`
+                : `<a class="btn card-action" href="${detailUrl}">查看面试</a>`;
+            return `<div class="interview-card">
+                <div><div class="eyebrow">候选人</div><div class="candidate-name">${escapeHtml(interview.candidate_name || '未知候选人')}</div></div>
+                <div><div class="eyebrow">职位与时间</div><div class="interview-meta">${escapeHtml(interview.job_title || '--')}<br>${formatDateTime(interview.start_time)}</div></div>
+                <div><div class="eyebrow">地点与状态</div><div class="interview-meta">${escapeHtml(interview.location || '线上面试')}<br><span class="status ${statusClass}">${statusText}</span></div></div>
+                <div class="interview-actions">${action}</div>
+            </div>`;
+        }
+
         function renderSection(id, items, emptyText) {
             const element = document.getElementById(id);
             element.innerHTML = items.length ? items.map(item => card(item)).join('') : `<div class="empty-state">${emptyText}</div>`;

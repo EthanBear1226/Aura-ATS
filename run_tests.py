@@ -20,6 +20,8 @@ TEST_MODULES = [
     "test_candidate_lifecycle_api",
     "test_offer_approvals_api",
     "test_frontend_practicality_static",
+    "test_interview_detail",
+    "test_interview_detail_static",
     "test_role_permissions",
     "test_security_boundaries",
     "test_settings_api",
@@ -144,7 +146,10 @@ def run():
             total += 1
             db = None
             try:
-                if module_name != "test_frontend_practicality_static":
+                if module_name not in {
+                    "test_frontend_practicality_static",
+                    "test_interview_detail_static",
+                }:
                     reset_database()
                 args, db = build_args(fn)
                 fn(**args)

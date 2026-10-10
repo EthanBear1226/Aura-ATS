@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>面试详情 | Aura</title>
+    <link rel="stylesheet" href="assets/css/styles.css?v=20">
+    <style>
+        .detail-page { max-width: 1180px; margin: 0 auto; padding: 22px 0 48px; }
+        .detail-topbar { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:20px; }
+        .back-link { color:var(--text-secondary); text-decoration:none; font-size:14px; }
+        .back-link:hover { color:var(--primary-color); }
+        .detail-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; padding:22px 24px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:8px; }
+        .eyebrow { color:var(--text-secondary); font-size:12px; margin-bottom:7px; }
+        .detail-heading h1 { margin:0; font-size:26px; }
+        .detail-heading p { margin:8px 0 0; color:var(--text-secondary); font-size:14px; }
+        .status { display:inline-flex; align-items:center; padding:5px 10px; border-radius:999px; background:#eef6ff; color:var(--primary-color); font-size:12px; white-space:nowrap; }
+        .status.done { background:#eff9f1; color:#18794e; }
+        .status.cancelled { background:#fff1f0; color:#d4380d; }
+        .detail-grid { display:grid; grid-template-columns:minmax(0, 1.25fr) minmax(300px, .75fr); gap:16px; margin-top:16px; }
+        .panel { background:var(--card-bg); border:1px solid var(--border-color); border-radius:8px; padding:20px; }
+        .panel h2 { margin:0 0 16px; font-size:17px; }
+        .info-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 20px; }
+        .info-item label { display:block; color:var(--text-secondary); font-size:12px; margin-bottom:5px; }
+        .info-item div { font-size:14px; line-height:1.5; word-break:break-word; }
+        .candidate-summary { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+        .avatar { width:48px; height:48px; border-radius:50%; background:var(--primary-color); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; flex:none; }
+        .candidate-summary h3 { margin:0; font-size:18px; }
+        .candidate-summary p { margin:5px 0 0; color:var(--text-secondary); font-size:13px; }
+        .skill-list { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+        .skill { padding:4px 9px; border-radius:999px; background:#f3f6fa; color:var(--text-secondary); font-size:12px; }
+        .resume-box { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:13px 14px; border:1px solid var(--border-color); border-radius:7px; background:#fafbfc; }
+        .resume-box strong { display:block; font-size:14px; }
+        .resume-box span { display:block; color:var(--text-secondary); font-size:12px; margin-top:4px; }
+        .feedback-summary { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+        .score { text-align:center; padding:10px 6px; background:#fafbfc; border:1px solid var(--border-color); border-radius:7px; }
+        .score strong { display:block; font-size:18px; }
+        .score span { display:block; margin-top:3px; color:var(--text-secondary); font-size:11px; }
+        .feedback-copy { white-space:pre-wrap; line-height:1.65; color:var(--text-primary); font-size:14px; }
+        .muted { color:var(--text-secondary); font-size:13px; }
+        .revision-list { display:grid; gap:10px; }
+        .revision { padding:12px 14px; background:#fafbfc; border:1px solid var(--border-color); border-radius:7px; }
+        .revision-header { display:flex; justify-content:space-between; gap:12px; color:var(--text-secondary); font-size:12px; margin-bottom:7px; }
+        .action-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+        .error-state { padding:56px 20px; text-align:center; color:var(--text-secondary); }
+        .loading { padding:50px 20px; text-align:center; color:var(--text-secondary); }
+        @media (max-width: 900px) { .detail-grid { grid-template-columns:1fr; } }
+        @media (max-width: 600px) { .detail-heading { display:block; } .detail-heading .status { margin-top:14px; } .info-grid { grid-template-columns:1fr; } .feedback-summary { grid-template-columns:repeat(3,minmax(0,1fr)); } .detail-page { padding:16px 0 32px; } }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar-container"></aside>
+        <main class="main-content">
+            <header class="header" id="header-container"></header>
+            <div class="detail-page">
+                <div id="pageState" class="loading">正在加载面试详情...</div>
+                <div id="detailContent" style="display:none;">
+                    <div class="detail-topbar">
+                        <a class="back-link" href="interviewer-workbench.html?v=20">← 返回我的面试</a>
+                        <div class="action-row">
+                            <a class="btn" id="scheduleLink" href="interviews.html?v=20">查看面试日程</a>
+                            <button class="btn btn-primary" id="feedbackButton" type="button">填写面试反馈</button>
+                        </div>
+                    </div>
+                    <section class="detail-heading">
+                        <div>
+                            <div class="eyebrow">面试详情</div>
+                            <h1 id="candidateName">--</h1>
+                            <p id="headingMeta">--</p>
+                        </div>
+                        <span class="status" id="statusBadge">--</span>
+                    </section>
+
+                    <div class="detail-grid">
+                        <div class="panel">
+                            <h2>候选人摘要</h2>
+                            <div class="candidate-summary">
+                                <div class="avatar" id="candidateAvatar">--</div>
+                                <div>
+                                    <h3 id="candidateSummaryName">--</h3>
+                                    <p id="candidateSummaryMeta">--</p>
+                                </div>
+                            </div>
+                            <div class="info-grid">
+                                <div class="info-item"><label>应聘职位</label><div id="candidateJob">--</div></div>
+                                <div class="info-item"><label>工作经验</label><div id="candidateExp">--</div></div>
+                                <div class="info-item"><label>候选人阶段</label><div id="candidateStage">--</div></div>
+                                <div class="info-item"><label>联系方式</label><div id="candidateContact">仅 HR 可查看</div></div>
+                            </div>
+                            <div class="skill-list" id="skillList"></div>
+                            <div class="resume-box" style="margin-top:18px;">
+                                <div><strong>候选人简历</strong><span id="resumeHint">仅展示当前面试所需的简历入口</span></div>
+                                <a class="btn" id="resumeLink" href="#" target="_blank" rel="noopener" style="display:none;">预览简历</a>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <h2>面试安排</h2>
+                            <div class="info-grid">
+                                <div class="info-item"><label>面试职位</label><div id="interviewJob">--</div></div>
+                                <div class="info-item"><label>面试官</label><div id="interviewerName">--</div></div>
+                                <div class="info-item"><label>开始时间</label><div id="startTime">--</div></div>
+                                <div class="info-item"><label>结束时间</label><div id="endTime">--</div></div>
+                                <div class="info-item"><label>面试地点</label><div id="location">--</div></div>
+                                <div class="info-item"><label>反馈修改次数</label><div id="revisionCount">0 / 2</div></div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <h2>当前反馈</h2>
+                            <div id="feedbackEmpty" class="muted">本场面试尚未提交反馈。</div>
+                            <div id="feedbackContent" style="display:none;">
+                                <div class="info-item"><label>综合结论</label><div id="feedbackResult">--</div></div>
+                                <div class="feedback-summary" style="margin-top:14px;">
+                                    <div class="score"><strong id="professionalScore">-</strong><span>专业能力</span></div>
+                                    <div class="score"><strong id="communicationScore">-</strong><span>沟通表达</span></div>
+                                    <div class="score"><strong id="businessScore">-</strong><span>业务理解</span></div>
+                                    <div class="score"><strong id="collaborationScore">-</strong><span>协作能力</span></div>
+                                    <div class="score"><strong id="potentialScore">-</strong><span>发展潜力</span></div>
+                                </div>
+                                <div class="info-item" style="margin-top:16px;"><label>详细反馈</label><div class="feedback-copy" id="feedbackText">--</div></div>
+                                <div class="info-item" style="margin-top:16px;"><label>面试官笔记</label><div class="feedback-copy" id="interviewerNotes">--</div></div>
+                                <div class="muted" style="margin-top:14px;" id="feedbackUpdatedAt">--</div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <h2>反馈历史</h2>
+                            <div id="revisionList" class="revision-list"><div class="muted">暂无历史版本。</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="assets/js/app.js?v=20"></script>
+    <script>
+        let interview = null;
+        let candidate = null;
+        let revisions = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+            if (user.role !== 'Interviewer') {
+                window.location.replace('index.html');
+                return;
+            }
+            renderSidebar('interviewer-workbench');
+            renderHeader();
+            loadDetail();
+        });
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[character]));
+        }
+
+        function getInterviewId() {
+            return new URLSearchParams(window.location.search).get('id');
+        }
+
+        function formatDateTime(value) {
+            if (!value) return '--';
+            return new Date(value).toLocaleString('zh-CN', {
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        async function loadDetail() {
+            const id = getInterviewId();
+            if (!id) return showError('缺少面试编号，无法打开详情。');
+            try {
+                const response = await fetch(`/api/interviews/${encodeURIComponent(id)}`);
+                if (response.status === 403) return showError('你无权查看这场面试。');
+                if (response.status === 404) return showError('这场面试不存在或已被删除。');
+                if (!response.ok) throw new Error('interview detail failed');
+                interview = await response.json();
+
+                if (interview.candidate_id) {
+                    const candidateResponse = await fetch(`/api/candidates/${interview.candidate_id}`);
+                    if (candidateResponse.ok) candidate = await candidateResponse.json();
+                }
+                const revisionResponse = await fetch(`/api/interviews/${encodeURIComponent(id)}/feedback-revisions`);
+                if (revisionResponse.ok) revisions = await revisionResponse.json();
+                renderDetail();
+            } catch (error) {
+                console.error(error);
+                showError('面试详情加载失败，请稍后重试。');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('pageState').className = 'error-state';
+            document.getElementById('pageState').innerText = message;
+        }
+
+        function renderDetail() {
+            const c = interview.candidate || candidate || {};
+            document.getElementById('pageState').style.display = 'none';
+            document.getElementById('detailContent').style.display = 'block';
+            document.getElementById('candidateName').innerText = c.name || '未知候选人';
+            document.getElementById('headingMeta').innerText = `${interview.job_title || c.job || '--'} · ${formatDateTime(interview.start_time)}`;
+            document.getElementById('candidateAvatar').innerText = (c.name || '?').slice(0, 1);
+            document.getElementById('candidateSummaryName').innerText = c.name || '未知候选人';
+            document.getElementById('candidateSummaryMeta').innerText = `${c.job || interview.job_title || '--'} · ${c.exp || '经验未填写'}`;
+            document.getElementById('candidateJob').innerText = c.job || interview.job_title || '--';
+            document.getElementById('candidateExp').innerText = c.exp || '--';
+            document.getElementById('candidateStage').innerText = c.stage || '--';
+            document.getElementById('interviewJob').innerText = interview.job_title || '--';
+            document.getElementById('interviewerName').innerText = interview.interviewer_name || '--';
+            document.getElementById('startTime').innerText = formatDateTime(interview.start_time);
+            document.getElementById('endTime').innerText = formatDateTime(interview.end_time);
+            document.getElementById('location').innerText = interview.location || '线上面试';
+            document.getElementById('revisionCount').innerText = `${interview.feedback_revision_count || 0} / 2`;
+
+            const statusBadge = document.getElementById('statusBadge');
+            statusBadge.innerText = interview.feedback_result ? `已评价：${interview.feedback_result}` : (interview.status || '已安排');
+            statusBadge.className = `status ${interview.feedback_result ? 'done' : (interview.status === '已取消' ? 'cancelled' : '')}`;
+            const skillList = document.getElementById('skillList');
+            skillList.innerHTML = Array.isArray(c.skills) && c.skills.length
+                ? c.skills.slice(0, 12).map(skill => `<span class="skill">${escapeHtml(skill)}</span>`).join('')
+                : '<span class="muted">暂无技能标签</span>';
+
+            if (c.pdf_path) {
+                const link = document.getElementById('resumeLink');
+                link.href = c.pdf_path;
+                link.style.display = 'inline-flex';
+            } else {
+                document.getElementById('resumeHint').innerText = '当前没有可预览的简历文件';
+            }
+
+            const feedbackButton = document.getElementById('feedbackButton');
+            const canEdit = !interview.feedback_result || (interview.feedback_revision_count || 0) < 2;
+            feedbackButton.innerText = interview.feedback_result ? (canEdit ? '修改面试反馈' : '查看面试反馈') : '填写面试反馈';
+            feedbackButton.onclick = () => {
+                window.location.href = `interviews.html?interview_id=${encodeURIComponent(interview.id)}&mode=${canEdit ? 'edit' : 'view'}`;
+            };
+            renderFeedback();
+            renderRevisions();
+        }
+
+        function renderFeedback() {
+            const hasFeedback = Boolean(interview.feedback_result);
+            document.getElementById('feedbackEmpty').style.display = hasFeedback ? 'none' : 'block';
+            document.getElementById('feedbackContent').style.display = hasFeedback ? 'block' : 'none';
+            if (!hasFeedback) return;
+            document.getElementById('feedbackResult').innerText = interview.feedback_result;
+            document.getElementById('professionalScore').innerText = interview.professional_score ?? '-';
+            document.getElementById('communicationScore').innerText = interview.communication_score ?? '-';
+            document.getElementById('businessScore').innerText = interview.business_score ?? '-';
+            document.getElementById('collaborationScore').innerText = interview.collaboration_score ?? '-';
+            document.getElementById('potentialScore').innerText = interview.potential_score ?? '-';
+            document.getElementById('feedbackText').innerText = interview.feedback_text || '暂无详细反馈';
+            document.getElementById('interviewerNotes').innerText = interview.interviewer_notes || '暂无面试官笔记';
+            document.getElementById('feedbackUpdatedAt').innerText = `最近更新：${formatDateTime(interview.feedback_updated_at || interview.feedback_submitted_at)}`;
+        }
+
+        function renderRevisions() {
+            const container = document.getElementById('revisionList');
+            if (!revisions.length) {
+                container.innerHTML = '<div class="muted">暂无历史版本。</div>';
+                return;
+            }
+            container.innerHTML = revisions.slice().reverse().map(revision => `
+                <div class="revision">
+                    <div class="revision-header">
+                        <span>第 ${revision.revision_number + 1} 个版本 · ${revision.action === 'updated' ? '修改' : '首次提交'}</span>
+                        <span>${escapeHtml(formatDateTime(revision.created_at))}</span>
+                    </div>
+                    <div><strong>${escapeHtml(revision.feedback_result || '--')}</strong> · 平均评分 ${averageScore(revision)} / 5</div>
+                    <div class="muted" style="margin-top:5px;">${escapeHtml(revision.feedback_text || '暂无文字反馈')}</div>
+                </div>
+            `).join('');
+        }
+
+        function averageScore(revision) {
+            const scores = ['professional_score', 'communication_score', 'business_score', 'collaboration_score', 'potential_score']
+                .map(key => Number(revision[key])).filter(Number.isFinite);
+            return scores.length ? (scores.reduce((sum, value) => sum + value, 0) / scores.length).toFixed(1) : '--';
+        }
+    </script>
+</body>
+</html>
