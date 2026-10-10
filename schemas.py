@@ -189,12 +189,29 @@ class InterviewCreate(BaseModel):
 class InterviewUpdateFeedback(BaseModel):
     feedback_result: str
     feedback_text: str
+    professional_score: Optional[int] = None
+    communication_score: Optional[int] = None
+    business_score: Optional[int] = None
+    collaboration_score: Optional[int] = None
+    potential_score: Optional[int] = None
+    interviewer_notes: Optional[str] = None
+    confirm_rejection: bool = False
 
 class Interview(InterviewCreate):
     id: int
     status: str
     feedback_result: Optional[str] = None
     feedback_text: Optional[str] = None
+    professional_score: Optional[int] = None
+    communication_score: Optional[int] = None
+    business_score: Optional[int] = None
+    collaboration_score: Optional[int] = None
+    potential_score: Optional[int] = None
+    interviewer_notes: Optional[str] = None
+    feedback_revision_count: int = 0
+    feedback_submitted_at: Optional[datetime] = None
+    feedback_updated_at: Optional[datetime] = None
+    feedback_submitted_by: Optional[str] = None
     created_at: datetime
     candidate: Optional[Any] = None
     class Config: from_attributes = True

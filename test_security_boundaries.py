@@ -206,6 +206,176 @@ def test_offer_approval_detail_and_action_are_bound_to_owner_or_current_approver
     assert approve.json()["status"] == "approved"
 
 
+def _feedback_payload(result="满意", text="面试表现符合岗位要求", confirm_rejection=False):
+    return {
+        "feedback_result": result,
+        "feedback_text": text,
+        "professional_score": 4,
+        "communication_score": 4,
+        "business_score": 3,
+        "collaboration_score": 4,
+        "potential_score": 4,
+        "interviewer_notes": "记录候选人项目深度和沟通表现。",
+        "confirm_rejection": confirm_rejection,
+    }
+
+
+def test_interview_feedback_requires_assigned_interviewer_and_structured_scores(
+    client,
+    db_session,
+    make_auth_headers,
+):
+    candidate = _make_candidate(db_session, name="Feedback Candidate")
+    db_session.add(
+        models.Interview(
+            candidate_id=candidate.id,
+            interviewer_name="Assigned Feedback Interviewer",
+            job_title=candidate.job,
+            start_time=datetime.datetime.utcnow(),
+            end_time=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+            location="Online",
+        )
+    )
+    db_session.commit()
+    interview = db_session.query(models.Interview).first()
+
+    stranger_headers = make_auth_headers(
+        "feedback-stranger@test.local",
+        role="Interviewer",
+        name="Other Feedback Interviewer",
+    )
+    forbidden = client.patch(
+        f"/api/interviews/{interview.id}/feedback",
+        headers=stranger_headers,
+        json=_feedback_payload(),
+    )
+    assert forbidden.status_code == 403
+
+    assigned_headers = make_auth_headers(
+        "assigned-feedback@test.local",
+        role="Interviewer",
+        name="Assigned Feedback Interviewer",
+    )
+    invalid_scores = _feedback_payload()
+    invalid_scores["professional_score"] = None
+    invalid = client.patch(
+        f"/api/interviews/{interview.id}/feedback",
+        headers=assigned_headers,
+        json=invalid_scores,
+    )
+    assert invalid.status_code == 400
+
+    hr_headers = make_auth_headers(
+        "feedback-hr@test.local",
+        role="Recruiter",
+        name="Feedback HR",
+    )
+    view = client.get(f"/api/interviews/{interview.id}", headers=hr_headers)
+    assert view.status_code == 200, view.text
+    hr_cannot_edit = client.patch(
+        f"/api/interviews/{interview.id}/feedback",
+        headers=hr_headers,
+        json=_feedback_payload(),
+    )
+    assert hr_cannot_edit.status_code == 403
+
+
+def test_interview_feedback_allows_two_modifications_and_records_rejection(
+    client,
+    db_session,
+    make_auth_headers,
+):
+    candidate = _make_candidate(db_session, name="Feedback Revision Candidate", stage="面试中")
+    db_session.add_all([
+        models.Interview(
+            candidate_id=candidate.id,
+            interviewer_name="Revision Interviewer",
+            job_title=candidate.job,
+            start_time=datetime.datetime.utcnow(),
+            end_time=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+            location="Online",
+        ),
+        models.Interview(
+            candidate_id=candidate.id,
+            interviewer_name="Revision Interviewer",
+            job_title=candidate.job,
+            start_time=datetime.datetime.utcnow() + datetime.timedelta(days=1),
+            end_time=datetime.datetime.utcnow() + datetime.timedelta(days=1, hours=1),
+            location="Online",
+        ),
+        models.Interview(
+            candidate_id=candidate.id,
+            interviewer_name="Revision Interviewer",
+            job_title=candidate.job,
+            start_time=datetime.datetime.utcnow() + datetime.timedelta(days=2),
+            end_time=datetime.datetime.utcnow() + datetime.timedelta(days=2, hours=1),
+            location="Online",
+        ),
+    ])
+    db_session.commit()
+    interviews = db_session.query(models.Interview).order_by(models.Interview.id.asc()).all()
+    headers = make_auth_headers(
+        "revision-interviewer@test.local",
+        role="Interviewer",
+        name="Revision Interviewer",
+    )
+
+    first = client.patch(
+        f"/api/interviews/{interviews[0].id}/feedback",
+        headers=headers,
+        json=_feedback_payload(),
+    )
+    assert first.status_code == 200, first.text
+    assert first.json()["feedback_revision_count"] == 0
+
+    second = client.patch(
+        f"/api/interviews/{interviews[0].id}/feedback",
+        headers=headers,
+        json=_feedback_payload(text="第一次修改反馈"),
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["feedback_revision_count"] == 1
+
+    third = client.patch(
+        f"/api/interviews/{interviews[0].id}/feedback",
+        headers=headers,
+        json=_feedback_payload(text="第二次修改反馈"),
+    )
+    assert third.status_code == 200, third.text
+    assert third.json()["feedback_revision_count"] == 2
+
+    fourth = client.patch(
+        f"/api/interviews/{interviews[0].id}/feedback",
+        headers=headers,
+        json=_feedback_payload(text="超过修改次数"),
+    )
+    assert fourth.status_code == 400
+
+    rejection_without_confirmation = client.patch(
+        f"/api/interviews/{interviews[1].id}/feedback",
+        headers=headers,
+        json=_feedback_payload(result="不满意"),
+    )
+    assert rejection_without_confirmation.status_code == 400
+
+    rejected = client.patch(
+        f"/api/interviews/{interviews[1].id}/feedback",
+        headers=headers,
+        json=_feedback_payload(result="不满意", confirm_rejection=True),
+    )
+    assert rejected.status_code == 200, rejected.text
+
+    db_session.expire_all()
+    refreshed_candidate = db_session.query(models.Candidate).get(candidate.id)
+    refreshed_interviews = db_session.query(models.Interview).filter(
+        models.Interview.candidate_id == candidate.id
+    ).all()
+    assert refreshed_candidate.stage == "已淘汰"
+    assert refreshed_interviews[0].status == "已完成"
+    assert refreshed_interviews[1].status == "已完成"
+    assert refreshed_interviews[2].status == "已取消"
+
+
 def test_public_resume_upload_rejects_non_pdf_and_oversized_pdf(client, db_session):
     job = models.Job(
         title="Upload Validation Job",

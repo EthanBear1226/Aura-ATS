@@ -124,12 +124,46 @@
                     </div>
                 </div>
             </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="font-weight:600; margin-bottom:12px; display:block; font-size:14px;">结构化评分 <span class="required-mark">*</span></label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 16px;">
+                    <label>专业能力
+                        <select id="professionalScore" class="form-control feedback-score">
+                            <option value="">请选择</option><option value="1">1 分</option><option value="2">2 分</option><option value="3">3 分</option><option value="4">4 分</option><option value="5">5 分</option>
+                        </select>
+                    </label>
+                    <label>沟通表达
+                        <select id="communicationScore" class="form-control feedback-score">
+                            <option value="">请选择</option><option value="1">1 分</option><option value="2">2 分</option><option value="3">3 分</option><option value="4">4 分</option><option value="5">5 分</option>
+                        </select>
+                    </label>
+                    <label>业务理解
+                        <select id="businessScore" class="form-control feedback-score">
+                            <option value="">请选择</option><option value="1">1 分</option><option value="2">2 分</option><option value="3">3 分</option><option value="4">4 分</option><option value="5">5 分</option>
+                        </select>
+                    </label>
+                    <label>协作能力
+                        <select id="collaborationScore" class="form-control feedback-score">
+                            <option value="">请选择</option><option value="1">1 分</option><option value="2">2 分</option><option value="3">3 分</option><option value="4">4 分</option><option value="5">5 分</option>
+                        </select>
+                    </label>
+                    <label>发展潜力
+                        <select id="potentialScore" class="form-control feedback-score">
+                            <option value="">请选择</option><option value="1">1 分</option><option value="2">2 分</option><option value="3">3 分</option><option value="4">4 分</option><option value="5">5 分</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
             <div class="form-group">
                 <label style="font-weight:600; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; font-size:14px;">
                     详细评价记录
                     <span style="font-weight:500; font-size:12px; color:var(--primary-color); cursor:pointer; background:#e8f4fd; padding:4px 10px; border-radius:12px;" onclick="loadFeedbackTemplate()" id="btnLoadTemplate">加载模板</span>
                 </label>
                 <textarea id="feedbackText" class="form-control" style="height:180px; font-family:inherit; resize:vertical; padding:16px; border-radius:12px; line-height:1.5; font-size:14px; border:1px solid var(--border-color);" placeholder="请输入面试反馈..."></textarea>
+            </div>
+            <div class="form-group" style="margin-top:20px;">
+                <label style="font-weight:600; margin-bottom:12px; display:block; font-size:14px;">面试官笔记 <span style="font-weight:400; color:var(--text-secondary); font-size:12px;">HR 可见，其他面试官不可见</span></label>
+                <textarea id="interviewerNotes" class="form-control" style="height:100px; font-family:inherit; resize:vertical; padding:16px; border-radius:12px; line-height:1.5; font-size:14px; border:1px solid var(--border-color);" placeholder="记录面试过程中的关键信息..."></textarea>
             </div>
             <div style="display:flex; gap:16px; margin-top:32px;">
                 <button class="btn" style="flex:1; justify-content:center; padding:12px; border-radius:8px; font-weight:500;" onclick="closeFeedbackModal()">取消</button>
@@ -180,7 +214,11 @@
                 if (interview.status === '已安排') {
                     btnHtml = `<button class="btn btn-primary" style="padding:6px 16px; font-size:13px;" onclick="openFeedbackModal(${interview.id})">填写评价</button>`;
                 } else if (interview.status === '已完成') {
-                    btnHtml = `<button class="btn" style="padding:6px 16px; font-size:13px;" onclick="openFeedbackModal(${interview.id}, true)">查看评价</button>`;
+                    const currentUser = JSON.parse(localStorage.getItem('aura_user') || '{}');
+                    const canEdit = currentUser.role === 'Interviewer' && (interview.feedback_revision_count || 0) < 2;
+                    btnHtml = canEdit
+                        ? `<button class="btn btn-primary" style="padding:6px 16px; font-size:13px;" onclick="openFeedbackModal(${interview.id})">修改评价</button>`
+                        : `<button class="btn" style="padding:6px 16px; font-size:13px;" onclick="openFeedbackModal(${interview.id}, true)">查看评价</button>`;
                 }
                 
                 let feedbackText = interview.feedback_result ? `<span class="tag tag-blue">${interview.feedback_result}</span>` : '<span style="color:var(--text-secondary); font-size:13px;">待填写</span>';
@@ -262,6 +300,11 @@
             
             const resultVal = interview.feedback_result || '满意';
             document.getElementById('feedbackResult').value = resultVal;
+            ['professional', 'communication', 'business', 'collaboration', 'potential'].forEach(field => {
+                const value = interview[`${field}_score`];
+                document.getElementById(`${field}Score`).value = value || '';
+            });
+            document.getElementById('interviewerNotes').value = interview.interviewer_notes || '';
             
             // Sync Segmented Control UI
             document.querySelectorAll('#feedbackSegmentedControl .segmented-item').forEach(i => {
@@ -274,11 +317,13 @@
             if (isReadOnly) {
                 document.getElementById('feedbackText').value = interview.feedback_text || '暂无评价内容';
                 document.getElementById('feedbackText').disabled = true;
+                document.querySelectorAll('.feedback-score, #interviewerNotes').forEach(element => element.disabled = true);
                 document.getElementById('btnSubmitFeedback').style.display = 'none';
                 document.getElementById('btnLoadTemplate').style.display = 'none';
                 document.querySelector('#feedbackModal h2').innerText = '面试评价记录';
             } else {
                 document.getElementById('feedbackText').disabled = false;
+                document.querySelectorAll('.feedback-score, #interviewerNotes').forEach(element => element.disabled = false);
                 document.getElementById('btnSubmitFeedback').style.display = 'flex';
                 document.getElementById('btnLoadTemplate').style.display = 'inline-block';
                 document.querySelector('#feedbackModal h2').innerText = '填写面试评价';
@@ -317,12 +362,34 @@
             const id = document.getElementById('feedbackInterviewId').value;
             const result = document.getElementById('feedbackResult').value;
             const text = document.getElementById('feedbackText').value;
+            const scoreFields = ['professional', 'communication', 'business', 'collaboration', 'potential'];
+            const scores = Object.fromEntries(scoreFields.map(field => [`${field}_score`, Number(document.getElementById(`${field}Score`).value)]));
+            if (Object.values(scores).some(value => !Number.isInteger(value) || value < 1 || value > 5)) {
+                if (window.showToast) showToast('请完整填写五项结构化评分', 'error');
+                return;
+            }
+            if (!text.trim()) {
+                if (window.showToast) showToast('请填写详细面试反馈', 'error');
+                return;
+            }
+            const interview = allInterviews.find(item => item.id === Number(id));
+            let confirmRejection = false;
+            if (result === '不满意') {
+                confirmRejection = window.confirm('确认淘汰该候选人吗？确认后候选人将自动归档，并中止当前职位后续招聘流程。');
+                if (!confirmRejection) return;
+            }
             
             try {
                 const response = await fetch(`/api/interviews/${id}/feedback`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ feedback_result: result, feedback_text: text })
+                    body: JSON.stringify({
+                        feedback_result: result,
+                        feedback_text: text,
+                        interviewer_notes: document.getElementById('interviewerNotes').value,
+                        confirm_rejection: confirmRejection,
+                        ...scores
+                    })
                 });
                 
                 if (response.ok) {

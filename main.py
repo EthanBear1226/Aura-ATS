@@ -1690,7 +1690,8 @@ def get_interviews(db: Session = Depends(get_db), current_user: models.User = De
     email = current_user.email
     
     if role == "Interviewer":
-        return db.query(models.Interview).filter(models.Interview.interviewer_name == name).all()
+        interviews = db.query(models.Interview).filter(models.Interview.interviewer_name == name).all()
+        return [_interview_response_data(interview) for interview in interviews]
     elif role == "HiringManager":
         user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first()
         dept_name = user_invite.department if user_invite else None
@@ -1698,10 +1699,54 @@ def get_interviews(db: Session = Depends(get_db), current_user: models.User = De
             dept_jobs = db.query(models.Job).filter(models.Job.department == dept_name).all()
             job_titles = [j.title for j in dept_jobs]
             if job_titles:
-                return db.query(models.Interview).filter(models.Interview.job_title.in_(job_titles)).all()
+                interviews = db.query(models.Interview).filter(models.Interview.job_title.in_(job_titles)).all()
+                return [_interview_response_data(interview) for interview in interviews]
         return []
         
-    return db.query(models.Interview).all()
+    interviews = db.query(models.Interview).all()
+    return [_interview_response_data(interview) for interview in interviews]
+
+def _can_access_interview(interview: models.Interview, current_user: models.User) -> bool:
+    if current_user.role == "Interviewer":
+        return interview.interviewer_name == current_user.name
+    if current_user.role in ["SuperAdmin", "Admin", "Recruiter"]:
+        return True
+    return False
+
+def _interview_response_data(interview: models.Interview) -> dict:
+    fields = [
+        "id", "candidate_id", "interviewer_name", "job_title",
+        "start_time", "end_time", "location", "status",
+        "feedback_result", "feedback_text", "professional_score",
+        "communication_score", "business_score", "collaboration_score",
+        "potential_score", "interviewer_notes", "feedback_revision_count",
+        "feedback_submitted_at", "feedback_updated_at", "feedback_submitted_by",
+        "created_at",
+    ]
+    data = {field: getattr(interview, field, None) for field in fields}
+    candidate = interview.candidate
+    data["candidate"] = {
+        "id": candidate.id,
+        "name": candidate.name,
+        "job": candidate.job,
+        "stage": candidate.stage,
+        "exp": candidate.exp,
+        "skills": candidate.skills or [],
+    } if candidate else None
+    return data
+
+@app.get("/api/interviews/{interview_id}", response_model=schemas.Interview)
+def get_interview_detail(
+    interview_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+    if not _can_access_interview(interview, current_user):
+        raise HTTPException(status_code=403, detail="You do not have access to this interview")
+    return _interview_response_data(interview)
 
 @app.get("/api/interviewer/workbench")
 def get_interviewer_workbench(
@@ -1740,12 +1785,67 @@ def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback
     interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
-    
+
+    if current_user.role != "Interviewer" or interview.interviewer_name != current_user.name:
+        raise HTTPException(status_code=403, detail="Only the assigned interviewer can submit feedback")
+    if interview.status == "已取消":
+        raise HTTPException(status_code=400, detail="Cancelled interviews cannot receive feedback")
+    if feedback.feedback_result not in ["满意", "待定", "不满意"]:
+        raise HTTPException(status_code=400, detail="Invalid interview feedback result")
+    if not feedback.feedback_text or not feedback.feedback_text.strip():
+        raise HTTPException(status_code=400, detail="Detailed feedback is required")
+    scores = [
+        feedback.professional_score,
+        feedback.communication_score,
+        feedback.business_score,
+        feedback.collaboration_score,
+        feedback.potential_score,
+    ]
+    if any(score is None or score < 1 or score > 5 for score in scores):
+        raise HTTPException(status_code=400, detail="All interview scores must be between 1 and 5")
+    if feedback.feedback_result == "不满意" and not feedback.confirm_rejection:
+        raise HTTPException(status_code=400, detail="Rejection confirmation is required")
+
+    revision_count = interview.feedback_revision_count or 0
+    if interview.feedback_result and revision_count >= 2:
+        raise HTTPException(status_code=400, detail="Feedback can only be modified twice")
+
+    now = datetime.utcnow()
+    action = "submitted" if not interview.feedback_result else "updated"
+    next_revision_count = revision_count if not interview.feedback_result else revision_count + 1
+    snapshot = {
+        "feedback_result": feedback.feedback_result,
+        "feedback_text": feedback.feedback_text.strip(),
+        "professional_score": feedback.professional_score,
+        "communication_score": feedback.communication_score,
+        "business_score": feedback.business_score,
+        "collaboration_score": feedback.collaboration_score,
+        "potential_score": feedback.potential_score,
+        "interviewer_notes": (feedback.interviewer_notes or "").strip(),
+    }
+    db.add(models.InterviewFeedbackRevision(
+        interview_id=interview.id,
+        revision_number=next_revision_count,
+        action=action,
+        actor_name=current_user.name,
+        actor_role=current_user.role,
+        feedback_snapshot=json.dumps(snapshot, ensure_ascii=False),
+    ))
+
     interview.feedback_result = feedback.feedback_result
-    interview.feedback_text = feedback.feedback_text
-    interview.status = "已完成" # Automatically set status to completed
-    
-    # 联动如果评价为不满意，则候选人自动淘汰归档
+    interview.feedback_text = snapshot["feedback_text"]
+    interview.professional_score = feedback.professional_score
+    interview.communication_score = feedback.communication_score
+    interview.business_score = feedback.business_score
+    interview.collaboration_score = feedback.collaboration_score
+    interview.potential_score = feedback.potential_score
+    interview.interviewer_notes = snapshot["interviewer_notes"]
+    interview.feedback_revision_count = next_revision_count
+    interview.feedback_submitted_at = interview.feedback_submitted_at or now
+    interview.feedback_updated_at = now
+    interview.feedback_submitted_by = current_user.name
+    interview.status = "已完成"
+
     if feedback.feedback_result == "不满意":
         candidate = db.query(models.Candidate).filter(models.Candidate.id == interview.candidate_id).first()
         if candidate:
@@ -1754,13 +1854,20 @@ def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback
                 candidate_id=candidate.id,
                 operator=current_user.name,
                 action="面试判定淘汰",
-                details=f"面试官 {interview.interviewer_name} 提交了不满意评价，候选人已自动淘汰归档。"
+                details=f"面试官 {interview.interviewer_name} 确认不建议继续，候选人已自动归档并中止后续流程。"
             )
             db.add(db_log)
-            
+            other_interviews = db.query(models.Interview).filter(
+                models.Interview.candidate_id == candidate.id,
+                models.Interview.id != interview.id,
+                models.Interview.status == "已安排",
+            ).all()
+            for other_interview in other_interviews:
+                other_interview.status = "已取消"
+
     db.commit()
     db.refresh(interview)
-    return interview
+    return _interview_response_data(interview)
 
 # --- Workbench Dashboard API ---
 

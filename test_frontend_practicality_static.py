@@ -65,3 +65,20 @@ def test_interviewer_login_and_workbench_entry_are_role_specific():
     assert "id === 'interviewer-workbench'" in app_js
     assert "fetch('/api/interviewer/workbench')" in workbench_html
     assert "user.role !== 'Interviewer'" in workbench_html
+
+
+def test_interview_feedback_form_is_structured_and_confirms_rejection():
+    html = read_page("interviews.html")
+
+    for field in [
+        "professionalScore",
+        "communicationScore",
+        "businessScore",
+        "collaborationScore",
+        "potentialScore",
+        "interviewerNotes",
+    ]:
+        assert field in html
+    assert "confirm_rejection: confirmRejection" in html
+    assert "确认淘汰该候选人吗" in html
+    assert "修改评价" in html

@@ -16,6 +16,9 @@ Use this checklist after each deployment to verify that the hosted site matches 
 
 - On the interviewer workbench, confirm only assigned interviews are shown.
 - Confirm the interviewer view contains today's interviews, pending feedback, upcoming interviews, and recent completed interviews.
+- Open a scheduled interview and submit all five scores, detailed feedback, and interviewer notes. Expected: the interview becomes completed and the feedback is visible to HR.
+- Reopen completed feedback as the assigned interviewer. Expected: editing is available up to two times; a third edit is blocked.
+- Choose “不满意”. Expected: a confirmation dialog appears; cancelling leaves the candidate unchanged, confirming archives the candidate and cancels later scheduled interviews.
 
 - Log in as `hr@example.com / 123456`.
 - Open `candidates.html`. Expected: candidate list renders without blank page.

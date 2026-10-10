@@ -88,6 +88,26 @@ def auto_migrate_columns():
         except Exception:
             pass
 
+        interview_columns = [
+            ("professional_score", "INTEGER"),
+            ("communication_score", "INTEGER"),
+            ("business_score", "INTEGER"),
+            ("collaboration_score", "INTEGER"),
+            ("potential_score", "INTEGER"),
+            ("interviewer_notes", "TEXT"),
+            ("feedback_revision_count", "INTEGER DEFAULT 0 NOT NULL"),
+            ("feedback_submitted_at", "DATETIME"),
+            ("feedback_updated_at", "DATETIME"),
+            ("feedback_submitted_by", "VARCHAR(100)"),
+        ]
+        for column_name, column_type in interview_columns:
+            try:
+                conn.execute(text(f"ALTER TABLE interviews ADD COLUMN {column_name} {column_type}"))
+                conn.commit()
+                print(f"Auto migration: added interviews.{column_name}")
+            except Exception:
+                pass
+
         # 2. 升级公开演示职位的完整高保真 JD (岗位职责、任职要求、团队介绍、薪资福利、投递说明)
         try:
             full_jd = """<div class="job-rich-detail">

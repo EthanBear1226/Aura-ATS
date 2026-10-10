@@ -127,9 +127,30 @@ class Interview(Base):
     status = Column(String(50), default="已安排") # 已安排, 已完成, 已取消
     feedback_result = Column(String(50), nullable=True) # 满意, 待定, 不满意
     feedback_text = Column(Text, nullable=True)
+    professional_score = Column(Integer, nullable=True)
+    communication_score = Column(Integer, nullable=True)
+    business_score = Column(Integer, nullable=True)
+    collaboration_score = Column(Integer, nullable=True)
+    potential_score = Column(Integer, nullable=True)
+    interviewer_notes = Column(Text, nullable=True)
+    feedback_revision_count = Column(Integer, default=0, nullable=False)
+    feedback_submitted_at = Column(DateTime, nullable=True)
+    feedback_updated_at = Column(DateTime, nullable=True)
+    feedback_submitted_by = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     candidate = relationship("Candidate", back_populates="interviews")
+
+class InterviewFeedbackRevision(Base):
+    __tablename__ = "interview_feedback_revisions"
+    id = Column(Integer, primary_key=True, index=True)
+    interview_id = Column(Integer, ForeignKey("interviews.id", ondelete="CASCADE"), index=True)
+    revision_number = Column(Integer, nullable=False)
+    action = Column(String(50), nullable=False)
+    actor_name = Column(String(100), nullable=False)
+    actor_role = Column(String(50), nullable=False)
+    feedback_snapshot = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class User(Base):
     __tablename__ = "users"
