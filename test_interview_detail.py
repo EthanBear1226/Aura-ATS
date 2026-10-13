@@ -217,3 +217,46 @@ def test_resume_file_blocks_paths_outside_upload_directory(client, db_session, m
                 db_session.commit()
                 response = client.get(f"/api/interviews/{interview.id}/resume", headers=headers)
                 assert response.status_code == 404, response.text
+
+
+def test_legacy_upload_urls_are_disabled_and_candidate_resume_is_authorized(client, db_session, make_auth_headers):
+    interview, candidate = _resume_interview(db_session)
+    owner = make_auth_headers('file-owner@test.local', role='Interviewer', name='Resume Owner')
+    other = make_auth_headers('file-other@test.local', role='Interviewer', name='Other')
+    hr = make_auth_headers('file-hr@test.local', role='Recruiter', name='HR')
+    unknown = make_auth_headers('file-unknown@test.local', role='Assistant', name='Unknown')
+    url = f'/api/candidates/{candidate.id}/resume'
+    with TemporaryDirectory() as temp, patch('main.UPLOAD_DIR', temp):
+        content = b'%PDF-1.4\nPrivate resume'
+        Path(temp, 'resume.pdf').write_bytes(content)
+        for headers in ({}, owner, hr):
+            response = client.get('/uploads/resume.pdf', headers=headers)
+            assert response.status_code == 404
+            assert content not in response.content
+        assert client.get(url).status_code == 401
+        assert client.get(url, headers=other).status_code == 403
+        assert client.get(url, headers=unknown).status_code == 403
+        for headers in (owner, hr):
+            response = client.get(url, headers=headers)
+            assert response.status_code == 200, response.text
+            assert response.content == content
+            assert response.headers['cache-control'] == 'private, no-store'
+
+
+def test_candidate_resume_hiring_manager_department_boundary(client, db_session, make_auth_headers):
+    interview, candidate = _resume_interview(db_session)
+    db_session.add(models.Job(title=candidate.job, department='Engineering', location='Online', hr_name='HR'))
+    db_session.add_all([
+        models.UserInvitation(email='file-manager@test.local', name='Manager', department='Engineering', role='HiringManager', token='file-manager-token'),
+        models.UserInvitation(email='file-other-manager@test.local', name='Other Manager', department='Finance', role='HiringManager', token='file-other-manager-token'),
+    ])
+    db_session.commit()
+    allowed = make_auth_headers('file-manager@test.local', role='HiringManager', name='Manager')
+    denied = make_auth_headers('file-other-manager@test.local', role='HiringManager', name='Other Manager')
+    no_department = make_auth_headers('file-no-dept@test.local', role='HiringManager', name='No Department')
+    url = f'/api/candidates/{candidate.id}/resume'
+    with TemporaryDirectory() as temp, patch('main.UPLOAD_DIR', temp):
+        Path(temp, 'resume.pdf').write_bytes(b'%PDF-1.4\nPrivate resume')
+        assert client.get(url, headers=allowed).status_code == 200
+        assert client.get(url, headers=denied).status_code == 403
+        assert client.get(url, headers=no_department).status_code == 403

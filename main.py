@@ -1325,7 +1325,6 @@ def delete_candidate(candidate_id: int, db: Session = Depends(get_db), current_u
 # Mount assets and uploads
 if os.path.exists("assets"):
     app.mount("/assets", StaticFiles(directory="assets"), name="assets")
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.get("/")
 @app.get("/index.html")
@@ -1765,7 +1764,25 @@ def get_interview_resume(
         raise HTTPException(status_code=404, detail="Interview not found")
     if not _can_access_interview(interview, current_user):
         raise HTTPException(status_code=403, detail="You do not have access to this interview")
-    stored_path = interview.candidate.pdf_path if interview.candidate else None
+    if not interview.candidate:
+        raise HTTPException(status_code=404, detail="Resume file not found")
+    return _resume_file_response(interview.candidate)
+
+@app.get("/api/candidates/{candidate_id}/resume")
+def get_candidate_resume(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    if current_user.role not in ["SuperAdmin", "Admin", "Recruiter", "HiringManager", "Interviewer"] or not _can_access_candidate(db, candidate, current_user):
+        raise HTTPException(status_code=403, detail="You do not have access to this resume")
+    return _resume_file_response(candidate)
+
+def _resume_file_response(candidate: models.Candidate):
+    stored_path = candidate.pdf_path
     if not stored_path or not stored_path.startswith("/uploads/"):
         raise HTTPException(status_code=404, detail="Resume file not found")
     upload_root = Path(UPLOAD_DIR).resolve()

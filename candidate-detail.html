@@ -1345,6 +1345,28 @@
         //        ▎ 原始简历原生矢量 100% 超高清重绘引擎 (彻底解决位图拉伸模糊发虚问题)
         // ==============================================================================
         let currentPdfZoom = 100; // 默认 100% 原生矢量超高清渲染
+        let authorizedResumeUrl = null;
+        let resumeRequestVersion = 0;
+
+        async function fetchAuthorizedResume(candidate) {
+            const response = await authFetch(`/api/candidates/${candidate.id}/resume`);
+            if (!response.ok) {
+                const error = new Error('Resume request failed');
+                error.status = response.status;
+                throw error;
+            }
+            const blob = await response.blob();
+            if (await blob.slice(0, 5).text() !== '%PDF-') {
+                const error = new Error('Invalid PDF');
+                error.status = 415;
+                throw error;
+            }
+            return URL.createObjectURL(new Blob([blob], {type:'application/pdf'}));
+        }
+
+        window.addEventListener('pagehide', event => {
+            if (!event.persisted && authorizedResumeUrl) URL.revokeObjectURL(authorizedResumeUrl);
+        });
 
         function applyPdfZoom(zoomVal) {
             currentPdfZoom = Math.min(200, Math.max(80, zoomVal));
@@ -1362,8 +1384,8 @@
                 iframe.style.height = '100%';
 
                 // 2. 使用 PDF 原生渲染器矢量重绘 URL Hash，保证笔画边缘绝对锐利
-                if (currentCandidate && currentCandidate.pdf_path && currentCandidate.pdf_path.includes('.pdf')) {
-                    const baseUrl = currentCandidate.pdf_path.split('#')[0];
+                if (authorizedResumeUrl) {
+                    const baseUrl = authorizedResumeUrl;
                     const targetHash = `#toolbar=0&navpanes=0&view=FitH,top&zoom=${currentPdfZoom}`;
                     if (!iframe.src.endsWith(targetHash)) {
                         iframe.src = `${baseUrl}${targetHash}`;
@@ -1422,28 +1444,40 @@
         }
 
         // 查看原始简历文件 (在新标签页打开)
-        function viewRawResumeFile() {
+        async function viewRawResumeFile() {
             if (!currentCandidate || !currentCandidate.pdf_path || !currentCandidate.pdf_path.trim()) {
                 showToast('当前候选人暂无原始文件附件，无法直接打开', 'info');
                 return;
             }
-            const rawUrl = currentCandidate.pdf_path.split('#')[0];
-            window.open(rawUrl, '_blank');
+            const tab = window.open('about:blank', '_blank');
+            if (tab) tab.opener = null;
+            try {
+                const rawUrl = await fetchAuthorizedResume(currentCandidate);
+                if (tab) tab.location.replace(rawUrl);
+                else showToast('请允许浏览器打开新窗口，或下载简历查看', 'info');
+                setTimeout(() => URL.revokeObjectURL(rawUrl), 60000);
+            } catch {
+                if (tab) tab.close();
+                showToast('无法读取简历，请确认文件和访问权限', 'error');
+            }
         }
 
         // 下载简历文件
-        function downloadResumePdf() {
+        async function downloadResumePdf() {
             if (!currentCandidate || !currentCandidate.pdf_path || !currentCandidate.pdf_path.trim()) {
                 showToast('当前候选人未上传原始简历文件', 'error');
                 return;
             }
-            const rawUrl = currentCandidate.pdf_path.split('#')[0];
+            let rawUrl;
+            try { rawUrl = await fetchAuthorizedResume(currentCandidate); }
+            catch { showToast('无法下载简历，请确认文件和访问权限', 'error'); return; }
             const a = document.createElement('a');
             a.href = rawUrl;
             a.download = `${currentCandidate.name || '候选人'}_简历原件.pdf`;
             document.body.appendChild(a);
             a.click();
             a.remove();
+            setTimeout(() => URL.revokeObjectURL(rawUrl), 60000);
             showToast('正在开始下载原始简历文件...', 'success');
         }
 
@@ -1550,6 +1584,9 @@
 
         // 统一多态简历主动检测与兜底渲染引擎 (四态兜底：加载中、文件不存在、格式不支持、加载失败)
         async function loadPdfOrFallback(candidate) {
+            const requestVersion = ++resumeRequestVersion;
+            if (authorizedResumeUrl) URL.revokeObjectURL(authorizedResumeUrl);
+            authorizedResumeUrl = null;
             hideAllResumeViews();
             const iframe = document.getElementById('pdf-viewer');
             const loading = document.getElementById('pdf-loading-fallback');
@@ -1564,8 +1601,7 @@
                 return;
             }
 
-            const rawPdfUrl = candidate.pdf_path.split('#')[0];
-            const fileExt = rawPdfUrl.split('.').pop().toLowerCase();
+            const fileExt = candidate.pdf_path.split('#')[0].split('.').pop().toLowerCase();
 
             // 2. 格式不支持 (非 PDF 格式等)
             if (fileExt && fileExt !== 'pdf') {
@@ -1585,8 +1621,10 @@
 
             try {
                 // 主动探测文件是否存在
-                const probe = await fetch(rawPdfUrl, { method: 'HEAD' });
-                if (probe.ok) {
+                const rawPdfUrl = await fetchAuthorizedResume(candidate);
+                if (requestVersion !== resumeRequestVersion) { URL.revokeObjectURL(rawPdfUrl); return; }
+                authorizedResumeUrl = rawPdfUrl;
+                {
                     if (loading) loading.style.display = 'none';
                     if (iframe) {
                         iframe.style.display = 'block';
@@ -1602,27 +1640,14 @@
                         iframe.src = pdfUrl;
                     }
                     setTimeout(() => applyPdfZoom(100), 100);
-                } else if (probe.status === 404) {
-                    // 4. 文件不存在 (404)
-                    if (loading) loading.style.display = 'none';
-                    if (missing) missing.style.display = 'flex';
-                    prepareStructuredFallbackData(candidate);
-                } else {
-                    if (loading) loading.style.display = 'none';
-                    if (errorFallback) errorFallback.style.display = 'flex';
-                    prepareStructuredFallbackData(candidate);
                 }
             } catch (err) {
-                // 探测受限或跨域时的平滑兜底
+                if (requestVersion !== resumeRequestVersion) return;
                 if (loading) loading.style.display = 'none';
-                if (iframe) {
-                    iframe.style.display = 'block';
-                    iframe.onload = function() { window.handleIframeLoad(this); };
-                    iframe.src = rawPdfUrl + '#toolbar=0&navpanes=0&view=FitH,top&zoom=100';
-                } else {
-                    if (errorFallback) errorFallback.style.display = 'flex';
-                    prepareStructuredFallbackData(candidate);
-                }
+                if (err.status === 404 && missing) missing.style.display = 'flex';
+                else if (err.status === 415 && unsupported) unsupported.style.display = 'flex';
+                else if (errorFallback) errorFallback.style.display = 'flex';
+                prepareStructuredFallbackData(candidate);
             }
         }
 
