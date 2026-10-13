@@ -60,6 +60,12 @@
         .panel, .detail-heading, .action-row { min-width:0; overflow-wrap:anywhere; }
         .detail-topbar { flex-wrap:wrap; }
         [hidden] { display:none !important; }
+        .resume-section { grid-column:1 / -1; padding:20px 0; border-top:1px solid var(--border-color); }
+        .resume-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
+        .resume-toolbar h2 { font-size:17px; margin:0; }
+        .resume-frame { display:block; width:100%; height:640px; max-height:75vh; border:1px solid var(--border-color); background:#fff; }
+        .resume-message { padding:18px 0; font-size:14px; color:var(--text-secondary); }
+        @media (max-width:600px) { .resume-frame { height:500px; } .resume-box { flex-wrap:wrap; } }
         @media (max-width: 900px) { .detail-grid { grid-template-columns:1fr; } }
         @media (max-width: 600px) { .detail-heading { display:block; } .detail-heading .status { margin-top:14px; } .info-grid { grid-template-columns:1fr; } .feedback-summary { grid-template-columns:repeat(3,minmax(0,1fr)); } .detail-page { padding:16px 0 32px; } }
     </style>
@@ -107,7 +113,7 @@
                             <div class="skill-list" id="skillList"></div>
                             <div class="resume-box" style="margin-top:18px;">
                                 <div><strong>候选人简历</strong><span id="resumeHint">仅展示当前面试所需的简历入口</span></div>
-                                <a class="btn" id="resumeLink" href="#" target="_blank" rel="noopener" style="display:none;">预览简历</a>
+                                <button class="btn" id="resumeLink" type="button" aria-controls="resumeSection" aria-expanded="false" hidden>预览简历</button>
                             </div>
                         </div>
 
@@ -123,6 +129,19 @@
                             </div>
                         </div>
 
+                        <section class="resume-section" id="resumeSection" hidden aria-label="候选人简历预览">
+                            <div class="resume-toolbar">
+                                <h2>候选人简历</h2>
+                                <div class="action-row">
+                                    <a class="btn" id="openResume" target="_blank" rel="noopener" hidden>单独打开</a>
+                                    <a class="btn" id="downloadResume" download="resume.pdf" hidden>下载简历</a>
+                                    <button class="btn" id="closeResume" type="button">收起简历</button>
+                                </div>
+                            </div>
+                            <div class="resume-message" id="resumeMessage" role="status" aria-live="polite"></div>
+                            <button class="btn" id="retryResume" type="button" hidden>重新加载</button>
+                            <iframe class="resume-frame" id="resumeFrame" title="候选人 PDF 简历" hidden></iframe>
+                        </section>
                         <div class="panel" id="feedbackPanel">
                             <h2>当前反馈</h2>
                             <p class="muted" id="feedbackPolicy"></p>
@@ -178,6 +197,8 @@
         let saving = false;
         let dirty = false;
         let historyFailed = false;
+        let resumeUrl = null;
+        let resumeLoading = false;
         const scoreFields = [['professional', '专业能力'], ['communication', '沟通表达'], ['business', '业务理解'], ['collaboration', '协作能力'], ['potential', '发展潜力']];
         const currentUser = JSON.parse(localStorage.getItem('aura_user') || '{}');
 
@@ -205,6 +226,14 @@
                 if (dirty || saving) { event.preventDefault(); event.returnValue = ''; }
             });
             loadDetail();
+            document.getElementById('resumeLink').onclick = previewResume;
+            document.getElementById('retryResume').onclick = previewResume;
+            document.getElementById('closeResume').onclick = () => {
+                document.getElementById('resumeSection').hidden = true;
+                document.getElementById('resumeLink').setAttribute('aria-expanded', 'false');
+                document.getElementById('resumeLink').focus();
+            };
+            window.addEventListener('pagehide', event => { if (!event.persisted && resumeUrl) URL.revokeObjectURL(resumeUrl); });
         });
 
         function escapeHtml(value) {
@@ -277,8 +306,8 @@
 
             if (c.pdf_path) {
                 const link = document.getElementById('resumeLink');
-                link.href = c.pdf_path;
-                link.style.display = 'inline-flex';
+                link.hidden = false;
+                document.getElementById('resumeHint').innerText = 'PDF 简历';
             } else {
                 document.getElementById('resumeHint').innerText = '当前没有可预览的简历文件';
             }
@@ -293,6 +322,46 @@
             };
             renderFeedback();
             renderRevisions();
+        }
+
+        async function previewResume() {
+            const section = document.getElementById('resumeSection');
+            section.hidden = false;
+            document.getElementById('resumeLink').setAttribute('aria-expanded', 'true');
+            section.scrollIntoView({behavior:'smooth', block:'start'});
+            if (resumeUrl || resumeLoading) return;
+            resumeLoading = true;
+            const message = document.getElementById('resumeMessage');
+            const retry = document.getElementById('retryResume');
+            retry.hidden = true;
+            message.textContent = '正在加载简历…';
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 20000);
+            try {
+                const response = await fetch(`/api/interviews/${encodeURIComponent(interview.id)}/resume`, {signal:controller.signal});
+                if (!response.ok) {
+                    const errors = {403:'你无权查看本场面试的简历。', 404:'简历文件不存在，请联系 HR 补充。', 415:'文件不是有效的 PDF，请联系 HR 重新上传。'};
+                    throw new Error(errors[response.status] || '简历加载失败，请重试。');
+                }
+                const blob = await response.blob();
+                const header = await blob.slice(0, 5).text();
+                if (header !== '%PDF-') throw new Error('文件不是有效的 PDF，请联系 HR 重新上传。');
+                resumeUrl = URL.createObjectURL(new Blob([blob], {type:'application/pdf'}));
+                const frame = document.getElementById('resumeFrame');
+                frame.src = `${resumeUrl}#navpanes=0&view=FitH`;
+                frame.hidden = navigator.pdfViewerEnabled === false;
+                message.textContent = frame.hidden ? '浏览器不支持内嵌 PDF，请单独打开或下载简历。' : '若预览未显示，可单独打开或下载简历。';
+                for (const id of ['openResume', 'downloadResume']) {
+                    document.getElementById(id).href = resumeUrl;
+                    document.getElementById(id).hidden = false;
+                }
+            } catch (error) {
+                message.textContent = error.name === 'AbortError' ? '简历加载超时，请重试。' : (error.message || '简历加载失败，请重试。');
+                retry.hidden = false;
+            } finally {
+                clearTimeout(timeout);
+                resumeLoading = false;
+            }
         }
 
         function renderFeedback() {

@@ -11,6 +11,7 @@ import google.generativeai as genai
 import json
 import secrets
 from datetime import datetime
+from pathlib import Path
 from dotenv import load_dotenv
 
 from typing import Optional
@@ -1752,6 +1753,34 @@ def get_interview_detail(
     if not _can_access_interview(interview, current_user):
         raise HTTPException(status_code=403, detail="You do not have access to this interview")
     return _interview_response_data(interview)
+
+@app.get("/api/interviews/{interview_id}/resume")
+def get_interview_resume(
+    interview_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+    if not _can_access_interview(interview, current_user):
+        raise HTTPException(status_code=403, detail="You do not have access to this interview")
+    stored_path = interview.candidate.pdf_path if interview.candidate else None
+    if not stored_path or not stored_path.startswith("/uploads/"):
+        raise HTTPException(status_code=404, detail="Resume file not found")
+    upload_root = Path(UPLOAD_DIR).resolve()
+    file_path = (upload_root / stored_path[len("/uploads/"):]).resolve()
+    if not file_path.is_relative_to(upload_root) or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Resume file not found")
+    if file_path.suffix.lower() != ".pdf":
+        raise HTTPException(status_code=415, detail="Resume must be a PDF file")
+    with file_path.open("rb") as resume:
+        if resume.read(5) != b"%PDF-":
+            raise HTTPException(status_code=415, detail="Invalid PDF file")
+    return FileResponse(
+        file_path, media_type="application/pdf", filename="resume.pdf", content_disposition_type="inline",
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
+    )
 
 @app.get("/api/interviews/{interview_id}/feedback-revisions")
 def get_interview_feedback_revisions(

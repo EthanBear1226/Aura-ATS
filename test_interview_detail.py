@@ -1,5 +1,8 @@
 import datetime
 import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 import models
 
@@ -151,3 +154,66 @@ def test_feedback_history_updates_and_hr_is_read_only(client, db_session, make_a
     assert history.status_code == 200
     assert [item["feedback_text"] for item in history.json()] == ["Version 0", "Version 1", "Version 2"]
     assert all(item["interviewer_notes"] == "Notes" for item in history.json())
+
+
+def _resume_interview(db_session):
+    candidate = models.Candidate(name="Resume Candidate", job="Engineer", stage="面试中", exp="5 years", pdf_path="/uploads/resume.pdf")
+    db_session.add(candidate)
+    db_session.flush()
+    interview = models.Interview(candidate_id=candidate.id, interviewer_name="Resume Owner", job_title="Engineer",
+                                 start_time=datetime.datetime.utcnow(), end_time=datetime.datetime.utcnow(), location="Online")
+    db_session.add(interview)
+    db_session.commit()
+    return interview, candidate
+
+
+def test_resume_file_requires_login_and_interview_assignment(client, db_session, make_auth_headers):
+    interview, candidate = _resume_interview(db_session)
+    owner = make_auth_headers("resume-owner@test.local", role="Interviewer", name="Resume Owner")
+    other = make_auth_headers("resume-other@test.local", role="Interviewer", name="Other Owner")
+    hr = make_auth_headers("resume-hr@test.local", role="Recruiter", name="HR")
+    url = f"/api/interviews/{interview.id}/resume"
+    assert client.get(url).status_code == 401
+    assert client.get(url, headers=other).status_code == 403
+    with TemporaryDirectory() as temp, patch("main.UPLOAD_DIR", temp):
+        content = b"%PDF-1.4\nResume fixture"
+        Path(temp, "resume.pdf").write_bytes(content)
+        for headers in (owner, hr):
+            response = client.get(url, headers=headers)
+            assert response.status_code == 200, response.text
+            assert response.content == content
+            assert response.headers["content-type"] == "application/pdf"
+            assert response.headers["cache-control"] == "private, no-store"
+            assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_resume_file_rejects_missing_and_invalid_pdf(client, db_session, make_auth_headers):
+    interview, candidate = _resume_interview(db_session)
+    headers = make_auth_headers("missing-resume@test.local", role="Interviewer", name="Resume Owner")
+    url = f"/api/interviews/{interview.id}/resume"
+    with TemporaryDirectory() as temp, patch("main.UPLOAD_DIR", temp):
+        assert client.get(url, headers=headers).status_code == 404
+        Path(temp, "resume.pdf").write_bytes(b"not a PDF")
+        assert client.get(url, headers=headers).status_code == 415
+        candidate.pdf_path = "/uploads/resume.txt"
+        db_session.commit()
+        Path(temp, "resume.txt").write_bytes(b"%PDF-1.4\n")
+        assert client.get(url, headers=headers).status_code == 415
+        candidate.pdf_path = None
+        db_session.commit()
+        assert client.get(url, headers=headers).status_code == 404
+
+
+def test_resume_file_blocks_paths_outside_upload_directory(client, db_session, make_auth_headers):
+    interview, candidate = _resume_interview(db_session)
+    headers = make_auth_headers("path-resume@test.local", role="Interviewer", name="Resume Owner")
+    with TemporaryDirectory() as temp:
+        root = Path(temp, "uploads")
+        root.mkdir()
+        Path(temp, "outside.pdf").write_bytes(b"%PDF-1.4\nPrivate file")
+        with patch("main.UPLOAD_DIR", str(root)):
+            for value in ("/uploads/../outside.pdf", "/uploads/..\\outside.pdf", "https://example.com/resume.pdf"):
+                candidate.pdf_path = value
+                db_session.commit()
+                response = client.get(f"/api/interviews/{interview.id}/resume", headers=headers)
+                assert response.status_code == 404, response.text
