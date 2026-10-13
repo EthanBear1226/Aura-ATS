@@ -24,7 +24,7 @@ def test_interviewer_detail_page_is_a_real_scoped_workflow():
         "resumeLink",
         "revisionList",
         "feedbackButton",
-        "user.role !== 'Interviewer'",
+        "canEditFeedback",
     ]:
         assert required in detail_html
 

@@ -1736,6 +1736,7 @@ def _interview_response_data(interview: models.Interview) -> dict:
         "stage": candidate.stage,
         "exp": candidate.exp,
         "skills": candidate.skills or [],
+        "pdf_path": candidate.pdf_path,
     } if candidate else None
     return data
 
@@ -1836,6 +1837,8 @@ def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback
         raise HTTPException(status_code=403, detail="Only the assigned interviewer can submit feedback")
     if interview.status == "已取消":
         raise HTTPException(status_code=400, detail="Cancelled interviews cannot receive feedback")
+    if interview.candidate and interview.candidate.stage in TERMINAL_STAGES:
+        raise HTTPException(status_code=400, detail="Candidate process has ended; feedback is read-only")
     if feedback.feedback_result not in ["满意", "待定", "不满意"]:
         raise HTTPException(status_code=400, detail="Invalid interview feedback result")
     if not feedback.feedback_text or not feedback.feedback_text.strip():

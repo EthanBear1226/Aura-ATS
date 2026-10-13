@@ -45,6 +45,21 @@
         .action-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
         .error-state { padding:56px 20px; text-align:center; color:var(--text-secondary); }
         .loading { padding:50px 20px; text-align:center; color:var(--text-secondary); }
+        .feedback-editor { border-top:1px solid var(--border-color); margin-top:20px; padding-top:20px; }
+        .feedback-editor fieldset { border:0; margin:0; padding:0; min-width:0; }
+        .feedback-editor label { display:block; font-size:13px; margin-bottom:8px; }
+        .feedback-editor textarea { width:100%; min-height:130px; resize:vertical; font:inherit; line-height:1.6; }
+        .result-options { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px; }
+        .result-options label { cursor:pointer; padding:8px 12px; border:1px solid var(--border-color); border-radius:6px; }
+        .result-options label:has(input:checked) { border-color:var(--primary-color); background:#eef6ff; }
+        .editor-scores { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+        .editor-scores select { width:100%; min-height:38px; }
+        .form-message { margin:12px 0; font-size:13px; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; }
+        .form-message.error { color:#d4380d; }
+        .form-message.success { color:#18794e; }
+        .panel, .detail-heading, .action-row { min-width:0; overflow-wrap:anywhere; }
+        .detail-topbar { flex-wrap:wrap; }
+        [hidden] { display:none !important; }
         @media (max-width: 900px) { .detail-grid { grid-template-columns:1fr; } }
         @media (max-width: 600px) { .detail-heading { display:block; } .detail-heading .status { margin-top:14px; } .info-grid { grid-template-columns:1fr; } .feedback-summary { grid-template-columns:repeat(3,minmax(0,1fr)); } .detail-page { padding:16px 0 32px; } }
     </style>
@@ -108,8 +123,9 @@
                             </div>
                         </div>
 
-                        <div class="panel">
+                        <div class="panel" id="feedbackPanel">
                             <h2>当前反馈</h2>
+                            <p class="muted" id="feedbackPolicy"></p>
                             <div id="feedbackEmpty" class="muted">本场面试尚未提交反馈。</div>
                             <div id="feedbackContent" style="display:none;">
                                 <div class="info-item"><label>综合结论</label><div id="feedbackResult">--</div></div>
@@ -124,6 +140,26 @@
                                 <div class="info-item" style="margin-top:16px;"><label>面试官笔记</label><div class="feedback-copy" id="interviewerNotes">--</div></div>
                                 <div class="muted" style="margin-top:14px;" id="feedbackUpdatedAt">--</div>
                             </div>
+                            <div id="submitMessage" class="form-message" role="status" aria-live="polite"></div>
+                            <form id="feedbackForm" class="feedback-editor" hidden>
+                                <fieldset id="feedbackFields">
+                                    <legend>综合结论</legend>
+                                    <div class="result-options">
+                                        <label><input type="radio" name="result" value="满意" required> 满意</label>
+                                        <label><input type="radio" name="result" value="待定"> 待定</label>
+                                        <label><input type="radio" name="result" value="不满意"> 不满意</label>
+                                    </div>
+                                    <div class="editor-scores" id="editorScores"></div>
+                                    <label for="editorFeedback">详细反馈</label>
+                                    <textarea id="editorFeedback" class="form-control" required></textarea>
+                                    <label for="editorNotes" style="margin-top:16px;">面试官笔记</label>
+                                    <textarea id="editorNotes" class="form-control"></textarea>
+                                    <div class="action-row" style="margin-top:16px;">
+                                        <button type="submit" class="btn btn-primary" id="submitFeedbackButton">提交反馈</button>
+                                        <button type="button" class="btn" id="cancelEditButton">取消编辑</button>
+                                    </div>
+                                </fieldset>
+                            </form>
                         </div>
 
                         <div class="panel">
@@ -138,17 +174,36 @@
     <script src="assets/js/app.js?v=20"></script>
     <script>
         let interview = null;
-        let candidate = null;
         let revisions = [];
+        let saving = false;
+        let dirty = false;
+        let historyFailed = false;
+        const scoreFields = [['professional', '专业能力'], ['communication', '沟通表达'], ['business', '业务理解'], ['collaboration', '协作能力'], ['potential', '发展潜力']];
+        const currentUser = JSON.parse(localStorage.getItem('aura_user') || '{}');
 
         document.addEventListener('DOMContentLoaded', () => {
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
-            if (user.role !== 'Interviewer') {
+            if (!['Interviewer', 'Recruiter', 'Admin', 'SuperAdmin'].includes(user.role)) {
                 window.location.replace('index.html');
                 return;
             }
             renderSidebar('interviewer-workbench');
             renderHeader();
+            if (user.role !== 'Interviewer') {
+                document.querySelector('.back-link').href = 'interviews.html';
+                document.querySelector('.back-link').textContent = '返回面试日程';
+            }
+            document.getElementById('editorScores').innerHTML = scoreFields.map(([key, label]) => `<label for="editor-${key}">${label}<select id="editor-${key}" class="form-control" required><option value="">请选择</option>${[1, 2, 3, 4, 5].map(score => `<option value="${score}">${score} 分</option>`).join('')}</select></label>`).join('');
+            document.getElementById('feedbackForm').addEventListener('submit', submitFeedback);
+            document.getElementById('feedbackForm').addEventListener('input', () => { dirty = true; });
+            document.getElementById('cancelEditButton').onclick = () => {
+                if (dirty && !window.confirm('放弃尚未提交的修改？')) return;
+                dirty = false;
+                document.getElementById('feedbackForm').hidden = true;
+            };
+            window.addEventListener('beforeunload', event => {
+                if (dirty || saving) { event.preventDefault(); event.returnValue = ''; }
+            });
             loadDetail();
         });
 
@@ -180,12 +235,7 @@
                 if (!response.ok) throw new Error('interview detail failed');
                 interview = await response.json();
 
-                if (interview.candidate_id) {
-                    const candidateResponse = await fetch(`/api/candidates/${interview.candidate_id}`);
-                    if (candidateResponse.ok) candidate = await candidateResponse.json();
-                }
-                const revisionResponse = await fetch(`/api/interviews/${encodeURIComponent(id)}/feedback-revisions`);
-                if (revisionResponse.ok) revisions = await revisionResponse.json();
+                await loadRevisions();
                 renderDetail();
             } catch (error) {
                 console.error(error);
@@ -199,7 +249,7 @@
         }
 
         function renderDetail() {
-            const c = interview.candidate || candidate || {};
+            const c = interview.candidate || {};
             document.getElementById('pageState').style.display = 'none';
             document.getElementById('detailContent').style.display = 'block';
             document.getElementById('candidateName').innerText = c.name || '未知候选人';
@@ -234,10 +284,12 @@
             }
 
             const feedbackButton = document.getElementById('feedbackButton');
-            const canEdit = !interview.feedback_result || (interview.feedback_revision_count || 0) < 2;
+            const canEdit = canEditFeedback();
+            document.getElementById('feedbackPolicy').textContent = feedbackPolicy();
             feedbackButton.innerText = interview.feedback_result ? (canEdit ? '修改面试反馈' : '查看面试反馈') : '填写面试反馈';
             feedbackButton.onclick = () => {
-                window.location.href = `interviews.html?interview_id=${encodeURIComponent(interview.id)}&mode=${canEdit ? 'edit' : 'view'}`;
+                if (canEdit) openFeedbackEditor();
+                document.getElementById('feedbackPanel').scrollIntoView({ behavior:'smooth', block:'start' });
             };
             renderFeedback();
             renderRevisions();
@@ -259,8 +311,115 @@
             document.getElementById('feedbackUpdatedAt').innerText = `最近更新：${formatDateTime(interview.feedback_updated_at || interview.feedback_submitted_at)}`;
         }
 
+        function canEditFeedback() {
+            return currentUser.role === 'Interviewer' && currentUser.name === interview.interviewer_name
+                && interview.status !== '已取消'
+                && !['已淘汰', '已归档'].includes(interview.candidate?.stage)
+                && (!interview.feedback_result || (interview.feedback_revision_count || 0) < 2);
+        }
+
+        function feedbackPolicy() {
+            if (interview.status === '已取消') return '面试已取消，反馈仅供查看。';
+            if (['已淘汰', '已归档'].includes(interview.candidate?.stage)) return '候选人流程已中止，反馈仅供查看。';
+            if (currentUser.role !== 'Interviewer') return '反馈仅供查看。';
+            if (interview.feedback_result && (interview.feedback_revision_count || 0) >= 2) return '已用完 2 次修改机会，反馈仅供查看。';
+            return interview.feedback_result ? `剩余修改次数：${2 - (interview.feedback_revision_count || 0)}` : '提交后最多可修改 2 次。';
+        }
+
+        function openFeedbackEditor() {
+            if (saving || !canEditFeedback()) return;
+            const form = document.getElementById('feedbackForm');
+            if (!form.hidden) return;
+            form.querySelectorAll('input[name="result"]').forEach(input => { input.checked = input.value === interview.feedback_result; });
+            scoreFields.forEach(([key]) => { document.getElementById(`editor-${key}`).value = interview[`${key}_score`] ?? ''; });
+            document.getElementById('editorFeedback').value = interview.feedback_text || '';
+            document.getElementById('editorNotes').value = interview.interviewer_notes || '';
+            document.getElementById('submitFeedbackButton').textContent = interview.feedback_result ? '保存修改' : '提交反馈';
+            form.hidden = false;
+            dirty = false;
+        }
+
+        async function loadRevisions() {
+            try {
+                const id = interview.id;
+                const response = await fetch(`/api/interviews/${encodeURIComponent(id)}/feedback-revisions`);
+                if (!response.ok) throw new Error('history failed');
+                revisions = await response.json();
+                historyFailed = false;
+            } catch {
+                historyFailed = true;
+            }
+        }
+
+        async function submitFeedback(event) {
+            event.preventDefault();
+            if (saving || !canEditFeedback()) return;
+            const form = document.getElementById('feedbackForm');
+            if (!form.reportValidity()) return;
+            const message = document.getElementById('submitMessage');
+            const text = document.getElementById('editorFeedback').value.trim();
+            if (!text) {
+                message.className = 'form-message error';
+                message.textContent = '请填写详细反馈，不能仅包含空格。';
+                document.getElementById('editorFeedback').focus();
+                return;
+            }
+            const result = form.querySelector('input[name="result"]:checked').value;
+            let confirmed = false;
+            if (result === '不满意') {
+                confirmed = window.confirm('确认淘汰该候选人？确认后候选人将自动归档，其他已安排面试将取消，后续流程中止，当前反馈将转为只读。');
+                if (!confirmed) return;
+            }
+            const payload = {
+                feedback_result: result, feedback_text: text,
+                interviewer_notes: document.getElementById('editorNotes').value,
+                confirm_rejection: confirmed,
+                ...Object.fromEntries(scoreFields.map(([key]) => [`${key}_score`, Number(document.getElementById(`editor-${key}`).value)]))
+            };
+            saving = true;
+            document.getElementById('feedbackFields').disabled = true;
+            document.getElementById('feedbackButton').disabled = true;
+            message.className = 'form-message';
+            message.textContent = '正在提交反馈…';
+            try {
+                const response = await fetch(`/api/interviews/${encodeURIComponent(interview.id)}/feedback`, {
+                    method:'PATCH', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const body = await response.json().catch(() => ({}));
+                    const errors = {
+                        'Feedback can only be modified twice': '已用完 2 次修改机会。',
+                        'Candidate process has ended; feedback is read-only': '候选人流程已中止，反馈仅供查看。',
+                        'Cancelled interviews cannot receive feedback': '面试已取消，无法提交反馈。',
+                        'Only the assigned interviewer can submit feedback': '仅被指派的面试官可以提交反馈。'
+                    };
+                    throw new Error(errors[body.detail] || '提交失败，请稍后重试。已填写内容已保留。');
+                }
+                interview = await response.json();
+                dirty = false;
+                form.hidden = true;
+                renderDetail();
+                message.className = 'form-message success';
+                message.textContent = '反馈已保存。';
+                await loadRevisions();
+                renderRevisions();
+            } catch (error) {
+                message.className = 'form-message error';
+                message.textContent = error.message || '网络异常，请重试。已填写内容已保留。';
+            } finally {
+                saving = false;
+                document.getElementById('feedbackFields').disabled = false;
+                document.getElementById('feedbackButton').disabled = false;
+            }
+        }
+
         function renderRevisions() {
             const container = document.getElementById('revisionList');
+            if (historyFailed) {
+                container.innerHTML = '<div class="muted">反馈历史加载失败。</div><button type="button" class="btn" id="retryHistory">重试</button>';
+                document.getElementById('retryHistory').onclick = async () => { await loadRevisions(); renderRevisions(); };
+                return;
+            }
             if (!revisions.length) {
                 container.innerHTML = '<div class="muted">暂无历史版本。</div>';
                 return;
@@ -279,7 +438,7 @@
 
         function averageScore(revision) {
             const scores = ['professional_score', 'communication_score', 'business_score', 'collaboration_score', 'potential_score']
-                .map(key => Number(revision[key])).filter(Number.isFinite);
+                .map(key => revision[key]).filter(value => Number.isInteger(value) && value >= 1 && value <= 5);
             return scores.length ? (scores.reduce((sum, value) => sum + value, 0) / scores.length).toFixed(1) : '--';
         }
     </script>
