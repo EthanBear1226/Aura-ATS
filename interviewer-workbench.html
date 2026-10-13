@@ -31,12 +31,27 @@
         .status.done { background: #eff9f1; color: #18794e; }
         .empty-state { padding: 28px; text-align: center; color: var(--text-secondary); border: 1px dashed var(--border-color); border-radius: 8px; background: rgba(255,255,255,.55); }
         .loading { color: var(--text-secondary); padding: 40px; text-align: center; }
+        .workbench-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:20px 0 12px; }
+        .filter-tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid var(--border-color); padding-bottom:8px; }
+        .filter-tab { background:transparent; border:0; color:var(--text-secondary); font:inherit; font-size:14px; padding:9px 12px; cursor:pointer; border-radius:6px; }
+        .filter-tab[aria-pressed="true"] { background:#eef6ff; color:var(--primary-color); font-weight:600; }
+        .search-field { flex:1; min-width:180px; }
+        .search-field input { width:100%; min-height:38px; }
+        .workbench-toolbar select { min-height:38px; width:156px; max-width:100%; }
+        .icon-button { width:38px; height:38px; padding:8px; justify-content:center; }
+        .icon-button svg { width:18px; height:18px; }
+        .icon-button i { font-style:normal; font-size:22px; line-height:1; }
+        .interview-card > div { min-width:0; overflow-wrap:anywhere; }
+        .status.closed { background:#f3f4f6; color:var(--text-secondary); }
+        .list-meta { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; color:var(--text-secondary); font-size:13px; margin-bottom:12px; }
+        [hidden] { display:none !important; }
         @media (max-width: 900px) {
             .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .interview-card { grid-template-columns: 1fr 1fr; }
             .interview-card .card-action { grid-column: 1 / -1; }
         }
         @media (max-width: 560px) {
+            .search-field { flex-basis:100%; }
             .workbench-heading { display: block; }
             .summary-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
             .summary-card { padding: 14px; }
@@ -64,27 +79,30 @@
                     <div class="summary-card"><div class="summary-label">今日面试</div><div class="summary-value" id="todayCount">0</div></div>
                     <div class="summary-card"><div class="summary-label">待填写反馈</div><div class="summary-value" id="feedbackCount">0</div></div>
                     <div class="summary-card"><div class="summary-label">即将开始</div><div class="summary-value" id="upcomingCount">0</div></div>
-                    <div class="summary-card"><div class="summary-label">最近完成</div><div class="summary-value" id="completedCount">0</div></div>
+                    <div class="summary-card"><div class="summary-label">已完成</div><div class="summary-value" id="completedCount">0</div></div>
                 </div>
 
-                <section class="section">
-                    <div class="section-header"><h2>今日面试</h2><span>优先处理今天的安排</span></div>
-                    <div class="interview-list" id="todayList"><div class="loading">正在加载面试安排...</div></div>
-                </section>
-
-                <section class="section">
-                    <div class="section-header"><h2>待填写反馈</h2><span>面试结束后请及时提交</span></div>
-                    <div class="interview-list" id="feedbackList"><div class="loading">正在加载待办...</div></div>
-                </section>
-
-                <section class="section">
-                    <div class="section-header"><h2>即将开始</h2><span>未来 7 天</span></div>
-                    <div class="interview-list" id="upcomingList"><div class="loading">正在加载安排...</div></div>
-                </section>
-
-                <section class="section">
-                    <div class="section-header"><h2>最近完成</h2><span>最近 5 场</span></div>
-                    <div class="interview-list" id="completedList"><div class="loading">正在加载记录...</div></div>
+                <section class="section" aria-label="面试列表">
+                    <div class="filter-tabs" id="filterTabs" role="group" aria-label="筛选面试">
+                        <button class="filter-tab" data-filter="all" aria-pressed="true">全部</button>
+                        <button class="filter-tab" data-filter="today" aria-pressed="false">今日</button>
+                        <button class="filter-tab" data-filter="feedback" aria-pressed="false">待反馈</button>
+                        <button class="filter-tab" data-filter="upcoming" aria-pressed="false">即将开始</button>
+                        <button class="filter-tab" data-filter="completed" aria-pressed="false">已完成</button>
+                        <button class="filter-tab" data-filter="closed" aria-pressed="false">已取消 / 中止</button>
+                    </div>
+                    <div class="workbench-toolbar">
+                        <label class="search-field"><input class="form-control" id="interviewSearch" type="search" placeholder="搜索候选人或职位" aria-label="搜索候选人或职位"></label>
+                        <select class="form-control" id="interviewSort" aria-label="面试排序">
+                            <option value="asc">时间从早到晚</option>
+                            <option value="desc">时间从晚到早</option>
+                        </select>
+                        <button class="btn icon-button" id="refreshInterviews" type="button" title="刷新面试" aria-label="刷新面试"><i data-lucide="refresh-cw" aria-hidden="true">↻</i></button>
+                        <button class="btn" id="clearFilters" type="button" hidden>清除筛选</button>
+                    </div>
+                    <div class="list-meta"><span id="resultCount" role="status" aria-live="polite">正在加载...</span><span id="updatedAt"></span></div>
+                    <div class="interview-list" id="interviewList"><div class="loading">正在加载面试安排...</div></div>
+                    <button class="btn" id="retryLoad" type="button" hidden>重试</button>
                 </section>
             </div>
         </main>
@@ -92,6 +110,10 @@
     <script src="assets/js/app.js?v=19"></script>
     <script>
         let myInterviews = [];
+        let loaded = false;
+        let loading = false;
+        const params = new URLSearchParams(window.location.search);
+        let activeFilter = ['all', 'today', 'feedback', 'upcoming', 'completed', 'closed'].includes(params.get('filter')) ? params.get('filter') : 'all';
 
         document.addEventListener('DOMContentLoaded', () => {
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
@@ -101,6 +123,24 @@
             }
             renderSidebar('interviewer-workbench');
             renderHeader();
+            if (window.lucide) lucide.createIcons();
+            document.getElementById('interviewSearch').value = params.get('q') || '';
+            document.getElementById('interviewSort').value = params.get('sort') === 'desc' ? 'desc' : 'asc';
+            document.querySelectorAll('.filter-tab').forEach(button => button.addEventListener('click', () => {
+                activeFilter = button.dataset.filter;
+                updateFilters();
+            }));
+            document.getElementById('interviewSearch').addEventListener('input', updateFilters);
+            document.getElementById('interviewSort').addEventListener('change', updateFilters);
+            document.getElementById('clearFilters').onclick = () => {
+                activeFilter = 'all';
+                document.getElementById('interviewSearch').value = '';
+                document.getElementById('interviewSort').value = 'asc';
+                updateFilters();
+            };
+            document.getElementById('refreshInterviews').onclick = loadInterviewerWorkbench;
+            document.getElementById('retryLoad').onclick = loadInterviewerWorkbench;
+            setInterval(() => { if (loaded) renderWorkbench(); }, 60000);
             loadInterviewerWorkbench();
         });
 
@@ -111,6 +151,10 @@
         }
 
         async function loadInterviewerWorkbench() {
+            if (loading) return;
+            loading = true;
+            document.getElementById('refreshInterviews').disabled = true;
+            document.getElementById('retryLoad').hidden = true;
             try {
                 const response = await fetch('/api/interviewer/workbench');
                 if (response.status === 403) {
@@ -119,12 +163,20 @@
                 }
                 if (!response.ok) throw new Error('load failed');
                 myInterviews = await response.json();
+                loaded = true;
+                document.getElementById('updatedAt').textContent = `更新于 ${new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'})}`;
                 renderWorkbench();
             } catch (error) {
                 console.error(error);
-                ['todayList', 'feedbackList', 'upcomingList', 'completedList'].forEach(id => {
-                    document.getElementById(id).innerHTML = '<div class="empty-state">暂时无法加载面试安排，请稍后重试。</div>';
-                });
+                loaded = false;
+                document.getElementById('interviewList').innerHTML = '<div class="empty-state">暂时无法加载面试安排。</div>';
+                document.getElementById('resultCount').textContent = '加载失败';
+                document.getElementById('updatedAt').textContent = '';
+                ['todayCount', 'feedbackCount', 'upcomingCount', 'completedCount'].forEach(id => document.getElementById(id).textContent = '--');
+                document.getElementById('retryLoad').hidden = false;
+            } finally {
+                loading = false;
+                document.getElementById('refreshInterviews').disabled = false;
             }
         }
 
@@ -143,31 +195,18 @@
             });
         }
 
-        function card(interview, actionLabel = '查看日程') {
+        function card(interview) {
             const start = new Date(interview.start_time);
-            const isOverdue = start < new Date() && interview.status === '已安排' && !interview.feedback_result;
-            const statusClass = interview.feedback_result ? 'done' : (isOverdue ? 'overdue' : '');
-            const statusText = interview.feedback_result ? `已评价：${escapeHtml(interview.feedback_result)}` : (isOverdue ? '待填写反馈' : escapeHtml(interview.status || '已安排'));
-            const action = interview.feedback_result || isOverdue
-                ? `<a class="btn btn-primary card-action" href="interviews.html?v=19">填写/查看反馈</a>`
-                : `<a class="btn card-action" href="interviews.html?v=19">查看面试</a>`;
-            return `<div class="interview-card">
-                <div><div class="eyebrow">候选人</div><div class="candidate-name">${escapeHtml(interview.candidate_name || '未知候选人')}</div></div>
-                <div><div class="eyebrow">职位与时间</div><div class="interview-meta">${escapeHtml(interview.job_title || '--')}<br>${formatDateTime(interview.start_time)}</div></div>
-                <div><div class="eyebrow">地点与状态</div><div class="interview-meta">${escapeHtml(interview.location || '线上面试')}<br><span class="status ${statusClass}">${statusText}</span></div></div>
-                <div class="interview-actions">${action}</div>
-            </div>`;
-        }
-
-        function card(interview, actionLabel = '查看面试') {
-            const start = new Date(interview.start_time);
-            const isOverdue = start < new Date() && interview.status === '已安排' && !interview.feedback_result;
-            const statusClass = interview.feedback_result ? 'done' : (isOverdue ? 'overdue' : '');
-            const statusText = interview.feedback_result ? `已评价：${escapeHtml(interview.feedback_result)}` : (isOverdue ? '待填写反馈' : escapeHtml(interview.status || '已安排'));
+            const now = new Date();
+            const pending = matchesFilter(interview, 'feedback', now);
+            const closed = matchesFilter(interview, 'closed', now);
+            const statusClass = closed ? 'closed' : (interview.feedback_result ? 'done' : (pending ? 'overdue' : ''));
+            const statusText = closed ? (interview.status === '已取消' ? '已取消' : '流程已中止')
+                : (interview.feedback_result ? `已评价：${escapeHtml(interview.feedback_result)}`
+                : (pending ? '待填写反馈' : (start <= now && interview.status === '已安排' ? '进行中' : escapeHtml(interview.status || '已安排'))));
             const detailUrl = `interview-detail.html?id=${encodeURIComponent(interview.id)}&v=20`;
-            const action = interview.feedback_result || isOverdue
-                ? `<a class="btn btn-primary card-action" href="${detailUrl}">填写/查看反馈</a>`
-                : `<a class="btn card-action" href="${detailUrl}">查看面试</a>`;
+            const actionLabel = pending ? '填写反馈' : (interview.feedback_result ? '查看反馈' : '查看面试');
+            const action = `<a class="btn ${pending ? 'btn-primary' : ''} card-action" href="${detailUrl}">${actionLabel}</a>`;
             return `<div class="interview-card">
                 <div><div class="eyebrow">候选人</div><div class="candidate-name">${escapeHtml(interview.candidate_name || '未知候选人')}</div></div>
                 <div><div class="eyebrow">职位与时间</div><div class="interview-meta">${escapeHtml(interview.job_title || '--')}<br>${formatDateTime(interview.start_time)}</div></div>
@@ -176,28 +215,47 @@
             </div>`;
         }
 
-        function renderSection(id, items, emptyText) {
-            const element = document.getElementById(id);
-            element.innerHTML = items.length ? items.map(item => card(item)).join('') : `<div class="empty-state">${emptyText}</div>`;
+        function matchesFilter(item, filter, now) {
+            const ended = ['已淘汰', '已归档'].includes(item.candidate_stage);
+            const active = item.status === '已安排' && !ended && !item.feedback_result;
+            const start = new Date(item.start_time);
+            const end = new Date(item.end_time || item.start_time);
+            switch (filter) {
+                case 'today': return item.status !== '已取消' && (!ended || Boolean(item.feedback_result)) && isToday(item.start_time);
+                case 'feedback': return active && end <= now;
+                case 'upcoming': return active && start > now && start <= new Date(now.getTime() + 7 * 86400000);
+                case 'completed': return item.status !== '已取消' && (Boolean(item.feedback_result) || item.status === '已完成');
+                case 'closed': return item.status === '已取消' || (ended && !item.feedback_result);
+                default: return true;
+            }
+        }
+
+        function updateFilters() {
+            const query = document.getElementById('interviewSearch').value.trim();
+            const sort = document.getElementById('interviewSort').value;
+            const url = new URL(window.location.href);
+            if (activeFilter === 'all') url.searchParams.delete('filter'); else url.searchParams.set('filter', activeFilter);
+            if (query) url.searchParams.set('q', query); else url.searchParams.delete('q');
+            if (sort === 'asc') url.searchParams.delete('sort'); else url.searchParams.set('sort', sort);
+            history.replaceState(null, '', url);
+            if (loaded) renderWorkbench();
         }
 
         function renderWorkbench() {
             const now = new Date();
-            const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-            const today = myInterviews.filter(item => isToday(item.start_time));
-            const feedback = myInterviews.filter(item => item.status === '已安排' && new Date(item.start_time) <= now && !item.feedback_result);
-            const upcoming = myInterviews.filter(item => new Date(item.start_time) > now && new Date(item.start_time) <= nextWeek);
-            const completed = myInterviews.filter(item => item.feedback_result || item.status === '已完成')
-                .sort((a, b) => new Date(b.start_time) - new Date(a.start_time)).slice(0, 5);
-
-            document.getElementById('todayCount').innerText = today.length;
-            document.getElementById('feedbackCount').innerText = feedback.length;
-            document.getElementById('upcomingCount').innerText = upcoming.length;
-            document.getElementById('completedCount').innerText = completed.length;
-            renderSection('todayList', today, '今天没有面试安排');
-            renderSection('feedbackList', feedback, '当前没有待填写反馈');
-            renderSection('upcomingList', upcoming, '未来 7 天没有面试安排');
-            renderSection('completedList', completed, '还没有已完成的面试评价');
+            for (const filter of ['today', 'feedback', 'upcoming', 'completed']) {
+                document.getElementById(`${filter}Count`).textContent = myInterviews.filter(item => matchesFilter(item, filter, now)).length;
+            }
+            const query = document.getElementById('interviewSearch').value.trim().toLocaleLowerCase();
+            const descending = document.getElementById('interviewSort').value === 'desc';
+            const items = myInterviews.filter(item => matchesFilter(item, activeFilter, now)
+                && `${item.candidate_name || ''} ${item.job_title || ''}`.toLocaleLowerCase().includes(query))
+                .sort((a, b) => (descending ? -1 : 1) * (new Date(a.start_time) - new Date(b.start_time)) || a.id - b.id);
+            document.querySelectorAll('.filter-tab').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.filter === activeFilter)));
+            document.getElementById('clearFilters').hidden = activeFilter === 'all' && !query && !descending;
+            document.getElementById('resultCount').textContent = `${items.length} 场面试${activeFilter === 'upcoming' ? ' · 未来 7 天' : ''}`;
+            document.getElementById('interviewList').innerHTML = items.length ? items.map(card).join('')
+                : `<div class="empty-state">${myInterviews.length ? '没有符合筛选条件的面试' : '暂无分配给你的面试'}</div>`;
         }
     </script>
 </body>

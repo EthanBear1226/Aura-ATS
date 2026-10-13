@@ -1818,6 +1818,7 @@ def get_interviewer_workbench(
             "id": interview.id,
             "candidate_id": interview.candidate_id,
             "candidate_name": candidate.name if candidate else "未知候选人",
+            "candidate_stage": candidate.stage if candidate else None,
             "job_title": interview.job_title,
             "start_time": interview.start_time,
             "end_time": interview.end_time,

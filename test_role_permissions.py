@@ -60,6 +60,9 @@ def test_interviewer_workbench_is_scoped_to_interviewer(client, db_session, make
     body = response.json()
     assert len(body) == 1
     assert body[0]["candidate_name"] == "Interviewer Workbench Candidate"
+    assert body[0]["candidate_stage"] == "面试中"
+    assert "phone" not in body[0]
+    assert "email" not in body[0]
 
     hr_headers = make_auth_headers(
         "hr-workbench@test.local",
