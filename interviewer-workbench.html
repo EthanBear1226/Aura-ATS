@@ -44,6 +44,21 @@
         .interview-card > div { min-width:0; overflow-wrap:anywhere; }
         .status.closed { background:#f3f4f6; color:var(--text-secondary); }
         .list-meta { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; color:var(--text-secondary); font-size:13px; margin-bottom:12px; }
+        .reminder-panel { margin: 0 0 22px; padding: 16px 18px; border: 1px solid var(--border-color); border-left: 3px solid var(--primary-color); border-radius: 8px; background: var(--card-bg); }
+        .reminder-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+        .reminder-heading h2 { margin:0; font-size:16px; }
+        .reminder-count { color:var(--text-secondary); font-size:13px; }
+        .reminder-list { display:grid; gap:8px; }
+        .reminder-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid var(--border-color); }
+        .reminder-item:first-child { border-top:0; padding-top:0; }
+        .reminder-copy { min-width:0; }
+        .reminder-label { display:inline-flex; align-items:center; margin-right:8px; padding:3px 7px; border-radius:999px; font-size:12px; font-weight:600; background:#fff7e6; color:#ad6800; }
+        .reminder-label.overdue { background:#fff1f0; color:#d4380d; }
+        .reminder-label.late { background:#fff1f0; color:#a8071a; }
+        .reminder-text { font-size:14px; overflow-wrap:anywhere; }
+        .reminder-time { display:block; margin-top:3px; color:var(--text-secondary); font-size:12px; }
+        .reminder-link { flex:none; }
+        .reminder-empty { color:var(--text-secondary); font-size:13px; }
         [hidden] { display:none !important; }
         @media (max-width: 900px) {
             .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -81,6 +96,11 @@
                     <div class="summary-card"><div class="summary-label">即将开始</div><div class="summary-value" id="upcomingCount">0</div></div>
                     <div class="summary-card"><div class="summary-label">已完成</div><div class="summary-value" id="completedCount">0</div></div>
                 </div>
+
+                <section class="reminder-panel" aria-labelledby="reminderTitle">
+                    <div class="reminder-heading"><h2 id="reminderTitle">需要关注</h2><span class="reminder-count" id="reminderCount" aria-live="polite">0 项</span></div>
+                    <div class="reminder-list" id="reminderList"><div class="reminder-empty">正在检查提醒...</div></div>
+                </section>
 
                 <section class="section" aria-label="面试列表">
                     <div class="filter-tabs" id="filterTabs" role="group" aria-label="筛选面试">
@@ -195,6 +215,35 @@
             });
         }
 
+        function getReminder(interview, now = new Date()) {
+            const ended = ['已淘汰', '已归档'].includes(interview.candidate_stage);
+            if (interview.status !== '已安排' || ended || interview.feedback_result) return null;
+            const start = new Date(interview.start_time);
+            const end = new Date(interview.end_time || interview.start_time);
+            const minute = 60 * 1000;
+            if (start > now && start <= new Date(now.getTime() + 30 * minute)) {
+                return { type: 'soon', label: '即将开始', text: `${interview.candidate_name || '候选人'} 的面试将在 30 分钟内开始` };
+            }
+            if (end <= now && end > new Date(now.getTime() - 24 * 60 * minute)) {
+                return { type: 'overdue', label: '面试已超时', text: `${interview.candidate_name || '候选人'} 的面试已过计划结束时间` };
+            }
+            if (end <= new Date(now.getTime() - 24 * 60 * minute)) {
+                return { type: 'late', label: '反馈逾期', text: `${interview.candidate_name || '候选人'} 的面试反馈已逾期` };
+            }
+            return null;
+        }
+
+        function renderReminders(now) {
+            const reminders = myInterviews.map(interview => ({ interview, reminder: getReminder(interview, now) }))
+                .filter(item => item.reminder)
+                .sort((a, b) => new Date(a.interview.start_time) - new Date(b.interview.start_time));
+            document.getElementById('reminderCount').textContent = `${reminders.length} 项`;
+            document.getElementById('reminderList').innerHTML = reminders.length ? reminders.map(({ interview, reminder }) => {
+                const detailUrl = `interview-detail.html?id=${encodeURIComponent(interview.id)}&v=20`;
+                return `<div class="reminder-item"><div class="reminder-copy"><span class="reminder-label ${reminder.type}">${reminder.label}</span><span class="reminder-text">${escapeHtml(reminder.text)}</span><span class="reminder-time">计划时间：${formatDateTime(interview.start_time)}</span></div><a class="btn reminder-link" href="${detailUrl}">查看详情</a></div>`;
+            }).join('') : '<div class="reminder-empty">当前没有需要处理的面试提醒</div>';
+        }
+
         function card(interview) {
             const start = new Date(interview.start_time);
             const now = new Date();
@@ -243,6 +292,7 @@
 
         function renderWorkbench() {
             const now = new Date();
+            renderReminders(now);
             for (const filter of ['today', 'feedback', 'upcoming', 'completed']) {
                 document.getElementById(`${filter}Count`).textContent = myInterviews.filter(item => matchesFilter(item, filter, now)).length;
             }
