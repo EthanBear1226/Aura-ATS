@@ -27,6 +27,18 @@ def test_candidates_page_no_longer_contains_toast_only_fake_controls():
         assert snippet not in html
 
 
+def test_candidates_page_renders_real_api_data_without_legacy_variable_errors():
+    html = read_page("candidates.html")
+
+    assert "activeStageFilter" not in html
+    assert "activeJobFilter" not in html
+    assert "getElementById('job-filters-tree')" in html
+    assert "getElementById('moka-job-tree')" not in html
+    assert "DEFAULT_MOKA_CANDIDATES" not in html
+    assert "allCandidates = data" in html
+    assert "候选人列表加载失败" in html
+
+
 def test_schedule_drawer_is_not_globally_mounted_on_unrelated_pages():
     for page_name in ["jobs.html", "settings.html"]:
         html = read_page(page_name)
@@ -53,6 +65,8 @@ def test_add_candidate_page_supports_job_id_and_multiple_pdf_uploads():
     assert "const filename = escapeHtml" in html
     assert "const detail = escapeHtml" in html
     assert "e.target.files[0]" not in html
+    assert "function authHeaders()" in html
+    assert "headers: authHeaders()" in html
 
 
 def test_interviewer_login_and_workbench_entry_are_role_specific():

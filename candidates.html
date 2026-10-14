@@ -962,7 +962,7 @@
             ];
 
             bar.innerHTML = stages.map(s => {
-                const isActive = activeStageFilter === s.name;
+                const isActive = currentStageFilter === s.name;
                 return `
                     <div class="moka-stage-item ${isActive ? 'active' : ''}" onclick="switchStageFilter('${s.name}')">
                         <div class="stage-name">${s.name}</div>
@@ -973,13 +973,13 @@
         }
 
         function switchStageFilter(stage) {
-            activeStageFilter = stage;
+            currentStageFilter = stage;
             renderStageTabs();
             renderMokaCandCards();
         }
 
         function renderJobTree() {
-            const container = document.getElementById('moka-job-tree');
+            const container = document.getElementById('job-filters-tree');
             if (!container) return;
 
             // 统计岗位招聘数量
@@ -990,15 +990,17 @@
             });
 
             const jobs = Object.keys(jobCounts);
+            const jobCountBadge = document.getElementById('job-total-count-badge');
+            if (jobCountBadge) jobCountBadge.textContent = `共 ${jobs.length} 个`;
             let html = `
-                <div class="moka-job-tree-item ${!activeJobFilter ? 'active' : ''}" onclick="switchJobFilter('')">
+                <div class="moka-job-tree-item ${currentFilterJob === '全部职位' ? 'active' : ''}" onclick="switchJobFilter('全部职位')">
                     <span>全部职位</span>
                     <span class="count">${allCandidates.length}</span>
                 </div>
             `;
 
             jobs.forEach(j => {
-                const isActive = activeJobFilter === j;
+                const isActive = currentFilterJob === j;
                 html += `
                     <div class="moka-job-tree-item ${isActive ? 'active' : ''}" onclick="switchJobFilter('${j}')">
                         <span>${j}</span>
@@ -1011,7 +1013,7 @@
         }
 
         function switchJobFilter(job) {
-            activeJobFilter = job;
+            currentFilterJob = job;
             renderJobTree();
             renderMokaCandCards();
         }
@@ -1024,38 +1026,28 @@
             });
         }
 
-        // 极速保底候选人数据 (确保在极端网络挂起时 0ms 秒级呈现大盘，彻底杜绝白屏)
-        const DEFAULT_MOKA_CANDIDATES = [
-            { id: 1, name: "陈志强", job: "前端工程师", stage: "初筛", exp: "本科", gender: "男", school: "北京航空航天大学", major: "软件工程", created_at: "2026-07-13" },
-            { id: 2, name: "刘晨", job: "前端工程师", stage: "初筛", exp: "本科", gender: "男", school: "北京邮电大学", major: "软件工程", created_at: "2026-06-13" },
-            { id: 3, name: "李思齐", job: "前端工程师", stage: "初筛", exp: "硕士", gender: "男", school: "清华大学", major: "软件工程", created_at: "2026-05-27" },
-            { id: 4, name: "沈佳妮", job: "财务BP", stage: "用人部门筛选", exp: "硕士", gender: "女", school: "中国人民大学", major: "财务管理", created_at: "2026-08-01" },
-            { id: 5, name: "尚毅", job: "法务合规实习生", stage: "初筛", exp: "硕士", gender: "男", school: "中国政法大学", major: "法律", created_at: "2026-08-05" }
-        ];
+        function escapeCandidateText(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[character]));
+        }
 
-        // 拉取数据库候选人数据 (双重保险: 0ms 预渲染 + 异步平滑数据同步)
         async function loadCandidates() {
-            // 1. 优先 0ms 秒出全套 Moka 界面，消除任何白屏窗口
-            if (!allCandidates || allCandidates.length === 0) {
-                allCandidates = DEFAULT_MOKA_CANDIDATES;
+            const container = document.getElementById('moka-cand-cards-container');
+            container.textContent = '正在加载候选人...';
+            try {
+                const response = await authFetch('/api/candidates');
+                if (!response.ok) throw new Error(response.status === 401 ? '登录已过期，请重新登录' : response.status === 403 ? '暂无查看候选人的权限' : '候选人加载失败，请重试');
+                const data = await response.json();
+                if (!Array.isArray(data)) throw new Error('候选人数据格式异常，请重试');
+                allCandidates = data;
                 renderStageTabs();
                 renderJobTree();
                 renderMokaCandCards();
-            }
-
-            // 2. 异步平滑同步真实后端数据库数据 (使用 authFetch 携带安全 Token)
-            try {
-                const response = await authFetch('/api/candidates');
-                if (!response.ok) throw new Error("Failed to fetch");
-                const data = await response.json();
-                if (data && Array.isArray(data) && data.length > 0) {
-                    allCandidates = data;
-                    renderStageTabs();
-                    renderJobTree();
-                    renderMokaCandCards();
-                }
             } catch (error) {
-                console.warn("Backend API status code non-200. Kept initial view.", error);
+                console.error('候选人列表加载失败', error);
+                container.innerHTML = `<div role="alert">${escapeCandidateText(error.message)} <button type="button" class="btn" id="retryCandidates">重试</button></div>`;
+                document.getElementById('retryCandidates').onclick = loadCandidates;
             }
         }
 
@@ -1072,7 +1064,7 @@
                 }
             }
             if (!school) {
-                if (c.name.includes('陈志强')) school = '北京航空航天大学';
+                if ((c.name || '').includes('陈志强')) school = '北京航空航天大学';
                 else if (c.name.includes('刘晨')) school = '北京邮电大学';
                 else if (c.name.includes('李思齐')) school = '清华大学';
                 else if (c.name.includes('沈佳妮') || c.name.includes('沈丹丹')) school = '中国人民大学';

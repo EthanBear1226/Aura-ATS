@@ -162,7 +162,7 @@
 
         async function loadJobs() {
             try {
-                const response = await fetch('/api/jobs');
+                const response = await fetch('/api/jobs', { headers: authHeaders() });
                 const jobs = await response.json();
                 const select = document.getElementById('modal-job-select');
                 select.innerHTML = '<option value="" disabled selected>请选择投递职位</option>';
@@ -185,6 +185,11 @@
                 return;
             }
             document.getElementById('resume-file').click();
+        }
+
+        function authHeaders() {
+            const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
+            return token ? { Authorization: `Bearer ${token}` } : {};
         }
 
         function escapeHtml(value) {
@@ -225,6 +230,7 @@
                 
                 const response = await fetch('/api/parse-resumes', {
                     method: 'POST',
+                    headers: authHeaders(),
                     body: formData
                 });
                 
