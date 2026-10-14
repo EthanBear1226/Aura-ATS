@@ -8,11 +8,12 @@
     <link rel="stylesheet" href="assets/css/styles.css?v=19">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .page-content { max-width: 1240px; margin: 0 auto; }
+        .page-content { width: 100%; max-width: none; min-width: 0; margin: 0; padding: 28px 32px; box-sizing: border-box; }
         .workbench-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 24px; }
         .workbench-heading h1 { margin: 0; font-size: 28px; }
         .workbench-heading p { margin: 8px 0 0; color: var(--text-secondary); font-size: 14px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 28px; }
+        .page-content a.btn { text-decoration:none; }
+        .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
         .summary-card { padding: 18px; border: 1px solid var(--border-color); background: var(--card-bg); border-radius: 8px; }
         .summary-label { color: var(--text-secondary); font-size: 13px; }
         .summary-value { margin-top: 8px; font-size: 28px; font-weight: 700; }
@@ -35,9 +36,14 @@
         .filter-tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid var(--border-color); padding-bottom:8px; }
         .filter-tab { background:transparent; border:0; color:var(--text-secondary); font:inherit; font-size:14px; padding:9px 12px; cursor:pointer; border-radius:6px; }
         .filter-tab[aria-pressed="true"] { background:#eef6ff; color:var(--primary-color); font-weight:600; }
-        .search-field { flex:1; min-width:180px; }
-        .search-field input { width:100%; min-height:38px; }
-        .workbench-toolbar select { min-height:38px; width:156px; max-width:100%; }
+        .search-field { flex:1; min-width:180px; max-width:480px; }
+        .search-field input { width:100%; height:40px; padding:0 12px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-primary); font:inherit; font-size:14px; box-sizing:border-box; }
+        .search-field input:focus-visible { outline:2px solid var(--primary-color); outline-offset:2px; }
+        .sort-controls { display:flex; gap:2px; padding:3px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); }
+        .sort-button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:32px; padding:0 10px; border:0; border-radius:4px; background:transparent; color:var(--text-secondary); cursor:pointer; font:inherit; font-size:13px; white-space:nowrap; }
+        .sort-button svg { width:16px; height:16px; }
+        .sort-button[aria-pressed="true"] { background:#eef6ff; color:var(--primary-color); font-weight:600; }
+        .sort-button:focus-visible { outline:2px solid var(--primary-color); outline-offset:2px; }
         .icon-button { width:38px; height:38px; padding:8px; justify-content:center; }
         .icon-button svg { width:18px; height:18px; }
         .icon-button i { font-style:normal; font-size:22px; line-height:1; }
@@ -66,8 +72,10 @@
             .interview-card .card-action { grid-column: 1 / -1; }
         }
         @media (max-width: 560px) {
+            .page-content { padding:20px 16px; }
             .search-field { flex-basis:100%; }
             .workbench-heading { display: block; }
+            .workbench-heading > a { margin-top:14px; }
             .summary-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
             .summary-card { padding: 14px; }
             .summary-value { font-size: 24px; }
@@ -113,10 +121,10 @@
                     </div>
                     <div class="workbench-toolbar">
                         <label class="search-field"><input class="form-control" id="interviewSearch" type="search" placeholder="搜索候选人或职位" aria-label="搜索候选人或职位"></label>
-                        <select class="form-control" id="interviewSort" aria-label="面试排序">
-                            <option value="asc">时间从早到晚</option>
-                            <option value="desc">时间从晚到早</option>
-                        </select>
+                        <div class="sort-controls" id="interviewSort" role="group" aria-label="面试时间排序">
+                            <button class="sort-button" type="button" data-sort="asc" aria-pressed="true" title="时间从早到晚"><i data-lucide="arrow-up-narrow-wide" aria-hidden="true"></i>早 → 晚</button>
+                            <button class="sort-button" type="button" data-sort="desc" aria-pressed="false" title="时间从晚到早"><i data-lucide="arrow-down-wide-narrow" aria-hidden="true"></i>晚 → 早</button>
+                        </div>
                         <button class="btn icon-button" id="refreshInterviews" type="button" title="刷新面试" aria-label="刷新面试"><i data-lucide="refresh-cw" aria-hidden="true">↻</i></button>
                         <button class="btn" id="clearFilters" type="button" hidden>清除筛选</button>
                     </div>
@@ -133,6 +141,7 @@
         let loaded = false;
         let loading = false;
         const params = new URLSearchParams(window.location.search);
+        let activeSort = params.get('sort') === 'desc' ? 'desc' : 'asc';
         let activeFilter = ['all', 'today', 'feedback', 'upcoming', 'completed', 'closed'].includes(params.get('filter')) ? params.get('filter') : 'all';
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -145,17 +154,19 @@
             renderHeader();
             if (window.lucide) lucide.createIcons();
             document.getElementById('interviewSearch').value = params.get('q') || '';
-            document.getElementById('interviewSort').value = params.get('sort') === 'desc' ? 'desc' : 'asc';
             document.querySelectorAll('.filter-tab').forEach(button => button.addEventListener('click', () => {
                 activeFilter = button.dataset.filter;
                 updateFilters();
             }));
             document.getElementById('interviewSearch').addEventListener('input', updateFilters);
-            document.getElementById('interviewSort').addEventListener('change', updateFilters);
+            document.querySelectorAll('[data-sort]').forEach(button => button.addEventListener('click', () => {
+                activeSort = button.dataset.sort;
+                updateFilters();
+            }));
             document.getElementById('clearFilters').onclick = () => {
                 activeFilter = 'all';
                 document.getElementById('interviewSearch').value = '';
-                document.getElementById('interviewSort').value = 'asc';
+                activeSort = 'asc';
                 updateFilters();
             };
             document.getElementById('refreshInterviews').onclick = loadInterviewerWorkbench;
@@ -281,7 +292,7 @@
 
         function updateFilters() {
             const query = document.getElementById('interviewSearch').value.trim();
-            const sort = document.getElementById('interviewSort').value;
+            const sort = activeSort;
             const url = new URL(window.location.href);
             if (activeFilter === 'all') url.searchParams.delete('filter'); else url.searchParams.set('filter', activeFilter);
             if (query) url.searchParams.set('q', query); else url.searchParams.delete('q');
@@ -297,7 +308,8 @@
                 document.getElementById(`${filter}Count`).textContent = myInterviews.filter(item => matchesFilter(item, filter, now)).length;
             }
             const query = document.getElementById('interviewSearch').value.trim().toLocaleLowerCase();
-            const descending = document.getElementById('interviewSort').value === 'desc';
+            const descending = activeSort === 'desc';
+            document.querySelectorAll('[data-sort]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.sort === activeSort)));
             const items = myInterviews.filter(item => matchesFilter(item, activeFilter, now)
                 && `${item.candidate_name || ''} ${item.job_title || ''}`.toLocaleLowerCase().includes(query))
                 .sort((a, b) => (descending ? -1 : 1) * (new Date(a.start_time) - new Date(b.start_time)) || a.id - b.id);

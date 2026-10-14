@@ -52,13 +52,18 @@ const fs=require('fs'),path=require('path'),http=require('http'),assert=require(
     assert.equal(await page.locator('.interview-card').count(),2);
     await page.locator('[data-filter="completed"]').click();
     assert.equal(await page.locator('.interview-card').count(),6);
-    await page.locator('#interviewSort').selectOption('desc');
+    await page.locator('[data-sort="desc"]').click();
     assert.equal(await page.locator('.candidate-name').first().innerText(),'Candidate 12');
     await page.locator('#interviewSearch').fill('Candidate 8');
     assert.equal(await page.locator('.interview-card').count(),1);
     await page.reload();
     await page.waitForFunction(()=>document.querySelectorAll('.interview-card').length===1);
     assert.equal(await page.locator('#interviewSearch').inputValue(),'Candidate 8');
+    assert.equal(await page.locator('[data-sort="desc"]').getAttribute('aria-pressed'),'true');
+    assert.equal(await page.locator('select').count(),0);
+    const geometry = await page.locator('.page-content').boundingBox();
+    const mainGeometry = await page.locator('.main-content').boundingBox();
+    assert(Math.abs(geometry.width-mainGeometry.width)<2, 'Workbench must fill main content width');
     assert.equal(await page.locator('#completedCount').innerText(),'6');
     await page.locator('#clearFilters').click();
     assert.equal(await page.locator('.interview-card').count(),15);
@@ -80,6 +85,16 @@ const fs=require('fs'),path=require('path'),http=require('http'),assert=require(
     fail=false; await page.locator('#retryLoad').click();
     await page.waitForFunction(()=>document.querySelector('#feedbackCount').textContent==='2');
     assert.equal(await page.locator('#feedbackCount').innerText(),'2');
+    data.splice(0);
+    await page.setViewportSize({width:1920,height:1080});
+    await page.locator('#refreshInterviews').click();
+    await page.waitForFunction(()=>document.querySelector('#todayCount').textContent==='0');
+    const wide = await page.locator('.page-content').boundingBox();
+    assert(wide.width>1800, 'Wide empty workbench should use available width');
+    assert.equal(await page.locator('#reminderCount').innerText(),'0 项');
+    await page.mouse.move(1800,100);
+    await page.waitForTimeout(350);
+    await page.screenshot({path:path.join(__dirname,'workbench-wide-empty.png'),fullPage:true});
     assert.equal(errors.length,0,errors.join('\n'));
     console.log('PASS: no duplicate cards; pending after end; cancelled/terminal excluded; six completed; search; sort; URL restoration; clear; empty; error/retry; XSS escaping; mobile overflow');
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
