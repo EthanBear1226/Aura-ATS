@@ -692,6 +692,7 @@
 
                 <!-- 右侧操作按钮区 (仅保留+添加功能按钮) -->
                 <div class="moka-top-actions">
+                    <button type="button" class="btn" id="refreshCandidates" onclick="loadCandidates()" aria-label="刷新候选人" title="刷新候选人"><i data-lucide="refresh-cw" aria-hidden="true"></i></button>
                     <button class="btn-moka-blue" id="btnAddCandidate" onclick="openUploadModal()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         添加
@@ -782,28 +783,6 @@
         </main>
     </div>
 
-    <!-- 上传简历 Modal -->
-    <div class="modal-overlay" id="uploadModal">
-        <div class="modal-card">
-            <h2 style="margin-top:0; font-size:18px;">添加候选人 (AI 解析)</h2>
-            <div style="margin-bottom: 16px;">
-                <label style="font-size:13.5px; font-weight:600; display:block; margin-bottom:8px;">投递职位</label>
-                <select id="modal-job-select" style="width:100%; padding:10px; border-radius:6px; border:1px solid #e5e6eb; outline:none;">
-                    <option value="" disabled selected>请选择投递职位</option>
-                </select>
-            </div>
-            <p style="color:#86909c; font-size:13px;">支持拖拽或点击上传，Aura 将自动提取结构化数据并存入数据库。</p>
-            <input type="file" id="resume-file" accept="application/pdf" style="display:none;">
-            <div style="border:2px dashed #d0e1ff; background:#f4f8ff; border-radius:8px; padding:36px; text-align:center; margin:20px 0; cursor:pointer;" onclick="document.getElementById('resume-file').click()">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#165dff" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <div style="margin-top:12px; font-weight:600; color:#165dff; font-size:14px;">点击或拖拽 PDF 简历文件到此处</div>
-            </div>
-            <div style="text-align:right; margin-top:20px;">
-                <button class="btn" onclick="closeUploadModal()" style="border:1px solid #e5e6eb; background:#fff; padding:6px 18px; border-radius:4px; cursor:pointer;">取消</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 推荐给用人部门 Modal -->
     <div class="modal-overlay" id="recommendModal">
         <div class="modal-card">
@@ -834,6 +813,7 @@
         let currentFilterJob = '全部职位';
         let currentStageFilter = '初筛';
         let currentSortType = 'created_desc';
+        let candidatesLoading = false;
 
         // 标准候选人全流程 6 大核心阶段 + 分支终态
         const MOKA_STAGES = [
@@ -1033,6 +1013,10 @@
         }
 
         async function loadCandidates() {
+            if (candidatesLoading) return;
+            candidatesLoading = true;
+            const refreshButton = document.getElementById('refreshCandidates');
+            refreshButton.disabled = true;
             const container = document.getElementById('moka-cand-cards-container');
             container.textContent = '正在加载候选人...';
             try {
@@ -1048,8 +1032,15 @@
                 console.error('候选人列表加载失败', error);
                 container.innerHTML = `<div role="alert">${escapeCandidateText(error.message)} <button type="button" class="btn" id="retryCandidates">重试</button></div>`;
                 document.getElementById('retryCandidates').onclick = loadCandidates;
+            } finally {
+                candidatesLoading = false;
+                refreshButton.disabled = false;
             }
         }
+
+        window.addEventListener('pageshow', event => {
+            if (event.persisted) loadCandidates();
+        });
 
         // 动态候选人真实履历抽取与能力标签计算引擎 (彻底消除硬编码模板)
         function extractRealCandidateProfile(c) {
@@ -1348,12 +1339,7 @@
 
         // 弹窗辅助控制
         function openUploadModal() {
-            const m = document.getElementById('uploadModal');
-            if (m) m.classList.add('active');
-        }
-        function closeUploadModal() {
-            const m = document.getElementById('uploadModal');
-            if (m) m.classList.remove('active');
+            window.location.href = 'add-candidate.html';
         }
 
         let selectedCandIdForRecommend = null;

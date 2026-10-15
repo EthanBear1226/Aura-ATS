@@ -54,6 +54,7 @@
             <header class="header" id="header-container"></header>
             <div class="page-content" style="max-width: 600px; margin: 0 auto; padding-top: 40px;">
                 <h1 class="page-title" style="margin-bottom: 32px;">添加候选人 (AI解析)</h1>
+                <a class="btn" href="candidates.html" style="margin-bottom:16px;">返回候选人列表</a>
                 
                 <div class="card">
                     <div class="form-group">
@@ -79,7 +80,8 @@
                             <div id="progress-bar" style="width:0%; height:100%; background:var(--primary-color); transition:width 0.3s;"></div>
                         </div>
                     </div>
-                    <div id="upload-results" class="card" style="padding: 0;"></div>
+                    <div id="upload-results" aria-live="polite"></div>
+                    <a class="btn btn-primary" id="view-uploaded-candidates" href="candidates.html" style="display:none; margin-top:16px;">查看候选人列表</a>
                 </div>
             </div>
         </main>
@@ -209,6 +211,7 @@
             document.getElementById('upload-progress').style.display = 'block';
             document.getElementById('upload-results').style.display = 'none';
             document.getElementById('upload-results').innerHTML = '';
+            document.getElementById('view-uploaded-candidates').style.display = 'none';
             const progressBar = document.getElementById('progress-bar');
             const progressText = document.getElementById('progress-text');
 
@@ -252,6 +255,7 @@
                     return `<div class="upload-result ${item.status}">
                         <span>${item.status === 'success' ? '✓' : '×'}</span>
                         <span><strong>${filename}</strong><br>${label}</span>
+                        ${item.status === 'success' && item.candidate ? `<a class="btn" href="candidate-detail.html?id=${encodeURIComponent(item.candidate.id)}">查看候选人</a>` : ''}
                     </div>`;
                 }).join('');
 
@@ -259,6 +263,7 @@
                 progressText.innerText = `处理完成：成功 ${batchResult.succeeded} 份，失败 ${batchResult.failed} 份`;
 
                 const firstSuccess = batchResult.results.find(item => item.status === 'success');
+                document.getElementById('view-uploaded-candidates').style.display = firstSuccess ? 'inline-flex' : 'none';
                 if (firstSuccess && firstSuccess.candidate) {
                     try {
                         sessionStorage.setItem('last_parsed_candidate', JSON.stringify(firstSuccess.candidate));

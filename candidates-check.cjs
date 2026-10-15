@@ -15,7 +15,7 @@ const assert = require('assert');
     }
     if (route === '/api/jobs' || route === '/api/settings/interviewers') {
       res.setHeader('Content-Type', 'application/json');
-      res.end('[]');
+      res.end(JSON.stringify(route === '/api/jobs' ? [{id: 7, title: '前端工程师', status: '热招中'}] : []));
       return;
     }
     const file = path.join(__dirname, route === '/' ? 'candidates.html' : route);
@@ -48,8 +48,23 @@ const assert = require('assert');
     assert.equal(await page.locator('#moka-cand-cards-container .aura-empty-box').count(), 0);
     assert.equal(errors.length, 0, errors.join('\n'));
 
+    await page.locator('#btnAddCandidate').click();
+    await page.waitForURL('**/add-candidate.html');
+    await page.waitForFunction(() => document.querySelector('#modal-job-select option[value="7"]'));
+    await page.evaluate(() => { document.querySelector('#modal-job-select').value = '7'; });
+    await page.route('**/api/parse-resumes', route => {
+      assert(route.request().headers().authorization?.startsWith('Bearer '));
+      assert(route.request().postData().includes('name="job_id"'));
+      return route.fulfill({json: {succeeded: 1, failed: 0, results: [{status: 'success', filename: 'test.pdf', candidate: candidates[0]}]}});
+    });
+    await page.locator('#resume-file').setInputFiles({name: 'test.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 test')});
+    await page.locator('#view-uploaded-candidates').waitFor({state: 'visible'});
+    assert.equal(await page.locator('#upload-results a').getAttribute('href'), 'candidate-detail.html?id=101');
+    await page.locator('#view-uploaded-candidates').click();
+    await page.waitForFunction(() => document.querySelectorAll('.moka-cand-card').length === 1);
+
     candidates = [];
-    await page.reload();
+    await page.locator('#refreshCandidates').click();
     await page.waitForFunction(() => document.querySelector('#moka-cand-cards-container')?.innerText.includes('当前筛选下暂无候选人'));
     assert.equal(await page.locator('.moka-cand-card').count(), 0);
     assert.equal(await page.locator('#moka-cand-cards-container .aura-empty-box').count(), 1);
