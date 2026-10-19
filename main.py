@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_, false
 import uvicorn
 import os
 import shutil
@@ -111,10 +112,14 @@ def upgrade_db():
                 conn.execute(text("ALTER TABLE candidates ADD COLUMN match_score INTEGER"))
                 conn.execute(text("ALTER TABLE candidates ADD COLUMN match_reason TEXT"))
 
+
     except Exception as e:
         print(f"Migration error (ignoring if tables just created): {e}")
 
 upgrade_db()
+
+from interviewer_identity import upgrade_interview_identity
+upgrade_interview_identity(engine)
 
 # --- AUTH SECURITY CONFIG & TOOLS ---
 import hashlib
@@ -193,6 +198,16 @@ def _mask_sensitive_value(value: Optional[str], keep_start: int = 3, keep_end: i
         return "*" * len(text)
     return f"{text[:keep_start]}{'*' * max(3, len(text) - keep_start - keep_end)}{text[-keep_end:]}"
 
+def _interviewer_scope(db: Session, user: models.User):
+    from interviewer_identity import account_person, legacy_name_allowed
+    person = account_person(db, user)
+    clauses = []
+    if person:
+        clauses.append(models.Interview.interviewer_id == person.id)
+    if legacy_name_allowed(db, user):
+        clauses.append(and_(models.Interview.interviewer_id.is_(None), models.Interview.interviewer_name == user.name))
+    return or_(*clauses) if clauses else false()
+
 def _can_access_candidate(db: Session, candidate: models.Candidate, current_user: models.User) -> bool:
     role = current_user.role or "Admin"
     name = current_user.name or ""
@@ -201,7 +216,7 @@ def _can_access_candidate(db: Session, candidate: models.Candidate, current_user
     if role == "Interviewer":
         return db.query(models.Interview).filter(
             models.Interview.candidate_id == candidate.id,
-            models.Interview.interviewer_name == name
+            _interviewer_scope(db, current_user)
         ).first() is not None
 
     if role == "HiringManager":
@@ -227,6 +242,11 @@ def _candidate_response(candidate: models.Candidate, reveal_sensitive: bool = Fa
         data["email"] = _mask_sensitive_value(data.get("email"), keep_start=1, keep_end=0)
         data["id_card"] = _mask_sensitive_value(data.get("id_card"), keep_start=6, keep_end=2)
     return data
+
+def _candidate_list_response(candidate: models.Candidate) -> dict:
+    return schemas.Candidate.model_validate(candidate).model_dump(
+        mode="json", exclude={"interviews": {"__all__": {"candidate"}}}
+    )
 
 def _validate_resume_upload(file: UploadFile):
     filename = file.filename or ""
@@ -688,11 +708,12 @@ def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
         email = current_user.email or ""
         
         if role == "Interviewer":
-            my_candidate_ids = db.query(models.Interview.candidate_id).filter(models.Interview.interviewer_name == name).distinct().all()
+            my_candidate_ids = db.query(models.Interview.candidate_id).filter(_interviewer_scope(db, current_user)).distinct().all()
             candidate_id_list = [c[0] for c in my_candidate_ids]
             if not candidate_id_list:
                 return []
-            return db.query(models.Candidate).filter(models.Candidate.id.in_(candidate_id_list)).order_by(models.Candidate.id.desc()).offset(skip).limit(limit).all()
+            rows = db.query(models.Candidate).filter(models.Candidate.id.in_(candidate_id_list)).order_by(models.Candidate.id.desc()).offset(skip).limit(limit).all()
+            return [_candidate_list_response(row) for row in rows]
         elif role == "HiringManager":
             user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first()
             dept_name = user_invite.department if user_invite else None
@@ -700,11 +721,12 @@ def get_candidates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
                 dept_jobs = db.query(models.Job).filter(models.Job.department == dept_name).all()
                 job_titles = [j.title for j in dept_jobs]
                 if job_titles:
-                    return db.query(models.Candidate).filter(models.Candidate.job.in_(job_titles)).order_by(models.Candidate.id.desc()).offset(skip).limit(limit).all()
+                    rows = db.query(models.Candidate).filter(models.Candidate.job.in_(job_titles)).order_by(models.Candidate.id.desc()).offset(skip).limit(limit).all()
+                    return [_candidate_list_response(row) for row in rows]
             return []
             
         candidates = db.query(models.Candidate).order_by(models.Candidate.id.desc()).offset(skip).limit(limit).all()
-        return candidates
+        return [_candidate_list_response(row) for row in candidates]
     except Exception as e:
         print(f"DB Error: {e}")
         raise HTTPException(status_code=500, detail="Database error")
@@ -1422,6 +1444,10 @@ def get_interviewers(db: Session = Depends(get_db), current_user: models.User = 
 @app.post("/api/settings/interviewers", response_model=schemas.Interviewer)
 def create_interviewer(item: schemas.InterviewerCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     check_admin_permission(current_user)
+    from interviewer_identity import freeze_legacy_assignments
+    existing = db.query(models.Interviewer).filter_by(name=item.name).all()
+    if len(existing) == 1:
+        freeze_legacy_assignments(db, existing[0])
     db_item = models.Interviewer(**item.model_dump())
     db.add(db_item)
     db.commit()
@@ -1431,6 +1457,13 @@ def create_interviewer(item: schemas.InterviewerCreate, db: Session = Depends(ge
 @app.delete("/api/settings/interviewers/{item_id}")
 def delete_interviewer(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     check_admin_permission(current_user)
+    person = db.query(models.Interviewer).filter_by(id=item_id).first()
+    if person and db.query(models.Interview.id).filter(or_(
+        models.Interview.interviewer_id == item_id,
+        and_(models.Interview.interviewer_id.is_(None), models.Interview.interviewer_name == person.name)
+    )).first():
+        raise HTTPException(409, "面试官已有历史排期，不能删除；可调整信息或账号绑定")
+    db.query(models.InterviewerAccount).filter_by(interviewer_id=item_id).delete()
     db.query(models.CalendarIdentity).filter_by(interviewer_id=item_id).delete()
     db.query(models.Interviewer).filter(models.Interviewer.id == item_id).delete()
     db.commit()
@@ -1531,6 +1564,8 @@ def update_interviewer(item_id: int, item: schemas.InterviewerCreate, db: Sessio
     db_item = db.query(models.Interviewer).filter(models.Interviewer.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Interviewer not found")
+    from interviewer_identity import freeze_legacy_assignments
+    freeze_legacy_assignments(db, db_item)
     for key, val in item.model_dump().items():
         setattr(db_item, key, val)
     db.commit()
@@ -1642,9 +1677,45 @@ def get_freebusy(date: str, interviewer_id: Optional[int] = None, interviewer: O
                  db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     import calendar_service
     person = calendar_service.resolve_interviewer(db, interviewer_id, interviewer)
-    if current_user.role == "Interviewer" and person.name != current_user.name:
-        raise HTTPException(403, "仅可查看本人忙闲")
+    if current_user.role == "Interviewer":
+        from interviewer_identity import account_person
+        owner = account_person(db, current_user)
+        if not owner or owner.id != person.id:
+            raise HTTPException(403, "仅可查看本人忙闲")
     return calendar_service.get_availability(db, person, date)
+
+
+@app.get("/api/settings/interviewers/{item_id}/account")
+def get_interviewer_account(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
+    if not db.query(models.Interviewer).filter_by(id=item_id).first():
+        raise HTTPException(404, "面试官不存在")
+    binding = db.query(models.InterviewerAccount).filter_by(interviewer_id=item_id).first()
+    return {"interviewer_id": item_id, "user_id": binding.user_id if binding else None}
+
+
+@app.patch("/api/settings/interviewers/{item_id}/account")
+def bind_interviewer_account(item_id: int, item: schemas.InterviewerAccountUpdate,
+                              db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
+    person = db.query(models.Interviewer).filter_by(id=item_id).first()
+    user = db.query(models.User).filter_by(id=item.user_id, role="Interviewer").first()
+    if not person or not user:
+        raise HTTPException(404, "面试官或面试官角色账号不存在")
+    from sqlalchemy.exc import IntegrityError
+    from interviewer_identity import freeze_legacy_assignments
+    freeze_legacy_assignments(db, person)
+    row = db.query(models.InterviewerAccount).filter_by(interviewer_id=item_id).first()
+    if row and row.user_id != user.id:
+        raise HTTPException(409, "该面试官已有绑定，暂不支持直接转移历史数据归属")
+    if row is None:
+        db.add(models.InterviewerAccount(interviewer_id=item_id, user_id=user.id))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "该账号已绑定其他面试官")
+    return {"interviewer_id": item_id, "user_id": user.id}
 
 
 @app.get("/api/settings/interviewers/{item_id}/calendar-identity")
@@ -1698,7 +1769,7 @@ def create_interview(item: schemas.InterviewCreate, db: Session = Depends(get_db
     person = calendar_service.resolve_interviewer(db, item.interviewer_id, item.interviewer_name)
     start, end = calendar_service.validate_booking(db, person, item.start_time, item.end_time)
     item = item.model_copy(update={"interviewer_name": person.name, "start_time": start, "end_time": end})
-    db_item = models.Interview(**item.model_dump(exclude={"interviewer_id"}))
+    db_item = models.Interview(**item.model_dump(exclude={"interviewer_id"}), interviewer_id=person.id)
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
@@ -1748,7 +1819,7 @@ def get_interviews(db: Session = Depends(get_db), current_user: models.User = De
     email = current_user.email
     
     if role == "Interviewer":
-        interviews = db.query(models.Interview).filter(models.Interview.interviewer_name == name).all()
+        interviews = db.query(models.Interview).filter(_interviewer_scope(db, current_user)).all()
         return [_interview_response_data(interview) for interview in interviews]
     elif role == "HiringManager":
         user_invite = db.query(models.UserInvitation).filter(models.UserInvitation.email == email).first()
@@ -1764,16 +1835,16 @@ def get_interviews(db: Session = Depends(get_db), current_user: models.User = De
     interviews = db.query(models.Interview).all()
     return [_interview_response_data(interview) for interview in interviews]
 
-def _can_access_interview(interview: models.Interview, current_user: models.User) -> bool:
+def _can_access_interview(db: Session, interview: models.Interview, current_user: models.User) -> bool:
     if current_user.role == "Interviewer":
-        return interview.interviewer_name == current_user.name
+        return db.query(models.Interview.id).filter(models.Interview.id == interview.id, _interviewer_scope(db, current_user)).first() is not None
     if current_user.role in ["SuperAdmin", "Admin", "Recruiter"]:
         return True
     return False
 
 def _interview_response_data(interview: models.Interview) -> dict:
     fields = [
-        "id", "candidate_id", "interviewer_name", "job_title",
+        "id", "candidate_id", "interviewer_id", "interviewer_name", "job_title",
         "start_time", "end_time", "location", "status",
         "feedback_result", "feedback_text", "professional_score",
         "communication_score", "business_score", "collaboration_score",
@@ -1803,7 +1874,7 @@ def get_interview_detail(
     interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
-    if not _can_access_interview(interview, current_user):
+    if not _can_access_interview(db, interview, current_user):
         raise HTTPException(status_code=403, detail="You do not have access to this interview")
     return _interview_response_data(interview)
 
@@ -1816,7 +1887,7 @@ def get_interview_resume(
     interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
-    if not _can_access_interview(interview, current_user):
+    if not _can_access_interview(db, interview, current_user):
         raise HTTPException(status_code=403, detail="You do not have access to this interview")
     if not interview.candidate:
         raise HTTPException(status_code=404, detail="Resume file not found")
@@ -1862,7 +1933,7 @@ def get_interview_feedback_revisions(
     interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
-    if not _can_access_interview(interview, current_user):
+    if not _can_access_interview(db, interview, current_user):
         raise HTTPException(status_code=403, detail="You do not have access to this interview")
 
     revisions = (
@@ -1905,7 +1976,7 @@ def get_interviewer_workbench(
 
     interviews = (
         db.query(models.Interview)
-        .filter(models.Interview.interviewer_name == current_user.name)
+        .filter(_interviewer_scope(db, current_user))
         .order_by(models.Interview.start_time.asc())
         .all()
     )
@@ -1934,7 +2005,7 @@ def submit_feedback(interview_id: int, feedback: schemas.InterviewUpdateFeedback
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
 
-    if current_user.role != "Interviewer" or interview.interviewer_name != current_user.name:
+    if current_user.role != "Interviewer" or not _can_access_interview(db, interview, current_user):
         raise HTTPException(status_code=403, detail="Only the assigned interviewer can submit feedback")
     if interview.status == "已取消":
         raise HTTPException(status_code=400, detail="Cancelled interviews cannot receive feedback")
@@ -2044,22 +2115,22 @@ def get_dashboard_data(
         # ==================== 1. 面试官 (Interviewer) 视角 ====================
         if role == "Interviewer":
             # 活跃职位：我参与过面试的在招职位
-            my_jobs = db.query(models.Interview.job_title).filter(models.Interview.interviewer_name == name).distinct().all()
+            my_jobs = db.query(models.Interview.job_title).filter(_interviewer_scope(db, current_user)).distinct().all()
             my_job_list = [j[0] for j in my_jobs]
             my_active_jobs_count = db.query(models.Job).filter(models.Job.title.in_(my_job_list), models.Job.status == "热招中").count() if my_job_list else 0
 
             # 我评估的候选人：去重总数
-            evaluated_candidates = db.query(models.Interview.candidate_id).filter(models.Interview.interviewer_name == name).distinct().count()
+            evaluated_candidates = db.query(models.Interview.candidate_id).filter(_interviewer_scope(db, current_user)).distinct().count()
 
             # 我的待面试日程：状态为“已安排”的面试数
             my_pending_count = db.query(models.Interview).filter(
-                models.Interview.interviewer_name == name,
+                _interviewer_scope(db, current_user),
                 models.Interview.status == "已安排"
             ).count()
 
             # 我的待提交评价：当前时间已过但未填写 feedback_result 并且状态为已安排
             my_todo_feedback = db.query(models.Interview).filter(
-                models.Interview.interviewer_name == name,
+                _interviewer_scope(db, current_user),
                 models.Interview.status == "已安排",
                 models.Interview.start_time <= datetime.utcnow()
             ).count()
@@ -2073,7 +2144,7 @@ def get_dashboard_data(
 
             # 待办事项：列出面试官未开始的待面试排期
             my_interviews = db.query(models.Interview).filter(
-                models.Interview.interviewer_name == name,
+                _interviewer_scope(db, current_user),
                 models.Interview.status == "已安排"
             ).order_by(models.Interview.start_time.asc()).limit(5).all()
 
@@ -2091,7 +2162,7 @@ def get_dashboard_data(
             activities = [
                 {
                     "id": 1,
-                    "content": f"系统已自动同步您名下在飞书日历关联的 {my_pending_count} 场协同面试安排。",
+                    "content": f"Aura 中有 {my_pending_count} 场待面试安排；飞书日历尚未同步。",
                     "time": "刚刚",
                     "icon": "calendar",
                     "color": "#007AFF",
@@ -2100,7 +2171,7 @@ def get_dashboard_data(
             ]
             # 追加最近评估的动态
             recent_itvs = db.query(models.Interview).filter(
-                models.Interview.interviewer_name == name,
+                _interviewer_scope(db, current_user),
                 models.Interview.status == "已完成"
             ).order_by(models.Interview.start_time.desc()).limit(3).all()
             for idx, ritv in enumerate(recent_itvs):

@@ -64,13 +64,18 @@ def resolve_interviewer(db, interviewer_id=None, name=None):
         person = matches[0]
     # Legacy interview records are assigned by name; reject ambiguous mappings.
     if db.query(models.Interviewer).filter(models.Interviewer.name == person.name).count() != 1:
-        raise HTTPException(409, "面试官存在同名配置，请先由管理员处理")
+        if db.query(models.Interview.id).filter(
+            models.Interview.interviewer_id.is_(None), models.Interview.interviewer_name == person.name
+        ).first():
+            raise HTTPException(409, "存在无法区分归属的同名历史排期，请先由管理员处理")
     return person
 
 
 def local_busy(db, person, start, end):
+    from sqlalchemy import or_, and_
     rows = db.query(models.Interview).filter(
-        models.Interview.interviewer_name == person.name,
+        or_(models.Interview.interviewer_id == person.id,
+            and_(models.Interview.interviewer_id.is_(None), models.Interview.interviewer_name == person.name)),
         models.Interview.status.notin_(["已取消", "已中止"]),
         models.Interview.start_time < end,
         models.Interview.end_time > start,

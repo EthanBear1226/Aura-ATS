@@ -148,6 +148,9 @@ class Interviewer(InterviewerCreate):
 class CalendarIdentityUpdate(BaseModel):
     feishu_open_id: str = Field(min_length=1, max_length=255, pattern=r"^ou_[A-Za-z0-9_-]+$")
 
+class InterviewerAccountUpdate(BaseModel):
+    user_id: int = Field(gt=0)
+
 class LocationCreate(DictItemBase):
     type: str = "线下"
 class Location(LocationCreate):

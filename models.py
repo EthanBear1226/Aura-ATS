@@ -80,6 +80,12 @@ class Interviewer(Base):
     department_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+class InterviewerAccount(Base):
+    __tablename__ = "interviewer_accounts"
+    id = Column(Integer, primary_key=True)
+    interviewer_id = Column(Integer, ForeignKey("interviewers.id"), unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+
 class CalendarIdentity(Base):
     __tablename__ = "calendar_identities"
     id = Column(Integer, primary_key=True)
@@ -126,6 +132,7 @@ class Interview(Base):
     __tablename__ = "interviews"
     id = Column(Integer, primary_key=True, index=True)
     candidate_id = Column(Integer, ForeignKey("candidates.id"))
+    interviewer_id = Column(Integer, ForeignKey("interviewers.id"), nullable=True, index=True)
     interviewer_name = Column(String(100))
     job_title = Column(String(100))
     start_time = Column(DateTime)
