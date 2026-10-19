@@ -68,14 +68,16 @@ def test_public_portal_upload_limit_matches_backend_copy():
 
 def test_add_candidate_page_supports_job_id_and_multiple_pdf_uploads():
     html = read_page("add-candidate.html")
+    script = read_page("assets/js/resume-upload.js")
 
     assert 'accept="application/pdf" multiple' in html
-    assert 'formData.append("job_id", jobId)' in html
-    assert "formData.append(\"files\", file)" in html
-    assert "/api/parse-resumes" in html
+    assert "resume-upload.js?v=41" in html
+    assert "formData.append('job_id', group[0].jobId)" in script
+    assert "formData.append('files', entry.file)" in script
+    assert "/api/parse-resumes" in script
     assert "function escapeHtml(value)" in html
-    assert "const filename = escapeHtml" in html
-    assert "const detail = escapeHtml" in html
+    assert "escapeHtml(entry.file.name)" in script
+    assert "escapeHtml(label)" in script
     assert "e.target.files[0]" not in html
     assert "function authHeaders()" in html
     assert "headers: authHeaders()" in html
