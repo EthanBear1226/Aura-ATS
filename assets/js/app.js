@@ -422,25 +422,17 @@ function renderScheduleDrawer() {
                     <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">候选人</label>
                     <select id="drawerCandidateSelect" class="form-control" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="updateDrawerCandidateEmail()">
                         <option value="">请选择候选人...</option>
-                        <option value="zhangsan@example.com">张三 - 高级前端工程师</option>
-                        <option value="lisi@example.com">李四 - 产品经理</option>
-                        <option value="wangwu@example.com">王五 - 数据分析师</option>
                     </select>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 24px;">
                     <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">
-                        面试邀约邮件
+                        候选人邮箱
                     </label>
-                    <input type="email" id="drawerCandidateEmail" placeholder="候选人邮箱自动填入" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm); margin-bottom: 12px; background:var(--bg-color);">
-                    <textarea placeholder="面试邀请文案..." style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm); height: 120px; resize: none; font-family: inherit; font-size: 13px; line-height: 1.5;">您好！
-
-非常荣幸地通知您，您已通过我们的初步筛选。我们希望邀请您参加线上面试，进一步沟通您的过往经历与我们的业务匹配度。
-
-请确认以下面试时间与会议链接，期待与您的交流！</textarea>
+                    <input type="email" id="drawerCandidateEmail" readonly placeholder="候选人邮箱自动填入" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm); margin-bottom: 12px; background:var(--bg-color);">
                 </div>
 
-                <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+                <div class="drawer-date-row" style="display: flex; gap: 16px; margin-bottom: 24px;">
                     <div class="form-group" style="flex: 1;">
                         <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">面试日期</label>
                         <input type="date" id="drawerInterviewDate" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="loadDrawerAvailability()">
@@ -449,23 +441,16 @@ function renderScheduleDrawer() {
                         <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">
                             面试官
                         </label>
-                        <select id="drawerInterviewerSelect" class="form-control" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);" onchange="loadDrawerAvailability()">
-                            <option value="">请选择面试官...</option>
-                            <option value="wang">王大锤 (技术总监)</option>
-                            <option value="zhao">赵总 (产品VP)</option>
-                        </select>
+                        <input type="hidden" id="drawerInterviewerSelect">
+                        <div id="drawerInterviewerOptions" role="group" aria-label="面试官" style="display:flex; flex-wrap:wrap; gap:8px; max-height:160px; overflow:auto;">加载中...</div>
                     </div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 24px;">
                     <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">
-                        预订会议室
+                        面试地点 / 会议链接
                     </label>
-                    <select class="form-control" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
-                        <option value="">无 (线上会议，自动生成腾讯会议链接)</option>
-                        <option value="room1">会议室 A (6人) - 剩余可用</option>
-                        <option value="room2">会议室 B (10人) - 剩余可用</option>
-                    </select>
+                    <input id="drawerLocation" placeholder="填写地点或已创建的会议链接" style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
                 </div>
             </div>
 
@@ -473,7 +458,7 @@ function renderScheduleDrawer() {
             <div class="drawer-sidebar">
                 <h3 style="margin-top: 0; font-size: 15px; margin-bottom: 8px; color: var(--text-primary);">面试官日程情况</h3>
                 <p style="font-size: 12px; color: var(--text-secondary); margin-top: 0; margin-bottom: 24px;">
-                    <span id="drawerAvailabilityStatus">请选择日期与面试官，系统将拉取真实飞书日历。</span>
+                    <span id="drawerAvailabilityStatus" role="status">请选择日期与面试官。飞书日历尚未接入。</span>
                 </p>
 
                 <div id="drawerAvailabilityBlocks" style="display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto;">
@@ -483,14 +468,14 @@ function renderScheduleDrawer() {
                 </div>
                 
                 <div style="margin-top: 24px; font-size: 12px; color: var(--text-secondary); display: flex; gap: 16px; justify-content: center;">
-                    <span style="display: flex; align-items: center; gap: 6px;"><span style="width:8px; height:8px; border-radius:4px; background:#34C759;"></span> 空闲</span>
+                    <span style="display: flex; align-items: center; gap: 6px;"><span style="width:8px; height:8px; border-radius:4px; background:#34C759;"></span> 可选</span>
                     <span style="display: flex; align-items: center; gap: 6px;"><span style="width:8px; height:8px; border-radius:4px; background:#FF3B30;"></span> 忙碌</span>
                 </div>
             </div>
         </div>
         <div class="drawer-footer">
             <button class="btn" style="padding: 10px 24px;" onclick="closeScheduleDrawer()">取消</button>
-            <button class="btn btn-primary" id="drawerSubmitBtn" style="padding: 10px 24px;" onclick="submitDrawerSchedule()">确认安排并发送邀约</button>
+            <button class="btn btn-primary" id="drawerSubmitBtn" style="padding: 10px 24px;" onclick="submitDrawerSchedule()">确认安排</button>
         </div>
     </div>
     `;
@@ -499,7 +484,72 @@ function renderScheduleDrawer() {
 
 let currentDrawerCandidateId = null;
 let currentDrawerCandidateJob = null;
+let drawerAvailabilityRequest = 0;
+let drawerBookingPending = false;
+
+async function loadDrawerPeople() {
+    const options = document.getElementById('drawerInterviewerOptions');
+    try {
+        const response = await fetch('/api/settings/interviewers');
+        if (!response.ok) throw new Error('加载失败');
+        const people = await response.json();
+        if (!options.isConnected) return;
+        options.replaceChildren();
+        if (!people.length) options.textContent = '暂无面试官，请管理员先配置。';
+        people.forEach(person => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn';
+            button.textContent = person.name;
+            button.setAttribute('aria-pressed', 'false');
+            button.addEventListener('click', () => {
+                if (drawerBookingPending) return;
+                const field = document.getElementById('drawerInterviewerSelect');
+                field.value = person.id;
+                field.dataset.name = person.name;
+                options.querySelectorAll('button').forEach(item => {
+                    item.classList.toggle('btn-primary', item === button);
+                    item.setAttribute('aria-pressed', String(item === button));
+                });
+                loadDrawerAvailability();
+            });
+            options.append(button);
+        });
+    } catch (_) {
+        if (options.isConnected) {
+            options.textContent = '面试官加载失败。';
+            const retry = document.createElement('button');
+            retry.type = 'button';
+            retry.className = 'btn';
+            retry.textContent = '重试';
+            retry.onclick = loadDrawerPeople;
+            options.append(retry);
+        }
+    }
+    const select = document.getElementById('drawerCandidateSelect');
+    if (!select || select.disabled) return;
+    try {
+        const response = await fetch('/api/candidates');
+        if (!response.ok) throw new Error('加载失败');
+        const people = await response.json();
+        if (!select.isConnected) return;
+        select.replaceChildren(new Option('请选择候选人...', ''));
+        people.filter(person => !['已淘汰', '已归档', '淘汰', '归档'].includes(person.stage)).forEach(person => {
+            const option = new Option(`${person.name} - ${person.job || '候选人'}`, person.id);
+            option.dataset.email = person.email || '';
+            option.dataset.job = person.job || '';
+            select.add(option);
+        });
+    } catch (_) {
+        if (select.isConnected) select.replaceChildren(new Option('候选人加载失败，请关闭后重试', ''));
+    }
+}
+
 function openScheduleDrawer(candidateName = '', candidateEmail = '', candidateJob = '', candidateId = null) {
+    if (drawerBookingPending) return;
+    drawerAvailabilityRequest++;
+    document.getElementById('globalScheduleDrawerOverlay')?.remove();
+    document.getElementById('globalScheduleDrawer')?.remove();
     currentDrawerCandidateId = candidateId;
     currentDrawerCandidateJob = candidateJob;
     // 按需挂载单例抽屉
@@ -535,6 +585,8 @@ function openScheduleDrawer(candidateName = '', candidateEmail = '', candidateJo
         emailInput.value = '';
     }
 
+    loadDrawerPeople();
+
     // 稍微延迟一帧触发CSS动画
     requestAnimationFrame(() => {
         overlay.classList.add('active');
@@ -543,11 +595,13 @@ function openScheduleDrawer(candidateName = '', candidateEmail = '', candidateJo
 }
 
 function closeScheduleDrawer(e) {
+    if (drawerBookingPending) return;
     if (e && e.target && e.target.id !== 'globalScheduleDrawerOverlay' && !e.target.closest('.drawer-close') && e.target.tagName !== 'BUTTON') return;
     const overlay = document.getElementById('globalScheduleDrawerOverlay');
     const drawer = document.getElementById('globalScheduleDrawer');
     if (overlay) overlay.classList.remove('active');
     if (drawer) drawer.classList.remove('active');
+    drawerAvailabilityRequest++;
     setTimeout(() => {
         if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
         if (drawer && drawer.parentNode) drawer.parentNode.removeChild(drawer);
@@ -557,80 +611,93 @@ function closeScheduleDrawer(e) {
 function updateDrawerCandidateEmail() {
     const selectElement = document.getElementById('drawerCandidateSelect');
     const emailInput = document.getElementById('drawerCandidateEmail');
-    emailInput.value = selectElement.value || '';
+    const option = selectElement.selectedOptions[0];
+    emailInput.value = option?.dataset.email || '';
+    currentDrawerCandidateId = selectElement.value ? Number(selectElement.value) : null;
+    currentDrawerCandidateJob = option?.dataset.job || '';
 }
 
 async function loadDrawerAvailability() {
+    const requestId = ++drawerAvailabilityRequest;
     const date = document.getElementById('drawerInterviewDate').value;
     const interviewer = document.getElementById('drawerInterviewerSelect').value;
-    if (!date || !interviewer) return;
-    
-    // Update status text
     const statusText = document.getElementById('drawerAvailabilityStatus');
-    if (statusText) statusText.innerHTML = `已同步 <b>系统日历</b> 实时数据`;
+    const container = document.getElementById('drawerAvailabilityBlocks');
+    container.replaceChildren();
+    if (!date || !interviewer) {
+        statusText.textContent = '请选择日期与面试官。飞书日历尚未接入。';
+        return;
+    }
+    statusText.textContent = '正在检查档期...';
     
     try {
-        const response = await fetch(`/api/calendar/freebusy?interviewer=${interviewer}&date=${date}`);
+        const response = await fetch(`/api/calendar/freebusy?${new URLSearchParams({interviewer_id: interviewer, date})}`);
         if (!response.ok) throw new Error("Failed to fetch slots");
-        const slots = await response.json();
-        
-        const container = document.getElementById('drawerAvailabilityBlocks');
-        container.innerHTML = slots.map((slot, index) => {
-            const isFree = slot.isFree;
-            return `
-            <label style="border:1px solid ${isFree ? 'var(--border-color)' : '#eee'}; background:${isFree ? '#fff' : '#fafafa'}; padding:8px; border-radius:4px; text-align:center; cursor:${isFree ? 'pointer' : 'not-allowed'}; opacity:${isFree ? '1' : '0.5'}; display:block; margin-bottom:8px;">
-                <input type="radio" name="drawerTimeSlot" value="${slot.time}" ${!isFree ? 'disabled' : ''} style="display:none;">
-                <div style="font-size:14px; font-weight:500;">${slot.time}</div>
-                <div style="font-size:12px; color:var(--text-secondary);">${isFree ? '空闲' : '忙碌'}</div>
-            </label>
-            `;
-        }).join('');
-        
-        // Add event listeners to radio buttons to update UI on select
-        container.querySelectorAll('input[type="radio"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                container.querySelectorAll('label').forEach(l => l.style.borderColor = 'var(--border-color)');
-                e.target.parentElement.style.borderColor = 'var(--primary-color)';
+        const data = await response.json();
+        if (requestId !== drawerAvailabilityRequest || !container.isConnected) return;
+        statusText.textContent = data.message;
+        data.slots.forEach(slot => {
+            const label = document.createElement('label');
+            label.style.cssText = 'border:1px solid var(--border-color);padding:12px;border-radius:4px;display:flex;align-items:center;gap:8px;font-size:13px;';
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'drawerTimeSlot';
+            radio.value = slot.time;
+            radio.disabled = !slot.isFree;
+            label.style.opacity = slot.isFree ? '1' : '0.5';
+            label.append(radio, document.createTextNode(`${slot.time} · ${slot.label}`));
+            container.append(label);
+            radio.addEventListener('change', () => {
+                container.querySelectorAll('label').forEach(item => item.style.borderColor = 'var(--border-color)');
+                label.style.borderColor = 'var(--primary-color)';
             });
         });
-    } catch(e) { 
-        console.error(e); 
-        const container = document.getElementById('drawerAvailabilityBlocks');
-        if (container) container.innerHTML = `<div style="text-align:center; color:#FF3B30; font-size:13px; padding:20px;">获取档期失败</div>`;
+    } catch(e) {
+        if (requestId !== drawerAvailabilityRequest || !container.isConnected) return;
+        statusText.textContent = '获取档期失败，尚未确认空闲时间。';
+        const retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'btn';
+        retry.textContent = '重试查询';
+        retry.onclick = loadDrawerAvailability;
+        container.replaceChildren(retry);
     }
 }
 
 async function submitDrawerSchedule() {
+    if (drawerBookingPending) return;
     const date = document.getElementById('drawerInterviewDate').value;
     const interviewer = document.getElementById('drawerInterviewerSelect').value;
     const slotRadio = document.querySelector('input[name="drawerTimeSlot"]:checked');
     
-    if (!date || !interviewer || !slotRadio || !currentDrawerCandidateId) {
+    if (!date || !interviewer || !slotRadio || slotRadio.disabled || !currentDrawerCandidateId) {
         if(window.showToast) window.showToast("请完整选择面试日期、面试官和时间段", "error");
         return;
     }
     
-    const time = slotRadio.value; // e.g. "10:00 - 11:00"
-    const startTimeStr = time.split(' - ')[0]; // extract "10:00" from "10:00 - 11:00" if applicable
-    const start_time = `${date}T${startTimeStr || time}:00`;
-    
-    // Simple mock for end time (1 hour later)
-    const [hour, min] = (startTimeStr || time).split(':');
-    const end_time = `${date}T${parseInt(hour)+1}:${min}:00`;
+    const time = slotRadio.value;
+    const start_time = `${date}T${time}:00`;
+    const [hour, min] = time.split(':');
+    const end_time = `${date}T${String(parseInt(hour)+1).padStart(2, '0')}:${min}:00`;
 
     const btn = document.getElementById('drawerSubmitBtn');
     const originalText = btn.innerText;
-    btn.innerText = "发送邀约中...";
+    btn.innerText = "安排中...";
     btn.disabled = true;
+    drawerBookingPending = true;
+    const controls = [...document.querySelectorAll('#globalScheduleDrawer input, #globalScheduleDrawer select, #globalScheduleDrawer textarea, #globalScheduleDrawer button')];
+    const disabledStates = controls.map(control => control.disabled);
+    controls.forEach(control => control.disabled = true);
     
     try {
         const payload = {
             candidate_id: currentDrawerCandidateId,
-            interviewer_name: interviewer,
+            interviewer_id: Number(interviewer),
+            interviewer_name: document.getElementById('drawerInterviewerSelect').dataset.name,
             job_title: currentDrawerCandidateJob || '未知',
             start_time: start_time,
             end_time: end_time,
-            location: "线上 / 待定"
+            location: document.getElementById('drawerLocation').value.trim() || '待确认'
         };
 
         const response = await fetch('/api/interviews', {
@@ -640,16 +707,20 @@ async function submitDrawerSchedule() {
         });
         
         if (response.ok) {
-            if(window.showToast) window.showToast("邀约已发送，日程已锁定", "success");
+            if(window.showToast) window.showToast("面试已保存；尚未同步飞书日程，请另行确认邀约。", "success");
+            drawerBookingPending = false;
             closeScheduleDrawer();
         } else {
             const data = await response.json();
             if(window.showToast) window.showToast(`安排失败: ${data.detail || '未知错误'}`, "error");
+            if (response.status === 409 || response.status === 503) await loadDrawerAvailability();
         }
     } catch(e) {
         console.error(e);
-        if(window.showToast) window.showToast("安排失败，请检查网络", "error");
+        if(window.showToast) window.showToast("保存结果待确认，请先刷新面试列表核对，避免重复安排。", "error");
     } finally {
+        drawerBookingPending = false;
+        controls.forEach((control, index) => control.disabled = disabledStates[index]);
         btn.innerText = originalText;
         btn.disabled = false;
     }

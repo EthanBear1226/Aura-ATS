@@ -1431,6 +1431,7 @@ def create_interviewer(item: schemas.InterviewerCreate, db: Session = Depends(ge
 @app.delete("/api/settings/interviewers/{item_id}")
 def delete_interviewer(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     check_admin_permission(current_user)
+    db.query(models.CalendarIdentity).filter_by(interviewer_id=item_id).delete()
     db.query(models.Interviewer).filter(models.Interviewer.id == item_id).delete()
     db.commit()
     return {"ok": True}
@@ -1637,17 +1638,72 @@ def delete_feedback_template(item_id: int, db: Session = Depends(get_db), curren
     return {"ok": True}
 
 @app.get("/api/calendar/freebusy")
-def get_freebusy(interviewer: str, date: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return services.FeishuCalendarService.get_freebusy(interviewer, date, db)
+def get_freebusy(date: str, interviewer_id: Optional[int] = None, interviewer: Optional[str] = None,
+                 db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    import calendar_service
+    person = calendar_service.resolve_interviewer(db, interviewer_id, interviewer)
+    if current_user.role == "Interviewer" and person.name != current_user.name:
+        raise HTTPException(403, "仅可查看本人忙闲")
+    return calendar_service.get_availability(db, person, date)
+
+
+@app.get("/api/settings/interviewers/{item_id}/calendar-identity")
+def get_calendar_identity(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
+    if not db.query(models.Interviewer).filter_by(id=item_id).first():
+        raise HTTPException(404, "面试官不存在")
+    row = db.query(models.CalendarIdentity).filter_by(interviewer_id=item_id).first()
+    return {"interviewer_id": item_id, "feishu_open_id": row.feishu_open_id if row else None}
+
+
+@app.patch("/api/settings/interviewers/{item_id}/calendar-identity")
+def update_calendar_identity(item_id: int, item: schemas.CalendarIdentityUpdate,
+                             db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
+    if not db.query(models.Interviewer).filter_by(id=item_id).first():
+        raise HTTPException(404, "面试官不存在")
+    from sqlalchemy.exc import IntegrityError
+    row = db.query(models.CalendarIdentity).filter_by(interviewer_id=item_id).first()
+    if row is None:
+        row = models.CalendarIdentity(interviewer_id=item_id)
+        db.add(row)
+    row.feishu_open_id = item.feishu_open_id
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "该飞书身份已绑定其他面试官")
+    return {"interviewer_id": item_id, "feishu_open_id": row.feishu_open_id}
+
+
+@app.delete("/api/settings/interviewers/{item_id}/calendar-identity")
+def delete_calendar_identity(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
+    db.query(models.CalendarIdentity).filter_by(interviewer_id=item_id).delete()
+    db.commit()
+    return {"ok": True}
 
 @app.post("/api/interviews", response_model=schemas.Interview)
 def create_interview(item: schemas.InterviewCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    db_item = models.Interview(**item.model_dump())
+    import calendar_service
+    if current_user.role not in ["SuperAdmin", "Admin", "Recruiter", "HiringManager"]:
+        raise HTTPException(403, "无权安排面试")
+    candidate = db.query(models.Candidate).filter_by(id=item.candidate_id).first()
+    if not candidate:
+        raise HTTPException(404, "候选人不存在")
+    if not _can_access_candidate(db, candidate, current_user):
+        raise HTTPException(403, "无权安排该候选人的面试")
+    if candidate.stage in ["已淘汰", "已归档", "淘汰", "归档"]:
+        raise HTTPException(409, "候选人流程已结束，不能安排面试")
+    person = calendar_service.resolve_interviewer(db, item.interviewer_id, item.interviewer_name)
+    start, end = calendar_service.validate_booking(db, person, item.start_time, item.end_time)
+    item = item.model_copy(update={"interviewer_name": person.name, "start_time": start, "end_time": end})
+    db_item = models.Interview(**item.model_dump(exclude={"interviewer_id"}))
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
     
-    # Send email and create event
+    # Calendar event synchronization is deferred until real authorization is ready.
     candidate = db.query(models.Candidate).filter(models.Candidate.id == item.candidate_id).first()
     if candidate:
         # 联动将候选人状态推进至“面试中”
@@ -1683,9 +1739,7 @@ def create_interview(item: schemas.InterviewCreate, db: Session = Depends(get_db
         
     db.commit()
     
-    services.FeishuCalendarService.create_event(item.interviewer_name, item.start_time, item.end_time, "面试安排", "...")
-    
-    return db_item
+    return _interview_response_data(db_item)
 
 @app.get("/api/interviews", response_model=list[schemas.Interview])
 def get_interviews(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

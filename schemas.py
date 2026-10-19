@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Any, Union
 from datetime import datetime
 
@@ -145,6 +145,9 @@ class Interviewer(InterviewerCreate):
     id: int
     class Config: from_attributes = True
 
+class CalendarIdentityUpdate(BaseModel):
+    feishu_open_id: str = Field(min_length=1, max_length=255, pattern=r"^ou_[A-Za-z0-9_-]+$")
+
 class LocationCreate(DictItemBase):
     type: str = "线下"
 class Location(LocationCreate):
@@ -180,6 +183,7 @@ class FeedbackTemplate(FeedbackTemplateCreate):
 
 class InterviewCreate(BaseModel):
     candidate_id: int
+    interviewer_id: Optional[int] = None
     interviewer_name: str
     job_title: str
     start_time: datetime

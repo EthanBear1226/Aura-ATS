@@ -80,6 +80,13 @@ class Interviewer(Base):
     department_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+class CalendarIdentity(Base):
+    __tablename__ = "calendar_identities"
+    id = Column(Integer, primary_key=True)
+    interviewer_id = Column(Integer, ForeignKey("interviewers.id", ondelete="CASCADE"), unique=True, nullable=False)
+    feishu_open_id = Column(String(255), unique=True, nullable=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
 class Location(Base):
     __tablename__ = "locations"
     id = Column(Integer, primary_key=True, index=True)

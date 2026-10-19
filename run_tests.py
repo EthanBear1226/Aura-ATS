@@ -16,6 +16,7 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
 
 TEST_MODULES = [
+    "test_calendar_api",
     "test_auth_security",
     "test_candidate_lifecycle_api",
     "test_offer_approvals_api",
