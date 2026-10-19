@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>候选人管理 | Aura</title>
     <link rel="stylesheet" href="assets/css/styles.css?v=22">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         /* Moka 风格候选人管理全局布局与细节 */
         body {
@@ -161,6 +162,9 @@
             overflow-x: auto;
         }
         .moka-stage-tab-item {
+            border:0;
+            background:transparent;
+            font:inherit;
             padding: 16px 20px;
             cursor: pointer;
             display: flex;
@@ -396,6 +400,24 @@
             align-items: center;
             gap: 14px;
         }
+        .selection-control { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+        .selection-control input { width:16px; height:16px; accent-color:#165dff; }
+        .selection-control label { cursor:pointer; }
+        .bulk-action-menu, .sort-toggle { position:relative; }
+        .toolbar-menu-trigger, .sort-toggle-button { display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 11px; border:1px solid #e5e6eb; border-radius:6px; background:#fff; color:#1f2329; font:inherit; font-size:12.5px; cursor:pointer; }
+        .toolbar-menu-trigger:hover, .toolbar-menu-trigger[aria-expanded="true"], .sort-toggle-button:hover { border-color:#165dff; color:#165dff; }
+        .toolbar-menu-trigger:disabled { cursor:not-allowed; color:#86909c; background:#f7f8fa; border-color:#e5e6eb; }
+        .toolbar-menu-trigger svg, .sort-toggle-button svg { width:15px; height:15px; }
+        .toolbar-menu { display:none; position:absolute; z-index:30; top:calc(100% + 6px); left:0; min-width:190px; padding:5px; border:1px solid #e5e6eb; border-radius:8px; background:#fff; box-shadow:0 8px 24px rgba(31,35,41,.14); }
+        .bulk-action-menu.open .toolbar-menu { display:grid; }
+        .toolbar-menu button { width:100%; padding:9px 10px; border:0; border-radius:5px; background:transparent; color:#1f2329; text-align:left; cursor:pointer; font:inherit; font-size:13px; }
+        .toolbar-menu button:hover, .toolbar-menu button:focus-visible { background:#f2f7ff; color:#165dff; outline:none; }
+        .selection-count { color:#165dff; font-size:12px; font-weight:600; white-space:nowrap; }
+        .clear-selection { display:none; padding:0; border:0; background:transparent; color:#86909c; cursor:pointer; font:inherit; font-size:12px; }
+        .clear-selection.visible { display:inline; }
+        .sort-toggle { display:flex; gap:2px; padding:3px; border:1px solid #e5e6eb; border-radius:7px; background:#f7f8fa; }
+        .sort-toggle-button { height:28px; padding:0 9px; border:0; background:transparent; color:#86909c; font-size:12px; }
+        .sort-toggle-button[aria-pressed="true"] { background:#fff; color:#165dff; box-shadow:0 1px 3px rgba(31,35,41,.1); }
         .moka-select-dropdown {
             background: #ffffff;
             border: 1px solid #e5e6eb;
@@ -670,6 +692,33 @@
             padding: 28px;
             box-shadow: 0 12px 32px rgba(0,0,0,0.15);
         }
+        .moka-list-control-toolbar { min-height:56px; height:auto; flex-wrap:wrap; gap:12px; padding:12px 16px; }
+        .moka-control-left { flex-wrap:wrap; gap:10px; }
+        .moka-cand-card { grid-template-columns:minmax(180px,.9fr) minmax(160px,1fr) minmax(250px,1.1fr); }
+        .pill-tags, .cand-card-actions { flex-wrap:wrap; }
+        .moka-header-title { letter-spacing:0; }
+        .moka-stage-tabs-container { flex-shrink:0; }
+        .main-content { overflow-y:auto; min-width:0; }
+        [hidden] { display:none !important; }
+        @media (max-width:1300px) {
+            .moka-cand-card { grid-template-columns: minmax(150px,1fr) minmax(160px,1fr); }
+            .cand-col-right { grid-column:1 / -1; }
+        }
+        @media (max-width:800px) {
+            .moka-top-header { height:auto; min-height:64px; padding:14px 16px; flex-wrap:wrap; gap:12px; }
+            .moka-search-input-box { order:3; width:100%; min-width:0; max-width:none; }
+            .moka-layout-body { padding:16px; flex-direction:column; }
+            .moka-job-sidebar { width:100%; }
+            .moka-job-tree-list { max-height:160px; }
+            .moka-main-pane { width:100%; }
+            .moka-cand-card { grid-template-columns:minmax(0,1fr); padding:14px; }
+            .cand-col-right { grid-column:auto; }
+            .cand-card-actions { flex-wrap:wrap; }
+            .cand-col-left, .cand-col-mid, .cand-col-right { min-width:0; overflow-wrap:anywhere; }
+            .edu-row { flex-wrap:wrap; }
+            .modal-card { width:min(500px,calc(100vw - 32px)); }
+            .moka-header-title { letter-spacing:0; }
+        }
     </style>
 </head>
 <body>
@@ -692,7 +741,7 @@
 
                 <!-- 右侧操作按钮区 (仅保留+添加功能按钮) -->
                 <div class="moka-top-actions">
-                    <button type="button" class="btn" id="refreshCandidates" onclick="loadCandidates()" aria-label="刷新候选人" title="刷新候选人"><i data-lucide="refresh-cw" aria-hidden="true"></i></button>
+                    <button type="button" class="btn" id="refreshCandidates" onclick="loadCandidates()" aria-label="刷新候选人" title="刷新候选人"><i data-lucide="refresh-cw" aria-hidden="true">↻</i></button>
                     <button class="btn-moka-blue" id="btnAddCandidate" onclick="openUploadModal()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         添加
@@ -746,34 +795,36 @@
                     <!-- 列表控制与批量操作 Toolbar -->
                     <div class="moka-list-control-toolbar">
                         <div class="moka-control-left">
-                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <label class="selection-control">
                                 <input type="checkbox" id="selectAll" onchange="toggleAll(this)">
                                 <span>全选</span>
                             </label>
-
-                            <select class="moka-select-dropdown" id="bulk-stage-select" onchange="applyBulkStageTransfer(this.value)">
-                                <option value="" disabled selected>查看状态 / 批量流转 ▾</option>
-                                <option value="初筛">转移到：初筛</option>
-                                <option value="用人部门筛选">转移到：用人部门筛选</option>
-                                <option value="面试">转移到：面试</option>
-                                <option value="沟通offer">转移到：沟通offer</option>
-                                <option value="待入职">转移到：待入职</option>
-                                <option value="已入职">转移到：已入职</option>
-                            </select>
-
-                            <span id="selected-count-badge" style="font-size:12px; color:#165dff; font-weight:600; display:none;">已选择 0 项</span>
+                            <div class="bulk-action-menu" id="bulkActionMenu">
+                                <button class="toolbar-menu-trigger" id="bulkActionTrigger" type="button" aria-expanded="false" aria-haspopup="menu" disabled onclick="toggleBulkMenu(event)"><i data-lucide="list-checks" aria-hidden="true"></i>批量流转</button>
+                                <div class="toolbar-menu" role="menu" aria-label="批量流转目标">
+                                    <button type="button" role="menuitem" data-stage="初筛" onclick="chooseBulkStage('初筛')">转移到：初筛</button>
+                                    <button type="button" role="menuitem" data-stage="部门筛选" onclick="chooseBulkStage('部门筛选')">转移到：部门筛选</button>
+                                    <button type="button" role="menuitem" data-stage="面试" onclick="chooseBulkStage('面试')">转移到：面试</button>
+                                    <button type="button" role="menuitem" data-stage="Offer" onclick="chooseBulkStage('Offer')">转移到：Offer</button>
+                                    <button type="button" role="menuitem" data-stage="背调" onclick="chooseBulkStage('背调')">转移到：背调</button>
+                                    <button type="button" role="menuitem" data-stage="入职" onclick="chooseBulkStage('入职')">转移到：入职</button>
+                                </div>
+                            </div>
+                            <span id="selected-count-badge" class="selection-count" hidden>已选择 0 项</span>
+                            <button type="button" id="clearSelection" class="clear-selection" onclick="clearSelection()">清除选择</button>
                         </div>
 
-                        <div class="moka-control-right" style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:12.5px; color:#86909c;">排序:</span>
-                            <select id="cand-sort-select" class="moka-select-dropdown" style="height:32px; font-size:12.5px; padding:0 8px;" onchange="handleSortChange(this.value)">
-                                <option value="created_desc" selected>最新投递优先</option>
-                                <option value="created_asc">最早投递优先</option>
-                                <option value="score_desc">系统匹配度优先</option>
-                            </select>
+                        <div class="moka-control-right">
+                            <span>排序</span>
+                            <div class="sort-toggle" id="candSortToggle" role="group" aria-label="候选人排序">
+                                <button class="sort-toggle-button" type="button" data-sort="created_desc" aria-pressed="true" onclick="handleSortChange(this.dataset.sort)">最新</button>
+                                <button class="sort-toggle-button" type="button" data-sort="created_asc" aria-pressed="false" onclick="handleSortChange(this.dataset.sort)">最早</button>
+                                <button class="sort-toggle-button" type="button" data-sort="score_desc" aria-pressed="false" onclick="handleSortChange(this.dataset.sort)">匹配度</button>
+                            </div>
                         </div>
                     </div>
 
+                    <div id="bulkResult" role="status" aria-live="polite" hidden style="padding:12px; border:1px solid #e5e6eb; background:#fff; border-radius:6px;"></div>
                     <!-- 候选人 Moka 精美卡片列表容器 -->
                     <div id="moka-cand-cards-container" style="display:flex; flex-direction:column; gap:12px;">
                         <!-- JS 动态注入 Moka 3 行卡片列表 -->
@@ -789,11 +840,12 @@
             <h2 style="margin-top:0; font-size:18px;">推荐给用人部门</h2>
             <div style="margin-bottom: 16px;">
                 <label style="font-size:13.5px; font-weight:600; display:block; margin-bottom:8px;">选择用人经理</label>
-                <select id="recommend-manager-select" style="width:100%; padding:10px; border-radius:6px; border:1px solid #e5e6eb; outline:none;">
-                    <option value="研发总监 (Manager_Tech)">研发总监 (Manager_Tech)</option>
-                    <option value="产品总监 (Manager_Product)">产品总监 (Manager_Product)</option>
-                    <option value="设计总监 (Manager_Design)">设计总监 (Manager_Design)</option>
-                </select>
+                <div class="bulk-action-menu recommend-manager-menu" id="recommendManagerMenu">
+                    <button class="toolbar-menu-trigger" id="recommendManagerTrigger" type="button" aria-expanded="false" aria-haspopup="menu" onclick="toggleRecommendManagerMenu(event)">请选择用人经理<i data-lucide="chevron-down" aria-hidden="true"></i></button>
+                    <div class="toolbar-menu" role="menu" id="recommendManagerOptions">
+                        <span style="padding:10px; color:#86909c;">正在加载用人经理...</span>
+                    </div>
+                </div>
             </div>
             <div style="margin-bottom: 24px;">
                 <label style="font-size:13.5px; font-weight:600; display:block; margin-bottom:8px;">推荐评语 (可选)</label>
@@ -814,6 +866,7 @@
         let currentStageFilter = '初筛';
         let currentSortType = 'created_desc';
         let candidatesLoading = false;
+        let selectedRecommendManager = '';
 
         // 标准候选人全流程 6 大核心阶段 + 分支终态
         const MOKA_STAGES = [
@@ -844,7 +897,42 @@
 
         function handleSortChange(val) {
             currentSortType = val;
+            document.querySelectorAll('[data-sort]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.sort === val)));
             renderMokaCandCards();
+        }
+
+        function toggleBulkMenu(event) {
+            event.stopPropagation();
+            const menu = document.getElementById('bulkActionMenu');
+            const open = menu.classList.toggle('open');
+            document.getElementById('bulkActionTrigger').setAttribute('aria-expanded', String(open));
+        }
+
+        function toggleRecommendManagerMenu(event) {
+            event.stopPropagation();
+            const menu = document.getElementById('recommendManagerMenu');
+            const open = menu.classList.toggle('open');
+            document.getElementById('recommendManagerTrigger').setAttribute('aria-expanded', String(open));
+        }
+
+        function chooseRecommendManager(manager) {
+            selectedRecommendManager = manager;
+            const trigger = document.getElementById('recommendManagerTrigger');
+            if (trigger && trigger.firstChild) trigger.firstChild.textContent = manager;
+            document.getElementById('recommendManagerMenu')?.classList.remove('open');
+            document.getElementById('recommendManagerTrigger')?.setAttribute('aria-expanded', 'false');
+        }
+
+        function closeBulkMenu() {
+            const menu = document.getElementById('bulkActionMenu');
+            const trigger = document.getElementById('bulkActionTrigger');
+            if (menu) menu.classList.remove('open');
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        }
+
+        function chooseBulkStage(stage) {
+            closeBulkMenu();
+            applyBulkStageTransfer(stage);
         }
 
         function toggleJobSidebar() {
@@ -885,6 +973,7 @@
             try { initJobSidebarState(); } catch(e) { console.warn('initJobSidebarState warning:', e); }
             try { loadDictionariesForList(); } catch(e) { console.warn('loadDictionaries warning:', e); }
             try { loadCandidates(); } catch(e) { console.error('loadCandidates error:', e); }
+            if (window.lucide) lucide.createIcons();
         }
 
         if (document.readyState === 'loading') {
@@ -916,14 +1005,19 @@
         async function loadDictionariesForList() {
             try {
                 const res = await authFetch('/api/settings/interviewers');
-                if (!res.ok) return;
+                if (!res.ok) throw new Error('用人经理加载失败');
                 const interviewers = await res.json();
                 const managers = interviewers.filter(i => i.role_type === 'HiringManager' || i.role_type === 'Manager');
-                const recSelect = document.getElementById('recommend-manager-select');
-                if (recSelect && managers.length > 0) {
-                    recSelect.innerHTML = managers.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+                const options = document.getElementById('recommendManagerOptions');
+                if (options && managers.length > 0) {
+                    options.innerHTML = managers.map(m => `<button type="button" role="menuitem" data-manager="${escapeCandidateText(m.name)}" onclick="chooseRecommendManager(this.dataset.manager)">${escapeCandidateText(m.name)}</button>`).join('');
+                    chooseRecommendManager(managers[0].name);
+                } else if (options) {
+                    options.textContent = '暂无可选用人经理';
                 }
-            } catch(e) {}
+            } catch(e) {
+                document.getElementById('recommendManagerOptions').textContent = '用人经理加载失败，请刷新页面重试';
+            }
         }
 
         // 渲染 6 大阶段 + 淘汰归档统计卡片
@@ -931,23 +1025,17 @@
             const bar = document.getElementById('stage-tabs-bar');
             if (!bar) return;
 
-            const stages = [
-                { name: '初筛', count: allCandidates.filter(c => c.stage === '初筛').length },
-                { name: '部门筛选', count: allCandidates.filter(c => c.stage === '部门筛选' || c.stage === '用人部门筛选').length },
-                { name: '面试', count: allCandidates.filter(c => c.stage === '面试' || c.stage === '面试中').length },
-                { name: 'Offer', count: allCandidates.filter(c => c.stage === 'Offer' || c.stage === '沟通offer').length },
-                { name: '背调', count: allCandidates.filter(c => c.stage === '背调' || c.stage === '背景调查').length },
-                { name: '入职', count: allCandidates.filter(c => c.stage === '入职' || c.stage === '待入职' || c.stage === '已入职').length },
-                { name: '已淘汰', count: allCandidates.filter(c => c.stage === '已淘汰' || c.stage === '淘汰').length }
-            ];
+            const stages = ['全部阶段', '初筛', '部门筛选', '面试', 'Offer', '背调', '入职', '已淘汰', '已归档']
+                .map(name => ({name, count: allCandidates.filter(c => name === '全部阶段'
+                    ? !isStageMatch(c.stage, '已淘汰') && !isStageMatch(c.stage, '已归档') : isStageMatch(c.stage, name)).length}));
 
             bar.innerHTML = stages.map(s => {
                 const isActive = currentStageFilter === s.name;
                 return `
-                    <div class="moka-stage-item ${isActive ? 'active' : ''}" onclick="switchStageFilter('${s.name}')">
-                        <div class="stage-name">${s.name}</div>
-                        <div class="stage-count">${s.count}</div>
-                    </div>
+                    <button type="button" aria-pressed="${isActive}" class="moka-stage-tab-item ${isActive ? 'active' : ''}" onclick="switchStageFilter('${s.name}')">
+                        <span class="tab-val">${s.count}</span>
+                        <span class="tab-name">${s.name === '全部阶段' ? '全部活跃' : s.name}</span>
+                    </button>
                 `;
             }).join('');
         }
@@ -1139,13 +1227,16 @@
             let displayData = allCandidates.filter(c => {
                 if (currentStageFilter === '已淘汰') return isStageMatch(c.stage, '已淘汰');
                 if (currentStageFilter === '已归档') return isStageMatch(c.stage, '已归档');
-                if (currentStageFilter === '全部阶段') return c.stage !== '已淘汰';
+                if (currentStageFilter === '全部阶段') return !isStageMatch(c.stage, '已淘汰') && !isStageMatch(c.stage, '已归档');
                 return isStageMatch(c.stage, currentStageFilter);
             });
 
             if (currentFilterJob !== '全部职位') {
                 displayData = displayData.filter(c => c.job === currentFilterJob);
             }
+            const query = document.getElementById('global-cand-search').value.trim().toLowerCase();
+            if (query) displayData = displayData.filter(c => `${c.name || ''} ${c.job || ''}`.toLowerCase().includes(query));
+            closeBulkMenu();
 
             // 真实排序逻辑 (投递时间倒序/正序/匹配度由高到低)
             if (currentSortType === 'created_desc') {
@@ -1157,6 +1248,7 @@
             }
 
             if (displayData.length === 0) {
+                clearSelection();
                 renderEmptyState(container, {
                     title: '当前筛选下暂无候选人',
                     desc: '未找到符合当前职位或流程阶段的候选人记录，您可以尝试更换筛选条件。',
@@ -1248,6 +1340,7 @@
             });
 
             container.innerHTML = html;
+            updateBulkActions();
         }
 
         function viewDetail(id, tab = '') {
@@ -1256,17 +1349,20 @@
         }
 
         function handleSearchKeyup(e) {
-            const query = e.target.value.toLowerCase();
-            const cards = document.querySelectorAll('.moka-cand-card');
-            cards.forEach(card => {
-                const txt = card.innerText.toLowerCase();
-                card.style.display = txt.includes(query) ? 'block' : 'none';
-            });
+            renderMokaCandCards();
         }
 
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('.cand-checkbox');
             checkboxes.forEach(cb => cb.checked = source.checked);
+            updateBulkActions();
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.cand-checkbox').forEach(cb => cb.checked = false);
+            const selectAll = document.getElementById('selectAll');
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
             updateBulkActions();
         }
 
@@ -1276,12 +1372,51 @@
             if (countBadge) {
                 if (checkboxes.length > 0) {
                     countBadge.innerText = `已选择 ${checkboxes.length} 项`;
-                    countBadge.style.display = 'inline-block';
+                    countBadge.hidden = false;
+                    document.getElementById('bulkActionTrigger').disabled = false;
+                    document.getElementById('clearSelection').classList.add('visible');
                 } else {
-                    countBadge.style.display = 'none';
+                    countBadge.hidden = true;
+                    document.getElementById('bulkActionTrigger').disabled = true;
+                    document.getElementById('clearSelection').classList.remove('visible');
                 }
             }
+            const allCheckboxes = document.querySelectorAll('.cand-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            selectAll.checked = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
+            selectAll.indeterminate = checkboxes.length > 0 && checkboxes.length < allCheckboxes.length;
+            selectAll.disabled = allCheckboxes.length === 0;
         }
+
+        document.addEventListener('click', event => {
+            if (!event.target.closest('#bulkActionMenu')) closeBulkMenu();
+            if (!event.target.closest('#recommendManagerMenu')) {
+                document.getElementById('recommendManagerMenu')?.classList.remove('open');
+                document.getElementById('recommendManagerTrigger')?.setAttribute('aria-expanded', 'false');
+            }
+        });
+        document.addEventListener('keydown', event => {
+            const menu = event.target.closest('.bulk-action-menu');
+            if (!menu) return;
+            const trigger = menu.querySelector('.toolbar-menu-trigger');
+            const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
+            if (event.key === 'Escape') {
+                menu.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
+                trigger.focus();
+            } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) && !trigger.disabled && items.length) {
+                event.preventDefault();
+                menu.classList.add('open');
+                trigger.setAttribute('aria-expanded', 'true');
+                const index = items.indexOf(document.activeElement);
+                const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+                    : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+                items[next].focus();
+            } else if (event.key === 'Tab') {
+                menu.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
 
         async function applyBulkStageTransfer(stage) {
             const checkboxes = document.querySelectorAll('.cand-checkbox:checked');
@@ -1295,7 +1430,7 @@
                 title: '批量流程流转确认',
                 targetName: `已勾选的 ${ids.length} 位候选人`,
                 description: `确认将这 ${ids.length} 名候选人批量转移至【${stage}】流程节点吗？`,
-                warning: stage === '已淘汰' ? '注意：批量淘汰将直接终止所选候选人的所有活跃面试与流程！' : '批量流转将自动同步相关负责人的工作台与待办事项。',
+                warning: '仅处理本次勾选的候选人；失败记录会保留原因，阶段变更将写入操作记录。',
                 confirmText: stage === '已淘汰' ? '确认批量淘汰' : '确认批量流转',
                 theme: stage === '已淘汰' ? 'danger' : 'warning',
                 onConfirm: async () => {
@@ -1303,6 +1438,7 @@
                         const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
                         const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
                         let successCount = 0;
+                        const failures = [];
                         for (let id of ids) {
                             try {
                                 const res = await fetch(`/api/candidates/${id}/transition`, {
@@ -1320,14 +1456,21 @@
                                 });
                                 if (res.ok) {
                                     successCount++;
+                                    const updated = await res.json();
                                     const cand = allCandidates.find(c => String(c.id) === String(id));
-                                    if (cand) cand.stage = stage;
+                                    if (cand) cand.stage = updated.stage;
+                                } else {
+                                    const error = await res.json().catch(() => ({}));
+                                    failures.push({id, reason: String(error.detail || `请求失败 (${res.status})`)});
                                 }
-                            } catch(e) {}
+                            } catch(e) { failures.push({id, reason: '网络异常，请刷新后确认状态'}); }
                         }
-                        showToast(`批量流转完成：成功转移 ${successCount}/${ids.length} 位候选人！`, 'success');
-                        checkboxes.forEach(cb => cb.checked = false);
-                        updateBulkActions();
+                        showToast(`批量流转完成：成功 ${successCount} 位，失败 ${failures.length} 位`, failures.length ? 'warning' : 'success');
+                        const result = document.getElementById('bulkResult');
+                        result.hidden = false;
+                        result.innerHTML = `<strong>成功 ${successCount} 位，失败 ${failures.length} 位</strong>`
+                            + failures.map(item => `<div>候选人 #${escapeCandidateText(item.id)}：${escapeCandidateText(item.reason)}</div>`).join('');
+                        clearSelection();
                         renderStageTabs();
                         renderMokaCandCards();
                     } catch(e) {
@@ -1353,9 +1496,13 @@
             if (m) m.classList.remove('active');
         }
         async function submitRecommend() {
-            const manager = document.getElementById('recommend-manager-select')?.value;
+            const manager = selectedRecommendManager;
             const comment = document.getElementById('recommend-comment')?.value?.trim() || '';
             if (!selectedCandIdForRecommend) return;
+            if (!manager) {
+                showToast('请先选择用人经理', 'warning');
+                return;
+            }
             try {
                 const token = localStorage.getItem('aura_token') || localStorage.getItem('token') || '';
                 const detailsText = comment ? `推荐给用人经理: ${manager}（评语: ${comment}）` : `推荐给用人经理: ${manager}`;

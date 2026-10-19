@@ -39,6 +39,18 @@ def test_candidates_page_renders_real_api_data_without_legacy_variable_errors():
     assert "候选人列表加载失败" in html
 
 
+def test_candidates_page_uses_action_menu_instead_of_native_list_selects():
+    html = read_page("candidates.html")
+
+    assert "bulkActionMenu" in html
+    assert "sort-toggle" in html
+    assert "chooseBulkStage" in html
+    assert "id=\"bulk-stage-select\"" not in html
+    assert "id=\"cand-sort-select\"" not in html
+    assert "id=\"recommend-manager-select\"" not in html
+    assert "clearSelection" in html
+
+
 def test_schedule_drawer_is_not_globally_mounted_on_unrelated_pages():
     for page_name in ["jobs.html", "settings.html"]:
         html = read_page(page_name)
