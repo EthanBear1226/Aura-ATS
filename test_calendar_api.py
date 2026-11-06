@@ -264,3 +264,28 @@ def test_legacy_schema_upgrade_is_idempotent_and_skips_duplicate_names():
             assert conn.execute(text("SELECT interviewer_id FROM interviews ORDER BY id")).scalars().all() == [1, None, None]
     finally:
         engine.dispose()
+
+
+def test_account_directory_is_admin_only_and_returns_safe_current_bindings(client, db_session, admin_headers, make_auth_headers):
+    person, _ = seed(db_session)
+    interviewer = make_auth_headers("directory-owner@test.local", "Interviewer", "Directory Owner")
+    recruiter = make_auth_headers("directory-hr@test.local", "Recruiter", "Directory HR")
+    url = "/api/settings/interviewer-accounts"
+    assert client.get(url).status_code == 401
+    assert client.get(url, headers=interviewer).status_code == 403
+    assert client.get(url, headers=recruiter).status_code == 403
+    owner = db_session.query(models.User).filter_by(email="directory-owner@test.local").one()
+    before = client.get(url, headers=admin_headers)
+    assert before.status_code == 200
+    assert before.json()["interviewers"][0]["account"] is None
+    assert [row["id"] for row in before.json()["accounts"]] == [owner.id]
+    assert client.patch(f"/api/settings/interviewers/{person.id}/account", json={"user_id": owner.id}, headers=admin_headers).status_code == 200
+    result = client.get(url, headers=admin_headers).json()
+    assert result["interviewers"][0]["account"]["email"] == owner.email
+    assert result["accounts"][0]["interviewer_id"] == person.id
+    assert "hashed_password" not in str(result) and "access_token" not in str(result)
+    owner.role = "Recruiter"
+    db_session.commit()
+    result = client.get(url, headers=admin_headers).json()
+    assert result["interviewers"][0]["account"]["role"] == "Recruiter"
+    assert result["accounts"] == []

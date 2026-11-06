@@ -1,0 +1,49 @@
+.account-nav { display: block; width: 100%; border: 0; border-right: 3px solid transparent; background: none; text-align: left; font-family: inherit; }
+#sec-interviewer-accounts { max-width: 1100px; }
+.account-heading-actions, .account-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.account-toolbar { margin-bottom: 20px; font-size: 13px; }
+.account-toolbar input, .account-dialog input[type=search] { min-width: 0; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font: inherit; background: var(--card-bg); color: var(--text-primary); }
+.account-toolbar input { flex: 1; max-width: 360px; }
+#accountCount, .account-secondary { color: var(--text-secondary); font-size: 12px; }
+.account-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+.account-table th { background: var(--bg-color); color: var(--text-secondary); font-size: 12px; font-weight: 500; }
+.account-table td, .account-table th { padding: 14px 12px; border-bottom: 1px solid var(--border-color); overflow-wrap: anywhere; }
+.account-table th:nth-child(1) { width: 27%; }
+.account-table th:nth-child(2) { width: 38%; }
+.account-table th:nth-child(3) { width: 19%; }
+.account-secondary { display: block; margin-top: 5px; }
+.account-list-message { padding: 24px 0; color: var(--text-secondary); font-size: 13px; }
+.account-list-message button { margin-left: 12px; }
+.account-dialog { width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 40px); border: 1px solid var(--border-color); border-radius: 8px; padding: 24px; color: var(--text-primary); background: var(--card-bg); }
+.account-dialog::backdrop { background: rgba(0,0,0,.35); }
+.account-dialog form { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.account-dialog h3 { margin: 0; font-size: 18px; }
+.account-dialog p { margin: 0; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.account-options { max-height: 280px; overflow-y: auto; border-block: 1px solid var(--border-color); }
+.account-option { display: flex; gap: 10px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 13px; }
+.account-option:last-child { border-bottom: 0; }
+.account-option > span { min-width: 0; overflow-wrap: anywhere; }
+.account-option input { flex-shrink: 0; accent-color: var(--primary-color); }
+.account-option input:disabled + span { opacity: .55; }
+.account-dialog footer { display: flex; justify-content: flex-end; gap: 10px; }
+.account-dialog-error { color: #FF3B30; min-height: 20px; }
+.account-confirm { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.6; }
+.account-confirm input { margin-top: 4px; flex-shrink: 0; }
+@media (max-width: 760px) {
+  body:has(#sec-interviewer-accounts.active) .settings-layout { flex-direction: column; height: calc(100dvh - 64px); }
+  body:has(#sec-interviewer-accounts.active) .settings-nav { width: 100%; flex-shrink: 0; display: flex; padding: 8px; overflow-x: auto; border-bottom: 1px solid var(--border-color); }
+  body:has(#sec-interviewer-accounts.active) .settings-nav-header { display: none; }
+  body:has(#sec-interviewer-accounts.active) .settings-nav-item { flex: 0 0 auto; width: auto; white-space: nowrap; padding: 10px 12px; font-size: 13px; }
+  body:has(#sec-interviewer-accounts.active) .settings-content { padding: 20px 16px 100px; min-height: 0; }
+  #sec-interviewer-accounts .account-heading { align-items: flex-start; text-align: left; gap: 12px; flex-direction: column; margin-bottom: 20px; }
+  .account-heading .section-title { font-size: 20px; }
+  .account-toolbar input { width: 100%; max-width: none; }
+  .account-table thead { display: none; }
+  .account-table, .account-table tbody { display: block; }
+  .account-table tr { display: grid; grid-template-columns: minmax(0,1fr) auto; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+  .account-table td { padding: 6px 0; border: 0; }
+  .account-table td:nth-child(2) { grid-column: 1; }
+  .account-table td:nth-child(3) { grid-column: 2; grid-row: 1; text-align: right; }
+  .account-table td:nth-child(4) { grid-column: 2; grid-row: 2; text-align: right; }
+  .account-dialog { padding: 18px; }
+}

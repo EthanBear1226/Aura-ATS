@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>系统设置 | Aura</title>
     <link rel="stylesheet" href="assets/css/styles.css?v=17">
+    <link rel="stylesheet" href="assets/css/interviewer-accounts.css?v=44">
     <style>
         .settings-layout { display: flex; height: calc(100vh - 64px); background: #fff; }
         .settings-nav { width: 240px; border-right: 1px solid var(--border-color); background: #fafafa; padding: 24px 0; }
@@ -112,6 +113,7 @@
                     <div class="settings-nav-header">基础配置</div>
                     <div class="settings-nav-item active" onclick="switchSetting('departments', event)">🏢 部门架构</div>
                     <div class="settings-nav-item" onclick="switchSetting('interviewers', event)">👥 人员管理</div>
+                    <button class="settings-nav-item account-nav" data-setting="interviewer-accounts" onclick="switchSetting('interviewer-accounts', event)">面试官绑定</button>
                     <div class="settings-nav-item" onclick="switchSetting('locations', event)">📍 面试地点</div>
                     <div class="settings-nav-item" onclick="switchSetting('processes', event)">🔄 面试流程</div>
                     <div class="settings-nav-item" onclick="switchSetting('categories', event)">🏷️ 职位类别</div>
@@ -200,6 +202,28 @@
                             </table>
                         </div>
                     </div>
+
+                    <section id="sec-interviewer-accounts" class="settings-section">
+                        <div class="section-header account-heading">
+                            <h2 class="section-title">面试官绑定</h2>
+                            <div class="account-heading-actions">
+                                <button type="button" class="btn" id="accountRefresh">刷新</button>
+                                <button type="button" class="btn btn-primary" id="accountAddPerson">新增面试官</button>
+                            </div>
+                        </div>
+                        <div class="account-toolbar">
+                            <label for="accountSearch">搜索人员</label>
+                            <input id="accountSearch" type="search" placeholder="姓名、邮箱或部门" autocomplete="off">
+                            <span id="accountCount" role="status"></span>
+                        </div>
+                        <div id="accountListStatus" role="status"></div>
+                        <div class="account-table-wrap">
+                            <table class="account-table">
+                                <thead><tr><th>面试官 / 部门</th><th>登录账号</th><th>状态</th><th>操作</th></tr></thead>
+                                <tbody id="accountRows"></tbody>
+                            </table>
+                        </div>
+                    </section>
 
                     <!-- Locations -->
                     <div id="sec-locations" class="settings-section">
@@ -433,7 +457,8 @@
         </div>
     </div>
 
-    <script src="assets/js/app.js?v=18"></script>
+    <script src="assets/js/app.js?v=42"></script>
+    <script src="assets/js/interviewer-accounts.js?v=44" defer></script>
     <script>
         let currentDictType = '';
 
@@ -449,6 +474,7 @@
             event.currentTarget.classList.add('active');
             document.querySelectorAll('.settings-section').forEach(el => el.classList.remove('active'));
             document.getElementById('sec-' + type).classList.add('active');
+            if (type === 'interviewer-accounts') window.auraInterviewerAccounts?.load();
         }
 
         // ==============================================================================

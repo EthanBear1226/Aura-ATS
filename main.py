@@ -1685,6 +1685,30 @@ def get_freebusy(date: str, interviewer_id: Optional[int] = None, interviewer: O
     return calendar_service.get_availability(db, person, date)
 
 
+@app.get("/api/settings/interviewer-accounts")
+def list_interviewer_accounts(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    check_admin_permission(current_user)
+    people = db.query(models.Interviewer).order_by(models.Interviewer.id).all()
+    accounts = db.query(models.User).filter_by(role="Interviewer").order_by(models.User.id).all()
+    bindings = db.query(models.InterviewerAccount).all()
+    users = {row.id: row for row in db.query(models.User).filter(
+        models.User.id.in_([binding.user_id for binding in bindings])
+    ).all()}
+    by_person = {row.interviewer_id: row.user_id for row in bindings}
+    by_user = {row.user_id: row.interviewer_id for row in bindings}
+    departments = {row.id: row.name for row in db.query(models.Department).all()}
+    return {
+        "interviewers": [{"id": person.id, "name": person.name, "role_type": person.role_type,
+            "department": departments.get(person.department_id),
+            "account": {"id": users[by_person[person.id]].id, "name": users[by_person[person.id]].name,
+                "email": users[by_person[person.id]].email, "role": users[by_person[person.id]].role}
+                if person.id in by_person and by_person[person.id] in users else None}
+            for person in people],
+        "accounts": [{"id": row.id, "name": row.name, "email": row.email,
+                      "interviewer_id": by_user.get(row.id)} for row in accounts],
+    }
+
+
 @app.get("/api/settings/interviewers/{item_id}/account")
 def get_interviewer_account(item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     check_admin_permission(current_user)
