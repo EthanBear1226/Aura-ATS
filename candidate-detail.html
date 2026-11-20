@@ -512,9 +512,12 @@
             background: #f5f6f7;
             color: #1f2329;
         }
-        .candidate-action-secondary .candidate-action-danger { color: #c9372c; }
-        .candidate-action-secondary .candidate-action-danger:hover {
+        .candidate-action-secondary .candidate-action-danger {
+            color: #c9372c;
             background: #fff1f0;
+        }
+        .candidate-action-secondary .candidate-action-danger:hover {
+            background: #ffe4e1;
             color: #a8071a;
         }
         .candidate-action-shortcuts {
@@ -1983,8 +1986,8 @@
                             撤回上步
                         </button>
                     ` : ''}
-                    <button class="btn-white-action candidate-action-danger" onclick="openRejectModal()" title="淘汰该候选人并记录驳回原因">
-                        驳回淘汰
+                    <button class="btn-white-action candidate-action-danger" onclick="openRejectModal()" title="淘汰该候选人并记录原因">
+                        淘汰
                     </button>
                 </div>
             `;

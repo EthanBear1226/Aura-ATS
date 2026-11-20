@@ -65,6 +65,8 @@ def test_candidate_sidebar_uses_plain_actions_and_separate_confirmation_modals()
         assert symbol not in actions
     assert "candidate-action-shortcuts" in sidebar
     assert "candidate-action-danger" in actions
+    assert "驳回淘汰" not in actions
+    assert "background: #fff1f0;" in html.split(".candidate-action-secondary .candidate-action-danger {", 1)[1].split("}", 1)[0]
     assert "advanceReasonInput" not in html
     assert "advanceToStage" not in html
     assert "document.getElementById('advanceNoteInput').value" in html
