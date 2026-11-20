@@ -367,7 +367,7 @@
             align-items: flex-start;
             justify-content: space-between;
             position: relative;
-            margin-bottom: 24px;
+            margin-bottom: 22px;
             padding: 0 4px;
         }
 
@@ -419,7 +419,6 @@
             background: #165dff;
             border-color: #165dff;
             color: #ffffff;
-            box-shadow: 0 0 0 4px rgba(22, 93, 255, 0.15);
         }
 
         .step-item-node.completed .step-circle-badge {
@@ -447,16 +446,19 @@
             color: #ffffff;
             border: none;
             border-radius: 6px;
-            padding: 11px 18px;
+            min-height: 40px;
+            padding: 9px 14px;
+            box-sizing: border-box;
+            font-family: inherit;
+            line-height: 20px;
             font-size: 14px;
             font-weight: 600;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             cursor: pointer;
             transition: background 0.2s;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 6px rgba(22, 93, 255, 0.25);
+            margin-bottom: 10px;
             position: relative;
         }
         .btn-blue-dropdown:hover {
@@ -469,13 +471,18 @@
             color: #1f2329;
             border: 1px solid #e5e6eb;
             border-radius: 6px;
-            padding: 9px 16px;
+            min-height: 36px;
+            min-width: 0;
+            padding: 7px 10px;
+            box-sizing: border-box;
+            font-family: inherit;
+            line-height: 20px;
             font-size: 13px;
             font-weight: 500;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 10px;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            margin-bottom: 0;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -490,12 +497,54 @@
         .btn-two-group {
             display: flex;
             gap: 8px;
-            margin-bottom: 10px;
+            margin-bottom: 0;
         }
         .btn-two-group .btn-white-action {
             margin-bottom: 0;
             flex: 1;
         }
+        .candidate-action-card { box-shadow: none; }
+        .candidate-action-secondary .btn-white-action {
+            border-color: transparent;
+            color: #646a73;
+        }
+        .candidate-action-secondary .btn-white-action:hover {
+            background: #f5f6f7;
+            color: #1f2329;
+        }
+        .candidate-action-secondary .candidate-action-danger { color: #c9372c; }
+        .candidate-action-secondary .candidate-action-danger:hover {
+            background: #fff1f0;
+            color: #a8071a;
+        }
+        .candidate-action-shortcuts {
+            border-top: 1px solid #f2f3f5;
+            margin-top: 12px;
+            padding-top: 14px;
+        }
+        .candidate-action-card button:focus-visible {
+            outline: 2px solid #165dff;
+            outline-offset: 3px;
+        }
+        .candidate-stage-complete {
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            background: #f0f9f2;
+            color: #25763c;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 13px;
+            line-height: 20px;
+        }
+        .candidate-context-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: #646a73;
+            margin-bottom: 10px;
+        }
+        .candidate-owner-name { font-size: 13px; font-weight: 600; color: #1f2329; }
+        .candidate-owner-team { font-size: 12px; color: #86909c; margin-top: 4px; }
+        .candidate-context-tags { border-top: 1px solid #f2f3f5; margin-top: 16px; padding-top: 14px; }
 
         .stage-dropdown-menu {
             display: none;
@@ -1249,12 +1298,12 @@
         <div class="right-control-sidebar">
             
             <!-- 侧边栏卡片: 流程进度与核心流转控制台 -->
-            <div class="sidebar-card-box">
+            <div class="sidebar-card-box candidate-action-card">
                 
                 <!-- 流程终止状态警示条 (淘汰/归档状态时醒目展示) -->
                 <div id="stage-status-banner" style="display:none; background:#fff2f0; border:1px solid #ffccc7; border-radius:6px; padding:10px 12px; margin-bottom:14px;">
                     <div style="display:flex; align-items:center; gap:6px; color:#cf1322; font-weight:600; font-size:13px;">
-                        <span>⚠️ 流程已终止</span>
+                        <span>流程已终止</span>
                         <span id="stage-status-banner-text" style="font-size:11px; font-weight:600; background:#ff4d4f; color:#fff; padding:1px 6px; border-radius:3px;">已淘汰</span>
                     </div>
                     <div style="font-size:11.5px; color:#8c1d18; margin-top:4px; line-height:1.4;">该候选人已离开活跃招聘流程，可点击下方【重新进入流程】激活。</div>
@@ -1297,31 +1346,28 @@
                 </div>
 
                 <!-- 快捷操作入口 -->
-                <div class="btn-two-group" style="margin-top:10px;">
+                <div class="btn-two-group candidate-action-shortcuts">
                     <button class="btn-white-action" onclick="switchNavTab(4)">
-                        💬 添加备注
+                        添加备注
                     </button>
-                    <button class="btn-white-action" onclick="openDetailRecommendModal()" style="color:var(--primary-color, #165dff); border-color:var(--primary-color, #165dff); font-weight:500;">
-                        👥 推荐部门
+                    <button class="btn-white-action" onclick="openDetailRecommendModal()">
+                        推荐部门
                     </button>
                 </div>
             </div>
 
             <!-- 侧边栏卡片 2: 候选人所有者与特征标签 -->
             <div class="sidebar-card-box">
-                <div style="font-size:13px; font-weight:600; color:#1f2329; margin-bottom:12px;">候选人所有者</div>
-                <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#4e5969; margin-bottom:18px;">
-                    <div style="width:28px; height:28px; border-radius:50%; background:#165dff; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">HR</div>
-                    <div>
-                        <div style="font-weight:600; color:#1f2329;" id="owner-name">张招聘官 (HRBP)</div>
-                        <div style="font-size:11px; color:#86909c;">招聘运营团队</div>
-                    </div>
-                </div>
+                <div class="candidate-context-title">候选人所有者</div>
+                <div class="candidate-owner-name" id="owner-name">张招聘官 (HRBP)</div>
+                <div class="candidate-owner-team">招聘运营团队</div>
 
-                <div style="font-size:13px; font-weight:600; color:#1f2329; margin-bottom:10px;">人才特征标签</div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                    <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">高潜人才</span>
-                    <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">快速到岗</span>
+                <div class="candidate-context-tags">
+                    <div class="candidate-context-title">人才特征标签</div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                        <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">高潜人才</span>
+                        <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">快速到岗</span>
+                    </div>
                 </div>
             </div>
 
@@ -1893,8 +1939,8 @@
                     if (bannerText) bannerText.innerText = currentStage;
                 }
                 container.innerHTML = `
-                    <button class="btn-blue-dropdown" style="justify-content:center; gap:8px;" onclick="openReenterModal()">
-                        <span>↻ 重新进入流程 (初筛)</span>
+                    <button class="btn-blue-dropdown" onclick="openReenterModal()">
+                        重新进入流程
                     </button>
                 `;
                 return;
@@ -1918,27 +1964,27 @@
             let advanceBtnHtml = '';
             if (isLastStage) {
                 advanceBtnHtml = `
-                    <div style="background:#e6ffec; border:1px solid #b7eb8f; color:#27a644; border-radius:6px; padding:10px; font-weight:600; text-align:center; font-size:13.5px; margin-bottom:10px;">
-                        🎉 候选人已正式入职
+                    <div class="candidate-stage-complete">
+                        候选人已正式入职
                     </div>
                 `;
             } else if (nextStage) {
                 advanceBtnHtml = `
-                    <button class="btn-blue-dropdown" style="justify-content:center; gap:8px;" onclick="openAdvanceModal('${nextStage}')">
-                        <span>推进至 · ${nextStage} ➔</span>
+                    <button class="btn-blue-dropdown" onclick="openAdvanceModal('${nextStage}')">
+                        推进至${nextStage}
                     </button>
                 `;
             }
 
             let secondaryBtnsHtml = `
-                <div class="btn-two-group">
+                <div class="btn-two-group candidate-action-secondary">
                     ${canRollback ? `
                         <button class="btn-white-action" onclick="openRollbackModal()" title="撤回至上一个流程节点">
-                            ↩ 撤回上步
+                            撤回上步
                         </button>
                     ` : ''}
-                    <button class="btn-white-action" style="color:#ff4d4f; border-color:#ffa39e;" onclick="openRejectModal()" title="淘汰该候选人并记录驳回原因">
-                        ✕ 驳回淘汰
+                    <button class="btn-white-action candidate-action-danger" onclick="openRejectModal()" title="淘汰该候选人并记录驳回原因">
+                        驳回淘汰
                     </button>
                 </div>
             `;
@@ -1969,10 +2015,8 @@
         function openAdvanceModal(toStage) {
             if (!currentCandidate) return;
             pendingAdvanceStage = toStage;
-            const fromEl = document.getElementById('advanceFromStage');
-            const toEl = document.getElementById('advanceToStage');
-            const input = document.getElementById('advanceReasonInput');
-            if (fromEl) fromEl.innerText = currentCandidate.stage || '初筛';
+            const toEl = document.getElementById('advanceTargetStage');
+            const input = document.getElementById('advanceNoteInput');
             if (toEl) toEl.innerText = toStage;
             if (input) input.value = '';
             document.getElementById('advanceModal').style.display = 'flex';
@@ -1985,7 +2029,7 @@
 
         async function submitAdvance() {
             if (!currentCandidate) return;
-            const reason = (document.getElementById('advanceReasonInput').value || '').trim();
+            const reason = (document.getElementById('advanceNoteInput').value || '').trim();
             const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
             const operator = user.name || 'HR';
 
@@ -3548,6 +3592,8 @@
                 <button class="moka-btn-gray" onclick="closeDetailRecommendModal()" style="border-radius:4px; font-size:13px; padding:6px 16px;">取消</button>
                 <button style="background:var(--primary-color, #165dff); color:#fff; border:none; border-radius:4px; font-size:13px; padding:6px 18px; font-weight:500; cursor:pointer;" onclick="submitDetailRecommend()">确认推荐</button>
             </div>
+        </div>
+    </div>
     <!-- 推进流程 Modal 弹窗 -->
     <div class="modal-overlay" id="advanceModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(2px);">
         <div class="modal-card" style="background:#fff; width:480px; border-radius:10px; padding:24px; box-shadow:0 16px 40px rgba(0,0,0,0.12); display:flex; flex-direction:column;">

@@ -24,12 +24,20 @@ const assert = require('node:assert/strict');
             ai_analysis: 'Synthetic analysis', skills: [], applications: [], interviews: [], logs: [],
         };
         let status = 200;
+        const transitions = [];
         let releaseFirstRequest;
         const firstRequest = new Promise(resolve => { releaseFirstRequest = resolve; });
         let pending = true;
         await page.route('**/*', async route => {
             const url = new URL(route.request().url());
             if (url.origin !== 'http://contacts.test') return route.abort();
+            if (url.pathname === '/api/candidates/902/transition') {
+                assert.equal(route.request().method(), 'POST');
+                const body = route.request().postDataJSON();
+                transitions.push(body);
+                candidate.stage = body.target_stage;
+                return route.fulfill({ json: candidate });
+            }
             if (url.pathname === '/api/candidates/902') {
                 assert.equal(url.searchParams.get('reveal_sensitive'), 'true');
                 assert(route.request().headers().authorization?.startsWith('Bearer '));
@@ -55,6 +63,66 @@ const assert = require('node:assert/strict');
         assert.equal(await page.locator('#meta-phone').innerText(), candidate.phone);
         assert.equal(await page.locator('#meta-email').innerText(), candidate.email);
         assert.equal(await page.locator('[id^="eye-btn-"], #meta-idcard').count(), 0);
+        const actionCard = page.locator('.candidate-action-card');
+        assert.equal(await actionCard.locator('svg, i, img').count(), 0);
+        assert(!/[💬👥⚠🎉↻↩➔✕]/u.test(await actionCard.innerText()));
+        await actionCard.getByRole('button', { name: '推进至部门筛选', exact: true }).click();
+        assert(await page.locator('#advanceModal').isVisible());
+        assert.equal(await page.locator('#advanceTargetStage').innerText(), '部门筛选');
+        assert(await page.locator('#advanceModal').evaluate(el => !el.parentElement.closest('.modal-overlay')));
+        await page.locator('#advanceModal').getByRole('button', { name: '取消', exact: true }).click();
+        assert.equal(transitions.length, 0);
+        await actionCard.getByRole('button', { name: '推进至部门筛选', exact: true }).click();
+        await page.locator('#advanceNoteInput').fill('Synthetic review note');
+        await page.locator('#advanceModal').getByRole('button', { name: '确认推进', exact: true }).click();
+        await page.waitForFunction(() => document.querySelector('#advanceModal').style.display === 'none');
+        assert.equal(transitions.length, 1);
+        assert.equal(transitions[0].action, 'advance');
+        assert.equal(transitions[0].target_stage, '部门筛选');
+        assert.equal(transitions[0].reason, 'Synthetic review note');
+        candidate.stage = '初筛';
+        await page.evaluate(() => loadDetail());
+        await actionCard.getByRole('button', { name: '驳回淘汰', exact: true }).click();
+        assert(await page.locator('#rejectModal').isVisible());
+        await page.locator('#rejectModal').getByRole('button', { name: '取消', exact: true }).click();
+        await actionCard.getByRole('button', { name: '添加备注', exact: true }).click();
+        assert(await page.locator('#tab-pane-4').isVisible());
+        await page.evaluate(() => switchNavTab(0));
+        await actionCard.getByRole('button', { name: '推荐部门', exact: true }).click();
+        assert(await page.locator('#detailRecommendModal').isVisible());
+        await page.locator('#detailRecommendModal').getByRole('button', { name: '取消', exact: true }).click();
+        candidate.stage = '面试';
+        await page.evaluate(() => loadDetail());
+        await actionCard.getByRole('button', { name: '撤回上步', exact: true }).click();
+        assert(await page.locator('#rollbackModal').isVisible());
+        await page.locator('#rollbackModal').getByRole('button', { name: '取消', exact: true }).click();
+        candidate.stage = '已淘汰';
+        await page.evaluate(() => loadDetail());
+        await actionCard.getByRole('button', { name: '重新进入流程', exact: true }).click();
+        assert(await page.locator('#reenterModal').isVisible());
+        await page.locator('#reenterModal').getByRole('button', { name: '取消', exact: true }).click();
+        candidate.stage = '入职';
+        await page.evaluate(() => loadDetail());
+        assert(await actionCard.getByText('候选人已正式入职', { exact: true }).isVisible());
+        assert.equal(await actionCard.locator('.btn-blue-dropdown').count(), 0);
+        candidate.stage = '初筛';
+        await page.evaluate(() => loadDetail());
+        for (const width of [1440, 1024, 390, 320]) {
+            await page.setViewportSize({ width, height: 900 });
+            const bounds = await actionCard.evaluate(el => {
+                const card = el.getBoundingClientRect();
+                return [...el.querySelectorAll('button')].every(button => {
+                    const rect = button.getBoundingClientRect();
+                    return rect.height >= 36 && rect.left >= card.left && rect.right <= card.right &&
+                        button.scrollWidth <= button.clientWidth + 1;
+                });
+            });
+            assert(bounds, `${width}px: action buttons overflow`);
+        }
+        await actionCard.screenshot({ path: path.join(__dirname, '.env.candidate-actions-mobile.png') });
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.locator('.right-control-sidebar').screenshot({ path: path.join(__dirname, '.env.candidate-actions-desktop.png') });
+        console.log('PASS candidate actions: plain text, confirmation/cancel, notes, recommendation, rollback, reenter, onboarding and responsive layout');
         await page.screenshot({ path: path.join(__dirname, '.env.candidate-contact-desktop.png'), fullPage: false });
         await page.reload();
         await page.waitForFunction(() => document.querySelector('#meta-phone').textContent === '13900001234');

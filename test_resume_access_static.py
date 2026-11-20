@@ -54,3 +54,18 @@ def test_candidate_contacts_are_direct_and_national_id_is_not_collected():
     assert "?reveal_sensitive=true" in html
     assert "renderCandidateData(currentCandidate || initialFallback)" not in html
     assert "prepareStructuredFallbackData(" not in html
+
+
+def test_candidate_sidebar_uses_plain_actions_and_separate_confirmation_modals():
+    html = (ROOT / "candidate-detail.html").read_text(encoding="utf-8")
+    sidebar = html.split('class="right-control-sidebar"', 1)[1].split("<!-- JS 业务逻辑 -->", 1)[0]
+    actions = html.split("function renderStageActionControls(candidate)", 1)[1].split("function handleStepNodeClick", 1)[0]
+    for symbol in ("💬", "👥", "⚠", "🎉", "↻", "↩", "➔", "✕"):
+        assert symbol not in sidebar
+        assert symbol not in actions
+    assert "candidate-action-shortcuts" in sidebar
+    assert "candidate-action-danger" in actions
+    assert "advanceReasonInput" not in html
+    assert "advanceToStage" not in html
+    assert "document.getElementById('advanceNoteInput').value" in html
+    assert '</div>\n        </div>\n    </div>\n    <!-- 推进流程 Modal 弹窗 -->' in html
