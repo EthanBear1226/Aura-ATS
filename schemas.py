@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Any, Union
 from datetime import datetime
 
@@ -30,6 +30,26 @@ class CandidateUpdate(BaseModel):
     email: Optional[str] = None
     exp: Optional[str] = None
     job: Optional[str] = None
+
+    @field_validator("name", "phone", "email", "exp", "job")
+    @classmethod
+    def validate_basic_info(cls, value, info):
+        if value is None:
+            return value
+        import re
+        value = value.strip()
+        limits = {"name": 80, "phone": 40, "email": 254, "exp": 80, "job": 200}
+        field = info.field_name
+        if len(value) > limits[field] or any(ord(char) < 32 for char in value):
+            raise ValueError("Invalid field length or control character")
+        if field in ("name", "job") and not value:
+            raise ValueError("Name and job cannot be blank")
+        if field == "email" and value and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value):
+            raise ValueError("Invalid email")
+        if field == "phone" and value:
+            if not re.fullmatch(r"\+?[0-9() -]+", value) or not 6 <= len(re.sub(r"\D", "", value)) <= 20:
+                raise ValueError("Invalid phone")
+        return value
 
 class CandidateNoteCreate(BaseModel):
     content: str

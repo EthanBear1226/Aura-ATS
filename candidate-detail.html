@@ -6,6 +6,7 @@
     <title>候选人详情 - Aura ATS</title>
     <link rel="stylesheet" href="assets/css/styles.css?v=42">
     <script src="assets/vendor/lucide-0.468.0/lucide.min.js"></script>
+    <script src="assets/js/candidate-profile.js"></script>
     <style>
         body { 
             background: #f5f7fa; 
@@ -59,19 +60,29 @@
             color: #4e5969;
             font-size: 12px;
             padding: 4px 12px;
-            border-radius: 16px;
+            border-radius: 4px;
             font-weight: 500;
             display: inline-flex;
             align-items: center;
             gap: 4px;
             border: 1px solid #e5e6eb;
-            cursor: pointer;
+            cursor: default;
             transition: all 0.2s;
         }
-        .source-capsule-btn:hover {
-            background: #e5e6eb;
-            color: #165dff;
-        }
+        .profile-edit-button { border: 0; background: transparent; color: #4e5969; cursor: pointer; width: 32px; height: 32px; padding: 7px; }
+        .profile-edit-button svg { width: 18px; height: 18px; }
+        .profile-editor { box-sizing: border-box; width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 32px); overflow: auto; border: 1px solid #e5e6eb; border-radius: 8px; padding: 24px; color: #1f2329; }
+        .profile-editor::backdrop { background: rgba(0, 0, 0, .35); }
+        .profile-editor h2 { font-size: 18px; margin: 0 0 20px; }
+        .profile-editor label { display: block; font-size: 13px; margin: 16px 0 6px; }
+        .profile-editor input { box-sizing: border-box; width: 100%; padding: 9px 10px; border: 1px solid #c9cdd4; border-radius: 4px; font: inherit; }
+        .profile-editor input:focus { outline: 2px solid #bedaff; border-color: #165dff; }
+        .profile-editor footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .profile-editor button { min-height: 36px; border: 1px solid #c9cdd4; border-radius: 4px; padding: 7px 18px; background: #fff; cursor: pointer; }
+        .profile-editor button[type="submit"] { background: #165dff; border-color: #165dff; color: #fff; }
+        .profile-editor button:disabled { opacity: .6; cursor: wait; }
+        #profile-edit-error { color: #c9302c; font-size: 13px; overflow-wrap: anywhere; }
+        .profile-context-row { margin-top: 10px; font-size: 12px; color: #4e5969; overflow-wrap: anywhere; }
 
         .header-meta-line {
             display: flex;
@@ -1051,19 +1062,16 @@
             <div class="header-title-group">
                 <span style="cursor:pointer; color:#86909c; font-size:14px; margin-right:4px;" onclick="window.location.href='candidates.html'">← 候选人列表</span>
                 <span id="header-cand-name" class="cand-name-large">加载中...</span>
-                <span class="tag-applied-count">已申请1次</span>
+                <span class="tag-applied-count" id="header-application-count" hidden></span>
                 
-                <div class="source-capsule-btn" title="查看来源归属">
-                    <span id="header-job-title">高级职位</span> · Boss直聘 (主动搜索)
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <div class="source-capsule-btn">
+                    <span id="header-job-title">--</span>
                 </div>
             </div>
 
             <!-- 右侧快捷关闭与编辑图标 -->
             <div style="display:flex; align-items:center; gap:12px; color:#86909c;">
-                <span style="cursor:pointer; padding:4px;" title="编辑基本信息" onclick="openEditModal()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path></svg>
-                </span>
+                <button type="button" class="profile-edit-button" id="profile-edit-button" title="编辑基本信息" aria-label="编辑基本信息" onclick="openEditModal()" hidden><i data-lucide="pencil" aria-hidden="true"></i></button>
                 <span style="cursor:pointer; padding:4px;" title="返回候选人列表" onclick="window.location.href='candidates.html'">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </span>
@@ -1082,16 +1090,6 @@
                 <span id="meta-email" style="font-family:monospace;">--</span>
             </div>
             <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg> <span id="meta-education">--</span></div>
-        </div>
-
-        <!-- 第三行：亮点 Pill 胶囊标签 -->
-        <div class="header-pills-line">
-            <span class="pill-badge">海外教育背景</span>
-            <span class="pill-badge pill-badge-gold">
-                QS50
-                <span class="tooltip-text">QS世界大学排名前50</span>
-            </span>
-            <span class="pill-badge">硕士</span>
         </div>
 
         <!-- 第四行：7 大横向 Tab 导航 -->
@@ -1359,23 +1357,32 @@
                 </div>
             </div>
 
-            <!-- 侧边栏卡片 2: 候选人所有者与特征标签 -->
+            <!-- Only persisted candidate metadata is shown here. -->
             <div class="sidebar-card-box">
-                <div class="candidate-context-title">候选人所有者</div>
-                <div class="candidate-owner-name" id="owner-name">张招聘官 (HRBP)</div>
-                <div class="candidate-owner-team">招聘运营团队</div>
-
-                <div class="candidate-context-tags">
-                    <div class="candidate-context-title">人才特征标签</div>
-                    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                        <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">高潜人才</span>
-                        <span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:2px 8px; border-radius:4px;">快速到岗</span>
-                    </div>
-                </div>
+                <div class="candidate-context-title">档案记录</div>
+                <div class="profile-context-row">创建时间 <span id="profile-created-at">--</span></div>
+                <div class="profile-context-row">更新时间 <span id="profile-updated-at">--</span></div>
             </div>
 
         </div>
     </div>
+
+    <dialog id="profile-edit-dialog" class="profile-editor" aria-labelledby="profile-edit-title" oncancel="if(profileSaving) event.preventDefault()">
+        <form id="profile-edit-form" onsubmit="saveCandidateProfile(event)">
+            <h2 id="profile-edit-title">编辑基本信息</h2>
+            <label for="edit-profile-name">姓名</label>
+            <input id="edit-profile-name" name="name" required maxlength="80" autocomplete="off">
+            <label for="edit-profile-phone">联系电话</label>
+            <input id="edit-profile-phone" name="phone" type="tel" maxlength="40" autocomplete="off">
+            <label for="edit-profile-email">邮箱</label>
+            <input id="edit-profile-email" name="email" type="email" maxlength="254" autocomplete="off">
+            <label for="edit-profile-exp">学历</label>
+            <input id="edit-profile-exp" name="exp" maxlength="80" list="profile-education-options" autocomplete="off">
+            <datalist id="profile-education-options"><option value="博士"><option value="硕士"><option value="本科"><option value="大专"><option value="高中"><option value="中专"></datalist>
+            <p id="profile-edit-error" role="alert" aria-live="polite"></p>
+            <footer><button type="button" onclick="closeProfileEditor()">取消</button><button id="profile-save" type="submit">保存</button></footer>
+        </form>
+    </dialog>
 
     <!-- JS 业务逻辑 -->
     <script>
@@ -1727,7 +1734,7 @@
         function formatRawResumeText(rawText) {
             if (!rawText) return '';
 
-            let cleaned = rawText.replace(/<br\s*\/?>/gi, '\n');
+            let cleaned = escapeProfileHtml(String(rawText).replace(/<br\s*\/?>/gi, '\n'));
             const headers = ['教育经历', '教育背景', '工作经历', '实习经历', '工作/实习经历', '项目经历', '项目经验', '语言水平', '专业技能', '自我评价', '个人优势', '获奖荣誉', '资格证书'];
             
             let formatted = cleaned;
@@ -1740,9 +1747,9 @@
         }
 
         function showFallbackResumeView(candidate) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlId = urlParams.get('id') || '1';
-            const cand = candidate || currentCandidate || getFallbackCandidateById(urlId);
+            const cand = candidate || currentCandidate;
+            if (!cand) return;
+            const meta = extractCandidateMetaFromText(cand);
             const iframe = document.getElementById('pdf-viewer');
             const fallbackCard = document.getElementById('fallback-resume-card');
             
@@ -1751,22 +1758,19 @@
                 fallbackCard.style.display = 'block';
                 
                 let skillsHtml = '';
-                if (cand.skills) {
-                    const skillsArr = Array.isArray(cand.skills) ? cand.skills : cand.skills.split(/[,，]/);
-                    skillsHtml = skillsArr.map(s => `<span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:4px 12px; border-radius:4px; margin-right:6px; margin-bottom:8px; display:inline-block; font-weight:500;">${s.trim()}</span>`).join('');
-                }
+                skillsHtml = candidateSkills(cand).map(s => `<span style="font-size:12px; background:#f2f3f5; color:#4e5969; padding:4px 12px; border-radius:4px; margin-right:6px; margin-bottom:8px; display:inline-block; font-weight:500;">${escapeProfileHtml(s)}</span>`).join('');
 
-                const formattedBody = cand.raw_text ? formatRawResumeText(cand.raw_text) : formatRawResumeText(cand.ai_summary);
+                const formattedBody = formatRawResumeText(cand.raw_text);
 
                 fallbackCard.innerHTML = `
                     <div style="padding:28px 32px; background:#fff; min-height:600px; color:#1f2329; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">
                         <!-- 简历主头部卡片 -->
                         <div style="border-bottom:2px solid #165dff; padding-bottom:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-end;">
                             <div>
-                                <h1 style="margin:0; font-size:22px; font-weight:700; color:#1f2329;">${cand.name || '候选人'}</h1>
-                                <div style="font-size:13.5px; color:#4e5969; margin-top:6px;">求职意向：<strong style="color:#165dff;">${cand.job || '高阶职位'}</strong> · ${cand.exp || '经验丰富'} · ${cand.email || ''}</div>
+                                <h1 style="margin:0; font-size:22px; font-weight:700; color:#1f2329;">${escapeProfileHtml(meta.name || '姓名待补充')}</h1>
+                                <div style="font-size:13.5px; color:#4e5969; margin-top:6px;">应聘职位：<strong style="color:#165dff;">${escapeProfileHtml(cand.job || '未指定职位')}</strong> · ${escapeProfileHtml(meta.edu || '学历未填写')} · ${escapeProfileHtml(meta.email)}</div>
                             </div>
-                            <span style="font-size:11.5px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 12px; border-radius:12px; font-weight:600;">高保真结构化简历档案</span>
+                            <span style="font-size:11.5px; color:#86909c;">简历文本</span>
                         </div>
 
                         <!-- 技能胶囊标签 -->
@@ -1799,7 +1803,7 @@
         function renderFormattedAiAnalysis(rawText) {
             if (!rawText) return '<div style="color:#86909c; font-size:12px;">暂无深度解析建议</div>';
             
-            let cleaned = rawText.replace(/<br\s*\/?>/gi, '\n');
+            let cleaned = escapeProfileHtml(String(rawText).replace(/<br\s*\/?>/gi, '\n'));
             
             let pros = [];
             let cons = [];
@@ -2223,143 +2227,6 @@
             openRejectModal();
         }
 
-        // 全量多候选人静态保底档案映射池 (与 candidates.html 列表 1:1 精准对应，彻底根除串台与无限加载)
-        const DEFAULT_FALLBACK_CANDIDATES_MAP = {
-            "1": {
-                id: 1,
-                name: "陈志强",
-                job: "前端工程师",
-                gender: "男",
-                phone: "138-1024-8866",
-                email: "chenzhiqiang@buaa.edu.cn",
-                exp: "本科",
-                stage: "初筛",
-                skills: ["React", "Vue3", "TypeScript", "Webpack/Vite", "微前端架构", "性能调优"],
-                ai_summary: "候选人毕业于北京航空航天大学软件工程专业（本科），拥有5年一线大厂前端研发与核心中后台架构经验。深入精通React/Vue3双栈、TypeScript与微前端工程化落地，曾将核心业务首屏渲染时间（FCP）由3.2s调优至0.8s，工程交付与调优能力扎实。",
-                ai_analysis: "✅ 亮点（候选人优势）：\n1. 985名校北航软件工程科班出身，底层计算机网络与系统工程底蕴扎实。\n2. 5年大厂中后台架构实战沉淀，在组件库自研与微前端架构落地方面有完整成功案例。\n3. 在前端加载性能调优（FCP优化提升300%）上有经得起推敲的量化落地成果。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 履历侧重B端企业级平台，需在后续面试中考察其在跨端（小程序/React Native）及移动端的扩展实战经验。\n\n🎯 面试重点关注与追问建议：\n1. 深入交流微前端沙箱环境隔离、全局状态同步及主子应用样式隔离的技术方案。\n2. 追问复杂看板大数据量渲染（虚拟滚动、Web Worker）的实际优化路径。",
-                raw_text: "【基本信息】\n姓名：陈志强 | 性别：男 | 年龄：28岁 | 学历：本科（北京航空航天大学 · 软件工程 · 2019届） | 手机：138-1024-8866 | 邮箱：chenzhiqiang@buaa.edu.cn\n\n【专业技能】\n1. 精通 React、Vue3 及其全家桶，具备 5 年大型企业级 SaaS 平台与运营管理控制台架构研发经验。\n2. 深入掌握 TypeScript、Vite/Webpack 构建优化，搭建自动化 CI/CD 流水线，单测覆盖率达 80% 以上。\n3. 主导实施微前端架构落地，支撑多团队独立演进与灰度发布。\n4. 熟练掌握 Webpack Bundle 分析、分包加载与性能调优，大幅缩减首次加载耗时。\n\n【工作经历】\n2021.07 - 至今 | 某知名互联网科技公司 | 高级前端开发工程师\n- 负责核心企业级数据协同 SaaS 平台前端架构演进与基础组件库建设。\n- 带领 4 人前端小组按敏捷节奏高效交付各季度业务指标。\n\n2019.07 - 2021.06 | 字节跳动 | 前端工程师\n- 参与协同办公套件与管理控制台开发，负责富文本协同编辑与可视化数据看板模块。",
-                pdf_path: "",
-                applications: [
-                    { job_title: "前端工程师", created_at: "2026-07-13 10:20:00" }
-                ],
-                logs: [
-                    { action: "投递申请", operator: "陈志强", details: "自主投递前端工程师岗位", created_at: "2026-07-13 10:20:00" },
-                    { action: "简历初筛", operator: "HR 曹", details: "学历背景符合JD要求，进入初筛候选管道", created_at: "2026-07-13 14:30:00" }
-                ],
-                interviews: []
-            },
-            "2": {
-                id: 2,
-                name: "刘晨",
-                job: "前端工程师",
-                gender: "男",
-                phone: "139-2048-7755",
-                email: "liuchen@bupt.edu.cn",
-                exp: "本科",
-                stage: "初筛",
-                skills: ["Vue3", "JavaScript", "HTML5", "CSS3", "小程序", "TailwindCSS"],
-                ai_summary: "候选人毕业于北京邮电大学软件工程专业（本科），具备4年多端前端与小程序研发经验。熟练掌握Vue3生态与全平台小程序开发，在大促高并发互动挂件与页面秒开保障上经验丰富。",
-                ai_analysis: "✅ 亮点（候选人优势）：\n1. 北邮科班出身，通信与移动互联协议理解深入。\n2. 具备电商大促峰值高并发互动页开发经验，UI/UX交互细节敏感度高。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 侧重活动页与业务界面交付，大型中后台基建与低代码设计经验需深入了解。\n\n🎯 面试重点关注与追问建议：\n1. 考察微信小程序首屏冷启动优化策略及分包预加载实战机制。",
-                raw_text: "【基本信息】\n姓名：刘晨 | 性别：男 | 年龄：27岁 | 学历：本科（北京邮电大学 · 软件工程 · 2020届） | 手机：139-2048-7755 | 邮箱：liuchen@bupt.edu.cn\n\n【专业经历】\n4年 Web 前端与小程序研发经验，深度精通 Vue3、Pinia 与 Uni-app 多端架构。\n主导千万级活跃电商小程序核心互动模块，保障大促峰值秒开体验。",
-                pdf_path: "",
-                applications: [
-                    { job_title: "前端工程师", created_at: "2026-06-13 09:15:00" }
-                ],
-                logs: [
-                    { action: "投递申请", operator: "刘晨", details: "猎头渠道推荐投递", created_at: "2026-06-13 09:15:00" },
-                    { action: "初筛跟进", operator: "HR 王", details: "简历初筛评估中", created_at: "2026-06-13 11:00:00" }
-                ],
-                interviews: []
-            },
-            "3": {
-                id: 3,
-                name: "李思齐",
-                job: "前端工程师",
-                gender: "男",
-                phone: "186-1122-3344",
-                email: "lisigi@tsinghua.org.cn",
-                exp: "硕士",
-                stage: "初筛",
-                skills: ["React", "Node.js", "WebGL", "Three.js", "性能优化", "算法架构"],
-                ai_summary: "候选人清华大学软件工程硕士毕业，拥有卓越的算法素养与前沿图形可视化（WebGL/Three.js）实战研发经验。技术视野开阔，擅长复杂交互、海量数据渲染与三维场景工程化落地。",
-                ai_analysis: "✅ 亮点（候选人优势）：\n1. 清华名校工学硕士，数学与算法功底极强。\n2. 前沿 WebGL/Three.js 深度工程沉淀，具备攻坚高难度技术壁垒的综合实力。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 期望薪资水平较高，需对齐团队预算与预期岗位职级定位。\n\n🎯 面试重点关注与追问建议：\n1. 交流 WebGL 自定义着色器编写及复杂三维模型在浏览器端内存释放方案。",
-                raw_text: "【基本信息】\n姓名：李思齐 | 性别：男 | 年龄：29岁 | 学历：硕士（清华大学 · 软件工程 · 2021届） | 手机：186-1122-3344 | 邮箱：lisigi@tsinghua.org.cn\n\n【专业经历】\n清华硕士毕业后加入腾讯互娱，负责虚拟互动直播与元宇宙三维看板核心前端架构，自研轻量级浏览器渲染管线。",
-                pdf_path: "",
-                applications: [
-                    { job_title: "前端工程师", created_at: "2026-05-27 15:40:00" }
-                ],
-                logs: [
-                    { action: "投递申请", operator: "李思齐", details: "技术团队内部推荐", created_at: "2026-05-27 15:40:00" },
-                    { action: "初筛评估", operator: "研发总监", details: "背景优异，进入初筛通道", created_at: "2026-05-28 09:30:00" }
-                ],
-                interviews: []
-            },
-            "4": {
-                id: 4,
-                name: "沈佳妮",
-                job: "高级财务经理 / 财务BP",
-                gender: "女",
-                phone: "155-9513-0661",
-                email: "15595130661@163.com",
-                exp: "硕士",
-                stage: "用人部门筛选",
-                skills: ["财务分析与精细化管理", "跨国多税区税务筹划", "SAP/Oracle ERP系统", "Python数据核算"],
-                ai_summary: "候选人拥有6年大型跨境电商互联网公司（拼多多、美团）的财务分析与预算管理经验，持有CPA证书。擅长预算管控、业务财务支持（BP）和海外税务合规，具备数据建模与财务预测能力。",
-                ai_analysis: "✅ 亮点（候选人优势）：\n1. 6年大型跨境电商互联网公司核心预算与分析管理经验，包含拼多多和美团两家知名企业。\n2. 持有中国注册会计师（CPA）证书，专业能力过硬。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 尽管求职意向为3-5年经验，但候选人提供了6年经验，这可能需要面试官进一步确认其经验的深度和广度是否与JD要求完全匹配。\n\n🎯 面试重点关注与追问建议：\n1. 深入了解候选人在拼多多和美团的具体BP工作内容，如何协同业务部门、提供财务洞察以支持决策。",
-                raw_text: "【基本信息】\n姓名：沈佳妮 | 性别：女 | 年龄：32岁 | 学历：硕士（中国人民大学 · 财务管理 · 2018届） | 手机：155-9513-0661 | 邮箱：15595130661@163.com\n\n【专业经历】\n6年大型跨境电商与互联网头部企业财务分析与BP支持经验，持注册会计师(CPA)证书。\n精通SAP/Oracle ERP系统与全球多税区税务筹划，熟练掌握Python自动化财务数据核算。",
-                pdf_path: "",
-                applications: [
-                    { job_title: "高级财务经理 / 财务BP", created_at: "2026-08-01 11:30:00" }
-                ],
-                logs: [
-                    { action: "投递申请", operator: "沈佳妮", details: "主动投递财务BP岗位", created_at: "2026-08-01 11:30:00" },
-                    { action: "初筛通过", operator: "HR 曹", details: "简历初筛合格，转入用人部门筛选", created_at: "2026-08-02 14:00:00" },
-                    { action: "用人部门筛选", operator: "财务总监", details: "用人部门正在评阅背景资料", created_at: "2026-08-02 16:30:00" }
-                ],
-                interviews: []
-            },
-            "5": {
-                id: 5,
-                name: "尚毅",
-                job: "法务合规实习生",
-                gender: "男",
-                phone: "188-0101-9988",
-                email: "shangyi@cupl.edu.cn",
-                exp: "硕士",
-                stage: "初筛",
-                skills: ["公司法合规", "合同审查", "劳动法务", "诉讼仲裁支持"],
-                ai_summary: "候选人中国政法大学法律硕士在读（2024年应届），已通过国家统一法律职业资格考试（法考A证）。具备知名律所与企业法务实习经验，合同审查细致，合规风控意识强。",
-                ai_analysis: "✅ 亮点（候选人优势）：\n1. 法学顶尖学府中国政法大学法律硕士，法考A证，法学理论扎实。\n2. 具备企业日常合同起草与用工风险合规审查实战经验。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 应届在读身份，需核准每周可连续到岗天数与留用转正意愿。\n\n🎯 面试重点关注与追问建议：\n1. 询问对互联网平台知识产权合规及用户隐私协议的了解程度。",
-                raw_text: "【基本信息】\n姓名：尚毅 | 性别：男 | 年龄：25岁 | 学历：硕士（中国政法大学 · 法律硕士 · 2024届） | 手机：188-0101-9988 | 邮箱：shangyi@cupl.edu.cn\n\n【专业经历】\n法考A证持有者，中国政法大学法律硕士在读。曾于北京市中伦律师事务所及知名独角兽法务部实习，协助审查商业合同与员工竞业协议。",
-                pdf_path: "",
-                applications: [
-                    { job_title: "法务合规实习生", created_at: "2026-08-05 10:10:00" }
-                ],
-                logs: [
-                    { action: "投递申请", operator: "尚毅", details: "校园招聘门户投递", created_at: "2026-08-05 10:10:00" },
-                    { action: "简历初筛", operator: "HR 钱", details: "法考资质核实通过，进入初筛流程", created_at: "2026-08-05 15:20:00" }
-                ],
-                interviews: []
-            }
-        };
-
-        // 安全动态匹配候选人保底数据引擎
-        function getFallbackCandidateById(id) {
-            const key = String(id || '1');
-            if (DEFAULT_FALLBACK_CANDIDATES_MAP[key]) {
-                return DEFAULT_FALLBACK_CANDIDATES_MAP[key];
-            }
-            // 兼容性根据姓名尝试匹配
-            for (const k in DEFAULT_FALLBACK_CANDIDATES_MAP) {
-                if (DEFAULT_FALLBACK_CANDIDATES_MAP[k].name === id) {
-                    return DEFAULT_FALLBACK_CANDIDATES_MAP[k];
-                }
-            }
-            return DEFAULT_FALLBACK_CANDIDATES_MAP["1"];
-        }
-
-        const DEFAULT_FALLBACK_CANDIDATE = DEFAULT_FALLBACK_CANDIDATES_MAP["1"];
-
         // Only authorized recruiting roles may recover missing contacts from resume text.
         // Masked API values stay masked; backend authorization remains authoritative.
         function canExtractResumeContacts() {
@@ -2389,12 +2256,12 @@
                         typeLabel: '投递',
                         title: `投递职位：${app.job_title || candidate.job || '高阶职位'}`,
                         time: app.created_at,
-                        operator: candidate.name || '候选人',
-                        badge: '主动投递',
+                        operator: '未记录',
+                        badge: '投递记录',
                         badgeColor: '#00b42a',
                         iconBg: '#e8ffea',
                         iconColor: '#00b42a',
-                        details: `候选人通过在线门户投递申请，简历进入初筛招聘管道。`
+                        details: `已记录该职位的投递申请。`
                     });
                 });
             } else if (candidate.created_at) {
@@ -2535,7 +2402,7 @@
                 const timeStr = item.time ? new Date(item.time).toLocaleString('zh-CN', { hour12: false }) : '刚刚';
                 const detailHtml = item.details ? `
                     <div style="margin-top:8px; font-size:12.5px; color:#4e5969; background:#f7f8fa; border-radius:6px; padding:8px 12px; border-left:3px solid ${item.badgeColor}; line-height:1.5;">
-                        ${item.details}
+                        ${escapeProfileHtml(item.details)}
                     </div>
                 ` : '';
 
@@ -2547,7 +2414,7 @@
                         <div class="timeline-node-card">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                                 <div style="display:flex; align-items:center; gap:8px;">
-                                    <strong style="font-size:13.5px; color:#1f2329;">${item.title}</strong>
+                                    <strong style="font-size:13.5px; color:#1f2329;">${escapeProfileHtml(item.title)}</strong>
                                     <span style="font-size:11px; background:${item.iconBg}; color:${item.badgeColor}; border:1px solid ${item.badgeColor}33; padding:1px 7px; border-radius:4px; font-weight:600;">
                                         ${item.typeLabel}
                                     </span>
@@ -2555,8 +2422,8 @@
                                 <span style="font-size:12px; color:#86909c; font-family:monospace;">${timeStr}</span>
                             </div>
                             <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#86909c;">
-                                <span>操作人员：<strong style="color:#4e5969;">${item.operator}</strong></span>
-                                ${item.badge ? `<span style="font-size:11.5px; color:${item.badgeColor}; font-weight:500;">${item.badge}</span>` : ''}
+                                <span>操作人员：<strong style="color:#4e5969;">${escapeProfileHtml(item.operator)}</strong></span>
+                                ${item.badge ? `<span style="font-size:11.5px; color:${item.badgeColor}; font-weight:500;">${escapeProfileHtml(item.badge)}</span>` : ''}
                             </div>
                             ${detailHtml}
                         </div>
@@ -2573,67 +2440,25 @@
             renderComprehensiveTimeline(currentCandidateTimeline, type);
         }
 
-        // 候选人联系方式仅使用已有字段或原始简历，不从 AI 点评推断。
-        function extractCandidateMetaFromText(cand) {
-            const fullText = `${cand.name || ''} ${cand.raw_text || ''} ${cand.ai_summary || ''} ${cand.ai_analysis || ''}`;
-            const contactValue = value => {
-                const text = String(value || '').trim();
-                return ['', '--', '暂无', '未知', 'None', 'null'].includes(text) ? '' : text;
-            };
-            let phone = contactValue(cand.phone);
-            let email = contactValue(cand.email);
-            if (canExtractResumeContacts()) {
-                const resumeText = cand.raw_text || '';
-                const phoneMatch = resumeText.match(/(?:^|[^\d])(1[3-9]\d[-\s]?\d{4}[-\s]?\d{4})(?!\d)/);
-                const emailMatch = resumeText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-                if (!phone && phoneMatch) phone = phoneMatch[1];
-                if (!email && emailMatch) email = emailMatch[0];
-            }
-
-            // 4. 性别提取
-            let gender = cand.gender;
-            if (!gender || (gender !== '男' && gender !== '女')) {
-                if (/(?:性别[:：]?\s*女)|(?:\b女\b)|(?:女\s*\|)|(?:女\s*\/)|(?:硕士\s*\|[^\n]*女)/i.test(fullText)) {
-                    gender = '女';
-                } else if (/(?:性别[:：]?\s*男)|(?:\b男\b)|(?:男\s*\|)|(?:男\s*\/)/i.test(fullText)) {
-                    gender = '男';
-                } else {
-                    const femaleNameChar = ['妮', '丹', '清', '彤', '婷', '雅', '娜', '丽', '莉', '芳', '燕', '娟', '静', '敏'];
-                    const name = cand.name || '';
-                    if (femaleNameChar.some(c => name.includes(c))) {
-                        gender = '女';
-                    } else {
-                        gender = '男';
-                    }
-                }
-            }
-
-            // 5. 学历提取
-            let edu = cand.exp || '';
-            if (fullText.includes('博士')) edu = '博士';
-            else if (fullText.includes('硕士')) edu = '硕士';
-            else if (fullText.includes('本科')) edu = '本科';
-            else if (fullText.includes('大专')) edu = '大专';
-            else if (!edu) edu = '本科';
-
-            return { phone, email, gender, edu };
-        }
-
         // 强力防卡死自愈渲染引擎
         function renderCandidateData(candidate) {
-            if (!candidate) {
-                const urlParams = new URLSearchParams(window.location.search);
-                const urlId = urlParams.get('id') || '1';
-                candidate = getFallbackCandidateById(urlId);
-            }
+            if (!candidate) return;
             currentCandidate = candidate;
 
             const meta = extractCandidateMetaFromText(candidate);
 
-            document.getElementById('header-cand-name').innerText = candidate.name || '候选人档案';
-            document.getElementById('header-job-title').innerText = candidate.job || '高阶职位';
-            document.getElementById('meta-gender').innerText = meta.gender;
-            document.getElementById('meta-education').innerText = meta.edu;
+            document.getElementById('header-cand-name').innerText = meta.name || '姓名待补充';
+            document.getElementById('header-job-title').innerText = candidateProfileValue(candidate.job) || '未指定职位';
+            document.getElementById('meta-gender').innerText = meta.gender || '性别未填写';
+            document.getElementById('meta-education').innerText = meta.edu || '学历未填写';
+            document.getElementById('profile-edit-button').hidden = !canExtractResumeContacts();
+            const count = document.getElementById('header-application-count');
+            count.hidden = !Array.isArray(candidate.applications);
+            count.textContent = Array.isArray(candidate.applications) ? `已申请${candidate.applications.length}次` : '';
+            for (const [id, value] of [['profile-created-at', candidate.created_at], ['profile-updated-at', candidate.updated_at]]) {
+                const date = value ? new Date(/(?:Z|[+-]\d\d:\d\d)$/.test(value) ? value : value + 'Z') : null;
+                document.getElementById(id).textContent = date && !Number.isNaN(date.getTime()) ? date.toLocaleString('zh-CN', { hour12: false }) : '--';
+            }
 
             document.getElementById('meta-phone').innerText = meta.phone || '--';
             document.getElementById('meta-email').innerText = meta.email || '--';
@@ -2669,20 +2494,18 @@
             // 动态业务流转控制台
             renderStageActionControls(candidate);
 
-            document.getElementById('ai-summary').innerText = candidate.ai_summary || "候选人具备丰富的行业经验与扎实的专业背景，综合能力强劲。";
+            document.getElementById('ai-summary').innerText = candidate.ai_summary || '暂无 AI 摘要';
             
-            const rawAnalysis = candidate.ai_analysis || "✅ 亮点（候选人优势）：\n1. 具备扎实的业务背景与项目经验。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 需面试官进一步确认项目深度的匹配度。";
+            const rawAnalysis = candidate.ai_analysis || '';
             const analysisContainer = document.getElementById('ai-analysis-container');
             if (analysisContainer) {
                 analysisContainer.innerHTML = renderFormattedAiAnalysis(rawAnalysis);
             }
             
-            if (candidate.skills) {
-                const skillsArr = Array.isArray(candidate.skills) ? candidate.skills : candidate.skills.split(/[,，]/);
-                document.getElementById('ai-skills').innerHTML = skillsArr.map(s => `<span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">${s.trim()}</span>`).join('');
-            } else {
-                document.getElementById('ai-skills').innerHTML = '<span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">财务分析与精细化管理</span><span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">跨国多税区税务筹划</span>';
-            }
+            const skillsArr = candidateSkills(candidate);
+            document.getElementById('ai-skills').innerHTML = skillsArr.length
+                ? skillsArr.map(s => `<span style="font-size:12px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:3px 10px; border-radius:4px; font-weight:500;">${escapeProfileHtml(s)}</span>`).join('')
+                : '<span style="font-size:12px; color:#86909c;">暂无技能标签</span>';
 
             // 统一调用四态主动探测与自愈兜底引擎
             loadPdfOrFallback(candidate);
@@ -2721,7 +2544,7 @@
                     const res = await safeFetch(`/api/candidates/${encodeURIComponent(id)}?reveal_sensitive=true`);
                     if (res.ok) {
                         const data = await res.json();
-                        if (data && data.name) candidateData = data;
+                        if (data && String(data.id) === id) candidateData = data;
                     }
                 } catch(e) {}
             }

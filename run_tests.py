@@ -19,6 +19,7 @@ TEST_MODULES = [
     "test_calendar_api",
     "test_auth_security",
     "test_candidate_lifecycle_api",
+    "test_candidate_profile",
     "test_dev_server",
     "test_offer_approvals_api",
     "test_frontend_practicality_static",

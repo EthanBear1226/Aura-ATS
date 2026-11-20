@@ -848,10 +848,8 @@ async def _process_resume_upload(
         if not extracted_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract text from PDF")
             
-        import re
-        extracted_text = re.sub(r'[用专聘招球雪]', '', extracted_text)
-        extracted_text = re.sub(r'\n\s*\n', '\n', extracted_text)
-
+        from resume_profile import extract_resume_profile
+        basic_profile = extract_resume_profile(extracted_text)
         parsed_data = {}
         
         job_info_text = ""
@@ -890,6 +888,8 @@ async def _process_resume_upload(
                     """
                     response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
                     parsed_data = json.loads(response.text.strip())
+                    if not isinstance(parsed_data, dict):
+                        raise ValueError("AI response must be a JSON object")
                     success = True
                     print(f"Successfully parsed using {model_name}")
                     break
@@ -904,22 +904,21 @@ async def _process_resume_upload(
                         break
 
             if not success:
-                if "429" in last_error or "quota" in last_error.lower():
-                    parsed_data = {
-                        "name": file.filename.replace('.pdf', '')[:10],
-                        "job": "演示模式（API额度已满）",
-                        "exp": "3-5年 / 本科",
-                        "email": "demo@example.com",
-                        "skills": ["所有模型额度已满", "演示模式"],
-                        "ai_summary": "⚠️ 抱歉，当前所有可用的 Gemini 免费模型额度（包含 1.5/2.0 系列）均已耗尽。系统已自动切至演示模式。",
-                        "ai_analysis": "Google 免费 API 每日限额较低。若需继续测试，请更换 API Key 或等待次日配额刷新。"
-                    }
-                else:
-                    parsed_data = {"name": "AI 解析异常", "job": "错误", "exp": "未知", "email": "未知", "skills": ["解析失败"], "ai_summary": "服务响应异常", "ai_analysis": last_error}
+                parsed_data = {
+                    "ai_summary": "AI 暂不可用，基本信息来自简历原文",
+                    "ai_analysis": "尚未生成 AI 分析",
+                }
         else:
-            parsed_data = {"name": file.filename, "job": "未配置 API Key", "exp": "未知", "email": "未知", "skills": ["模拟"], "ai_summary": "未配置 Key", "ai_analysis": "未配置 Key"}
+            parsed_data = {
+                "ai_summary": "未配置 API Key，基本信息来自简历原文",
+                "ai_analysis": "尚未生成 AI 分析",
+            }
 
-        final_job = job_title if job_title != "默认（AI自动提取）" else parsed_data.get("job", "未知")
+        for field, value in basic_profile.items():
+            if value:
+                parsed_data[field] = value
+
+        final_job = job_title if job_title != "默认（AI自动提取）" else parsed_data.get("job", "未指定职位")
 
         skills_raw = parsed_data.get("skills")
         if isinstance(skills_raw, list):
@@ -983,7 +982,7 @@ async def _process_resume_upload(
             db.commit()
         else:
             db_candidate = models.Candidate(
-                name=str(parsed_data.get("name") or "未知"),
+                name=str(parsed_data.get("name") or "姓名待补充"),
                 job=str(final_job or "未知"),
                 stage="初筛",
                 exp=str(parsed_data.get("exp") or "未知"),
@@ -1239,7 +1238,12 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
     candidate = db.query(models.Candidate).filter(models.Candidate.id == candidate_id).first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
-    
+    if not _can_access_candidate(db, candidate, current_user):
+        raise HTTPException(status_code=403, detail="无权修改该候选人档案")
+    if any(getattr(candidate_update, field) is not None for field in ("name", "phone", "email", "exp", "job")):
+        if not _can_reveal_candidate_sensitive(current_user):
+            raise HTTPException(status_code=403, detail="只有招聘人员或管理员可以修改基本信息")
+
     if candidate_update.stage and candidate_update.stage != candidate.stage:
         old_stage = candidate.stage
         candidate.stage = candidate_update.stage
@@ -1289,6 +1293,7 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
         has_basic_update = True
         
     if has_basic_update:
+        candidate.updated_at = datetime.utcnow()
         db_log = models.CandidateLog(
             candidate_id=candidate.id,
             operator=operator_name,
@@ -1299,7 +1304,7 @@ def update_candidate_stage(candidate_id: int, candidate_update: schemas.Candidat
     
     db.commit()
     db.refresh(candidate)
-    return candidate
+    return _candidate_response(candidate, reveal_sensitive=_can_reveal_candidate_sensitive(current_user))
 
 @app.post("/api/candidates/{candidate_id}/notes")
 def add_candidate_note(candidate_id: int, note: schemas.CandidateNoteCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

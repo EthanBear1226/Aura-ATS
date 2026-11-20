@@ -71,3 +71,15 @@ def test_candidate_sidebar_uses_plain_actions_and_separate_confirmation_modals()
     assert "advanceToStage" not in html
     assert "document.getElementById('advanceNoteInput').value" in html
     assert '</div>\n        </div>\n    </div>\n    <!-- 推进流程 Modal 弹窗 -->' in html
+
+
+def test_candidate_profile_has_no_demo_identity_and_a_real_editor():
+    html = (ROOT / "candidate-detail.html").read_text(encoding="utf-8")
+    script = (ROOT / "assets/js/candidate-profile.js").read_text(encoding="utf-8")
+    for fabricated in ("DEFAULT_FALLBACK", "getFallbackCandidateById", "Boss直聘", "QS50", "高潜人才", "快速到岗", "张招聘官"):
+        assert fabricated not in html
+    assert 'id="profile-edit-dialog"' in html
+    assert "method: 'PATCH'" in script
+    assert "cand.ai_summary" not in script
+    assert "femaleNameChar" not in script
+    assert "profileSaveUncertain" in script
