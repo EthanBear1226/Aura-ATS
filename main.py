@@ -60,20 +60,13 @@ try:
 except Exception as e:
     print(f"Failed to auto-seed startup data: {e}")
 
-# Auto-migrate: add phone and id_card column if they don't exist
+# Auto-migrate: add phone column if it doesn't exist
 from sqlalchemy import text
 try:
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE candidates ADD COLUMN phone VARCHAR(50);"))
 except Exception:
     pass  # column already exists or other error
-
-try:
-    with engine.begin() as conn:
-        conn.execute(text("ALTER TABLE candidates ADD COLUMN id_card VARCHAR(50);"))
-except Exception:
-    pass  # column already exists or other error
-
 
 # Database Migration for new Job columns (Safe for SQLite)
 def upgrade_db():
@@ -240,7 +233,6 @@ def _candidate_response(candidate: models.Candidate, reveal_sensitive: bool = Fa
     if not reveal_sensitive:
         data["phone"] = _mask_sensitive_value(data.get("phone"), keep_start=3, keep_end=2)
         data["email"] = _mask_sensitive_value(data.get("email"), keep_start=1, keep_end=0)
-        data["id_card"] = _mask_sensitive_value(data.get("id_card"), keep_start=6, keep_end=2)
     return data
 
 def _candidate_list_response(candidate: models.Candidate) -> dict:
@@ -745,7 +737,8 @@ def get_candidate(
     if not _can_access_candidate(db, candidate, current_user):
         raise HTTPException(status_code=403, detail="无权查看该候选人档案")
 
-    reveal = bool(reveal_sensitive and _can_reveal_candidate_sensitive(current_user))
+    # Keep the legacy query parameter compatible; contact visibility follows role.
+    reveal = _can_reveal_candidate_sensitive(current_user)
     return _candidate_response(candidate, reveal_sensitive=reveal)
 
 @app.post("/api/candidates/{candidate_id}/screen", response_model=schemas.Candidate)
@@ -887,6 +880,7 @@ async def _process_resume_upload(
                     prompt = f"""
                     请作为一名资深HR数据提取专家，从以下简历文本中提取结构化信息。
                     要求：返回合法 JSON，包含 name(请准确提取候选人本人的真实姓名，不要提取成文件名、其他称呼或乱码), job, exp(仅提取最高学历，如"本科"、"硕士"等，不要包含工作年限), phone(请仔细提取手机号，通常为11位数字), email, skills(array), ai_summary, ai_analysis。
+                    不要提取、输出或在摘要、分析中复述身份证号码。
                     在编写 ai_analysis 时，请务必包含以下三个维度的结构化点评（请只使用纯文本和 HTML 的 <br> 换行，绝对不要使用 Markdown 语法如 **加粗** 或 # 标题）：
                     ✅ 亮点（候选人优势）；<br>
                     ⚠️ 风险（劣势项或经验短板）；<br>

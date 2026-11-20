@@ -86,7 +86,12 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            min-width: 0;
+            max-width: 100%;
+            overflow-wrap: anywhere;
         }
+        .meta-item > svg { flex-shrink: 0; }
+        .meta-item > span { min-width: 0; }
 
         .header-pills-line {
             display: flex;
@@ -881,24 +886,6 @@
             outline: none;
         }
 
-        /* 敏感信息小眼睛切换按钮 */
-        .eye-toggle-btn {
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            color: #86909c;
-            transition: all 0.15s ease;
-            vertical-align: middle;
-        }
-        .eye-toggle-btn:hover {
-            color: #165dff;
-            background: #e8f3ff;
-        }
-
         /* 时间线分类过滤胶囊 */
         .timeline-filter-bar {
             display: flex;
@@ -1031,29 +1018,16 @@
             </div>
         </div>
 
-        <!-- 第二行：图标属性行（敏感数据默认脱敏，按权限小眼睛切换） -->
+        <!-- 第二行：基本信息与联系方式 -->
         <div class="header-meta-line" style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
             <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> <span id="meta-gender">--</span></div>
             <div class="meta-item" style="display:inline-flex; align-items:center; gap:5px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-                <span id="meta-phone" style="font-family:monospace; letter-spacing:0.5px;">--</span>
-                <span id="eye-btn-phone" class="eye-toggle-btn" title="查看明文/脱敏切换" onclick="toggleSensitiveField('phone')">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                </span>
+                <span id="meta-phone" style="font-family:monospace;">--</span>
             </div>
             <div class="meta-item" style="display:inline-flex; align-items:center; gap:5px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                <span id="meta-email" style="font-family:monospace; letter-spacing:0.3px;">--</span>
-                <span id="eye-btn-email" class="eye-toggle-btn" title="查看明文/脱敏切换" onclick="toggleSensitiveField('email')">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                </span>
-            </div>
-            <div class="meta-item" style="display:inline-flex; align-items:center; gap:5px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><line x1="15" y1="8" x2="17" y2="8"></line><line x1="15" y1="12" x2="17" y2="12"></line><line x1="7" y1="16" x2="17" y2="16"></line></svg>
-                <span id="meta-idcard" style="font-family:monospace; letter-spacing:0.5px;">--</span>
-                <span id="eye-btn-idcard" class="eye-toggle-btn" title="查看明文/脱敏切换" onclick="toggleSensitiveField('idcard')">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                </span>
+                <span id="meta-email" style="font-family:monospace;">--</span>
             </div>
             <div class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg> <span id="meta-education">--</span></div>
         </div>
@@ -1654,7 +1628,6 @@
             // 1. 无附件路径：展示【文件不存在】兜底
             if (!candidate || !candidate.pdf_path || !candidate.pdf_path.trim()) {
                 if (missing) missing.style.display = 'flex';
-                prepareStructuredFallbackData(candidate);
                 return;
             }
 
@@ -1669,7 +1642,6 @@
                     if (titleEl) titleEl.innerText = `当前文件格式 (.${fileExt}) 暂不支持在线预览`;
                     if (descEl) descEl.innerText = `由于现代浏览器安全规范，.${fileExt} 格式文件无法直接在视窗内在线渲染。您可以直接下载至本地查看，或上传 PDF 获得最佳体验。`;
                 }
-                prepareStructuredFallbackData(candidate);
                 return;
             }
 
@@ -1699,7 +1671,6 @@
                 if (err.status === 404 && missing) missing.style.display = 'flex';
                 else if (err.status === 415 && unsupported) unsupported.style.display = 'flex';
                 else if (errorFallback) errorFallback.style.display = 'flex';
-                prepareStructuredFallbackData(candidate);
             }
         }
 
@@ -2214,13 +2185,12 @@
                 gender: "男",
                 phone: "138-1024-8866",
                 email: "chenzhiqiang@buaa.edu.cn",
-                id_card: "110108199605121234",
                 exp: "本科",
                 stage: "初筛",
                 skills: ["React", "Vue3", "TypeScript", "Webpack/Vite", "微前端架构", "性能调优"],
                 ai_summary: "候选人毕业于北京航空航天大学软件工程专业（本科），拥有5年一线大厂前端研发与核心中后台架构经验。深入精通React/Vue3双栈、TypeScript与微前端工程化落地，曾将核心业务首屏渲染时间（FCP）由3.2s调优至0.8s，工程交付与调优能力扎实。",
                 ai_analysis: "✅ 亮点（候选人优势）：\n1. 985名校北航软件工程科班出身，底层计算机网络与系统工程底蕴扎实。\n2. 5年大厂中后台架构实战沉淀，在组件库自研与微前端架构落地方面有完整成功案例。\n3. 在前端加载性能调优（FCP优化提升300%）上有经得起推敲的量化落地成果。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 履历侧重B端企业级平台，需在后续面试中考察其在跨端（小程序/React Native）及移动端的扩展实战经验。\n\n🎯 面试重点关注与追问建议：\n1. 深入交流微前端沙箱环境隔离、全局状态同步及主子应用样式隔离的技术方案。\n2. 追问复杂看板大数据量渲染（虚拟滚动、Web Worker）的实际优化路径。",
-                raw_text: "【基本信息】\n姓名：陈志强 | 性别：男 | 年龄：28岁 | 学历：本科（北京航空航天大学 · 软件工程 · 2019届） | 手机：138-1024-8866 | 邮箱：chenzhiqiang@buaa.edu.cn | 身份证：110108199605121234\n\n【专业技能】\n1. 精通 React、Vue3 及其全家桶，具备 5 年大型企业级 SaaS 平台与运营管理控制台架构研发经验。\n2. 深入掌握 TypeScript、Vite/Webpack 构建优化，搭建自动化 CI/CD 流水线，单测覆盖率达 80% 以上。\n3. 主导实施微前端架构落地，支撑多团队独立演进与灰度发布。\n4. 熟练掌握 Webpack Bundle 分析、分包加载与性能调优，大幅缩减首次加载耗时。\n\n【工作经历】\n2021.07 - 至今 | 某知名互联网科技公司 | 高级前端开发工程师\n- 负责核心企业级数据协同 SaaS 平台前端架构演进与基础组件库建设。\n- 带领 4 人前端小组按敏捷节奏高效交付各季度业务指标。\n\n2019.07 - 2021.06 | 字节跳动 | 前端工程师\n- 参与协同办公套件与管理控制台开发，负责富文本协同编辑与可视化数据看板模块。",
+                raw_text: "【基本信息】\n姓名：陈志强 | 性别：男 | 年龄：28岁 | 学历：本科（北京航空航天大学 · 软件工程 · 2019届） | 手机：138-1024-8866 | 邮箱：chenzhiqiang@buaa.edu.cn\n\n【专业技能】\n1. 精通 React、Vue3 及其全家桶，具备 5 年大型企业级 SaaS 平台与运营管理控制台架构研发经验。\n2. 深入掌握 TypeScript、Vite/Webpack 构建优化，搭建自动化 CI/CD 流水线，单测覆盖率达 80% 以上。\n3. 主导实施微前端架构落地，支撑多团队独立演进与灰度发布。\n4. 熟练掌握 Webpack Bundle 分析、分包加载与性能调优，大幅缩减首次加载耗时。\n\n【工作经历】\n2021.07 - 至今 | 某知名互联网科技公司 | 高级前端开发工程师\n- 负责核心企业级数据协同 SaaS 平台前端架构演进与基础组件库建设。\n- 带领 4 人前端小组按敏捷节奏高效交付各季度业务指标。\n\n2019.07 - 2021.06 | 字节跳动 | 前端工程师\n- 参与协同办公套件与管理控制台开发，负责富文本协同编辑与可视化数据看板模块。",
                 pdf_path: "",
                 applications: [
                     { job_title: "前端工程师", created_at: "2026-07-13 10:20:00" }
@@ -2238,13 +2208,12 @@
                 gender: "男",
                 phone: "139-2048-7755",
                 email: "liuchen@bupt.edu.cn",
-                id_card: "110108199708232345",
                 exp: "本科",
                 stage: "初筛",
                 skills: ["Vue3", "JavaScript", "HTML5", "CSS3", "小程序", "TailwindCSS"],
                 ai_summary: "候选人毕业于北京邮电大学软件工程专业（本科），具备4年多端前端与小程序研发经验。熟练掌握Vue3生态与全平台小程序开发，在大促高并发互动挂件与页面秒开保障上经验丰富。",
                 ai_analysis: "✅ 亮点（候选人优势）：\n1. 北邮科班出身，通信与移动互联协议理解深入。\n2. 具备电商大促峰值高并发互动页开发经验，UI/UX交互细节敏感度高。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 侧重活动页与业务界面交付，大型中后台基建与低代码设计经验需深入了解。\n\n🎯 面试重点关注与追问建议：\n1. 考察微信小程序首屏冷启动优化策略及分包预加载实战机制。",
-                raw_text: "【基本信息】\n姓名：刘晨 | 性别：男 | 年龄：27岁 | 学历：本科（北京邮电大学 · 软件工程 · 2020届） | 手机：139-2048-7755 | 邮箱：liuchen@bupt.edu.cn | 身份证：110108199708232345\n\n【专业经历】\n4年 Web 前端与小程序研发经验，深度精通 Vue3、Pinia 与 Uni-app 多端架构。\n主导千万级活跃电商小程序核心互动模块，保障大促峰值秒开体验。",
+                raw_text: "【基本信息】\n姓名：刘晨 | 性别：男 | 年龄：27岁 | 学历：本科（北京邮电大学 · 软件工程 · 2020届） | 手机：139-2048-7755 | 邮箱：liuchen@bupt.edu.cn\n\n【专业经历】\n4年 Web 前端与小程序研发经验，深度精通 Vue3、Pinia 与 Uni-app 多端架构。\n主导千万级活跃电商小程序核心互动模块，保障大促峰值秒开体验。",
                 pdf_path: "",
                 applications: [
                     { job_title: "前端工程师", created_at: "2026-06-13 09:15:00" }
@@ -2262,13 +2231,12 @@
                 gender: "男",
                 phone: "186-1122-3344",
                 email: "lisigi@tsinghua.org.cn",
-                id_card: "110108199511043456",
                 exp: "硕士",
                 stage: "初筛",
                 skills: ["React", "Node.js", "WebGL", "Three.js", "性能优化", "算法架构"],
                 ai_summary: "候选人清华大学软件工程硕士毕业，拥有卓越的算法素养与前沿图形可视化（WebGL/Three.js）实战研发经验。技术视野开阔，擅长复杂交互、海量数据渲染与三维场景工程化落地。",
                 ai_analysis: "✅ 亮点（候选人优势）：\n1. 清华名校工学硕士，数学与算法功底极强。\n2. 前沿 WebGL/Three.js 深度工程沉淀，具备攻坚高难度技术壁垒的综合实力。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 期望薪资水平较高，需对齐团队预算与预期岗位职级定位。\n\n🎯 面试重点关注与追问建议：\n1. 交流 WebGL 自定义着色器编写及复杂三维模型在浏览器端内存释放方案。",
-                raw_text: "【基本信息】\n姓名：李思齐 | 性别：男 | 年龄：29岁 | 学历：硕士（清华大学 · 软件工程 · 2021届） | 手机：186-1122-3344 | 邮箱：lisigi@tsinghua.org.cn | 身份证：110108199511043456\n\n【专业经历】\n清华硕士毕业后加入腾讯互娱，负责虚拟互动直播与元宇宙三维看板核心前端架构，自研轻量级浏览器渲染管线。",
+                raw_text: "【基本信息】\n姓名：李思齐 | 性别：男 | 年龄：29岁 | 学历：硕士（清华大学 · 软件工程 · 2021届） | 手机：186-1122-3344 | 邮箱：lisigi@tsinghua.org.cn\n\n【专业经历】\n清华硕士毕业后加入腾讯互娱，负责虚拟互动直播与元宇宙三维看板核心前端架构，自研轻量级浏览器渲染管线。",
                 pdf_path: "",
                 applications: [
                     { job_title: "前端工程师", created_at: "2026-05-27 15:40:00" }
@@ -2286,13 +2254,12 @@
                 gender: "女",
                 phone: "155-9513-0661",
                 email: "15595130661@163.com",
-                id_card: "310104199203154567",
                 exp: "硕士",
                 stage: "用人部门筛选",
                 skills: ["财务分析与精细化管理", "跨国多税区税务筹划", "SAP/Oracle ERP系统", "Python数据核算"],
                 ai_summary: "候选人拥有6年大型跨境电商互联网公司（拼多多、美团）的财务分析与预算管理经验，持有CPA证书。擅长预算管控、业务财务支持（BP）和海外税务合规，具备数据建模与财务预测能力。",
                 ai_analysis: "✅ 亮点（候选人优势）：\n1. 6年大型跨境电商互联网公司核心预算与分析管理经验，包含拼多多和美团两家知名企业。\n2. 持有中国注册会计师（CPA）证书，专业能力过硬。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 尽管求职意向为3-5年经验，但候选人提供了6年经验，这可能需要面试官进一步确认其经验的深度和广度是否与JD要求完全匹配。\n\n🎯 面试重点关注与追问建议：\n1. 深入了解候选人在拼多多和美团的具体BP工作内容，如何协同业务部门、提供财务洞察以支持决策。",
-                raw_text: "【基本信息】\n姓名：沈佳妮 | 性别：女 | 年龄：32岁 | 学历：硕士（中国人民大学 · 财务管理 · 2018届） | 手机：155-9513-0661 | 邮箱：15595130661@163.com | 身份证：310104199203154567\n\n【专业经历】\n6年大型跨境电商与互联网头部企业财务分析与BP支持经验，持注册会计师(CPA)证书。\n精通SAP/Oracle ERP系统与全球多税区税务筹划，熟练掌握Python自动化财务数据核算。",
+                raw_text: "【基本信息】\n姓名：沈佳妮 | 性别：女 | 年龄：32岁 | 学历：硕士（中国人民大学 · 财务管理 · 2018届） | 手机：155-9513-0661 | 邮箱：15595130661@163.com\n\n【专业经历】\n6年大型跨境电商与互联网头部企业财务分析与BP支持经验，持注册会计师(CPA)证书。\n精通SAP/Oracle ERP系统与全球多税区税务筹划，熟练掌握Python自动化财务数据核算。",
                 pdf_path: "",
                 applications: [
                     { job_title: "高级财务经理 / 财务BP", created_at: "2026-08-01 11:30:00" }
@@ -2311,13 +2278,12 @@
                 gender: "男",
                 phone: "188-0101-9988",
                 email: "shangyi@cupl.edu.cn",
-                id_card: "110108199909095678",
                 exp: "硕士",
                 stage: "初筛",
                 skills: ["公司法合规", "合同审查", "劳动法务", "诉讼仲裁支持"],
                 ai_summary: "候选人中国政法大学法律硕士在读（2024年应届），已通过国家统一法律职业资格考试（法考A证）。具备知名律所与企业法务实习经验，合同审查细致，合规风控意识强。",
                 ai_analysis: "✅ 亮点（候选人优势）：\n1. 法学顶尖学府中国政法大学法律硕士，法考A证，法学理论扎实。\n2. 具备企业日常合同起草与用工风险合规审查实战经验。\n\n⚠️ 风险（劣势项或经验短板）：\n1. 应届在读身份，需核准每周可连续到岗天数与留用转正意愿。\n\n🎯 面试重点关注与追问建议：\n1. 询问对互联网平台知识产权合规及用户隐私协议的了解程度。",
-                raw_text: "【基本信息】\n姓名：尚毅 | 性别：男 | 年龄：25岁 | 学历：硕士（中国政法大学 · 法律硕士 · 2024届） | 手机：188-0101-9988 | 邮箱：shangyi@cupl.edu.cn | 身份证：110108199909095678\n\n【专业经历】\n法考A证持有者，中国政法大学法律硕士在读。曾于北京市中伦律师事务所及知名独角兽法务部实习，协助审查商业合同与员工竞业协议。",
+                raw_text: "【基本信息】\n姓名：尚毅 | 性别：男 | 年龄：25岁 | 学历：硕士（中国政法大学 · 法律硕士 · 2024届） | 手机：188-0101-9988 | 邮箱：shangyi@cupl.edu.cn\n\n【专业经历】\n法考A证持有者，中国政法大学法律硕士在读。曾于北京市中伦律师事务所及知名独角兽法务部实习，协助审查商业合同与员工竞业协议。",
                 pdf_path: "",
                 applications: [
                     { job_title: "法务合规实习生", created_at: "2026-08-05 10:10:00" }
@@ -2347,104 +2313,15 @@
 
         const DEFAULT_FALLBACK_CANDIDATE = DEFAULT_FALLBACK_CANDIDATES_MAP["1"];
 
-        // ==============================================================================
-        //        ▎ 敏感字段分级权限管控与默认脱敏交互引擎
-        // ==============================================================================
-        let rawSensitiveData = { phone: '', email: '', idcard: '' };
-        let sensitiveVisible = { phone: false, email: false, idcard: false };
-
-        // 手机号脱敏规则：保留前3后4，中间4位星号（如 138****5678）
-        function maskPhone(phone) {
-            if (!phone) return '--';
-            const clean = phone.replace(/[^\d]/g, '');
-            if (clean.length >= 11) {
-                return `${clean.slice(0,3)}****${clean.slice(7)}`;
-            } else if (clean.length >= 7) {
-                return `${clean.slice(0,3)}****${clean.slice(-4)}`;
-            }
-            return phone;
-        }
-
-        // 邮箱脱敏规则：保留前2位及@域名，中间星号（如 sh***@163.com）
-        function maskEmail(email) {
-            if (!email || !email.includes('@')) return email || '--';
-            const [user, domain] = email.split('@');
-            if (user.length <= 2) {
-                return `${user.slice(0, 1)}***@${domain}`;
-            }
-            return `${user.slice(0, 2)}***${user.slice(-1)}@${domain}`;
-        }
-
-        // 身份证脱敏规则：保留前6后4，中间8位星号（如 310104********2345）
-        function maskIdCard(idcard) {
-            if (!idcard) return '--';
-            const clean = idcard.replace(/\s+/g, '');
-            if (clean.length >= 15) {
-                return `${clean.slice(0, 6)}********${clean.slice(-4)}`;
-            }
-            return clean;
-        }
-
-        // 当前用户角色权限校验（仅限管理员与用人经理查看明文）
-        function checkSensitivePermission() {
+        // Only authorized recruiting roles may recover missing contacts from resume text.
+        // Masked API values stay masked; backend authorization remains authoritative.
+        function canExtractResumeContacts() {
             try {
                 const userStr = localStorage.getItem('aura_user') || localStorage.getItem('user');
                 const user = userStr ? JSON.parse(userStr) : {};
-                const role = user.role || 'Admin';
-                const allowedRoles = ['SuperAdmin', 'Admin', 'Recruiter', 'HiringManager'];
-                return allowedRoles.includes(role);
+                return ['SuperAdmin', 'Admin', 'Recruiter'].includes(user.role);
             } catch(e) {
-                return true;
-            }
-        }
-
-        // 小眼睛切换敏感字段显隐
-        function toggleSensitiveField(field) {
-            if (!checkSensitivePermission()) {
-                showToast('⚠️ 您暂无查看明文敏感信息的权限（仅限管理员与用人经理）', 'error');
-                return;
-            }
-
-            sensitiveVisible[field] = !sensitiveVisible[field];
-            updateSensitiveDisplay(field);
-
-            if (sensitiveVisible[field]) {
-                showToast(`已临时显示${field === 'phone' ? '手机号' : (field === 'email' ? '邮箱' : '身份证')}明文（注意保护个人隐私）`, 'info');
-            } else {
-                showToast(`已恢复脱敏遮蔽保护`, 'success');
-            }
-        }
-
-        // 更新敏感字段 DOM 展现
-        function updateSensitiveDisplay(field) {
-            const eyeBtn = document.getElementById(`eye-btn-${field}`);
-            const textEl = document.getElementById(`meta-${field}`);
-            if (!textEl) return;
-
-            const isShown = sensitiveVisible[field];
-            const rawVal = rawSensitiveData[field];
-
-            let displayVal = '--';
-            if (field === 'phone') {
-                displayVal = isShown ? (rawVal || '--') : maskPhone(rawVal);
-            } else if (field === 'email') {
-                displayVal = isShown ? (rawVal || '--') : maskEmail(rawVal);
-            } else if (field === 'idcard') {
-                displayVal = isShown ? (rawVal || '--') : maskIdCard(rawVal);
-            }
-
-            textEl.innerText = displayVal;
-
-            if (eyeBtn) {
-                if (isShown) {
-                    // 睁眼图标 (已明文)
-                    eyeBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#165dff" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-                    eyeBtn.title = '点击切换为脱敏遮蔽';
-                } else {
-                    // 闭眼图标 (已脱敏)
-                    eyeBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86909c" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
-                    eyeBtn.title = '点击查看明文数据';
-                }
+                return false;
             }
         }
 
@@ -2649,39 +2526,21 @@
             renderComprehensiveTimeline(currentCandidateTimeline, type);
         }
 
-        // 智能候选人元数据提取引擎 (抓取真实的电话、邮箱、身份证、性别与最高学历)
+        // 候选人联系方式仅使用已有字段或原始简历，不从 AI 点评推断。
         function extractCandidateMetaFromText(cand) {
             const fullText = `${cand.name || ''} ${cand.raw_text || ''} ${cand.ai_summary || ''} ${cand.ai_analysis || ''}`;
-            
-            // 1. 电话提取
-            let phone = cand.phone && cand.phone !== '--' ? cand.phone : '';
-            if (!phone || phone.includes('9999-0000') || phone.includes('0000-0000')) {
-                const phoneMatch = fullText.match(/1[3-9]\d{9}/);
-                if (phoneMatch) {
-                    phone = phoneMatch[0];
-                }
-            }
-            if (!phone) phone = cand.phone || '13812345678';
-
-            // 2. 邮箱提取
-            let email = cand.email && cand.email !== '--' ? cand.email : '';
-            if (!email || email.includes('example.com')) {
-                const emailMatch = fullText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-                if (emailMatch) {
-                    email = emailMatch[0];
-                }
-            }
-            if (!email) email = cand.email || 'hr@aura.com';
-
-            // 3. 身份证提取 (优先 cand.id_card，否则正则匹配 18 位身份证)
-            let idcard = cand.id_card && cand.id_card !== '--' ? cand.id_card : '';
-            if (!idcard) {
-                const idMatch = fullText.match(/[1-9]\d{5}(?:18|19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]/);
-                if (idMatch) {
-                    idcard = idMatch[0];
-                } else {
-                    idcard = '310104199508122345';
-                }
+            const contactValue = value => {
+                const text = String(value || '').trim();
+                return ['', '--', '暂无', '未知', 'None', 'null'].includes(text) ? '' : text;
+            };
+            let phone = contactValue(cand.phone);
+            let email = contactValue(cand.email);
+            if (canExtractResumeContacts()) {
+                const resumeText = cand.raw_text || '';
+                const phoneMatch = resumeText.match(/(?:^|[^\d])(1[3-9]\d[-\s]?\d{4}[-\s]?\d{4})(?!\d)/);
+                const emailMatch = resumeText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                if (!phone && phoneMatch) phone = phoneMatch[1];
+                if (!email && emailMatch) email = emailMatch[0];
             }
 
             // 4. 性别提取
@@ -2710,7 +2569,7 @@
             else if (fullText.includes('大专')) edu = '大专';
             else if (!edu) edu = '本科';
 
-            return { phone, email, idcard, gender, edu };
+            return { phone, email, gender, edu };
         }
 
         // 强力防卡死自愈渲染引擎
@@ -2722,23 +2581,15 @@
             }
             currentCandidate = candidate;
 
-            // 提取并存储原始敏感信息
             const meta = extractCandidateMetaFromText(candidate);
-            rawSensitiveData = {
-                phone: meta.phone,
-                email: meta.email,
-                idcard: meta.idcard
-            };
 
             document.getElementById('header-cand-name').innerText = candidate.name || '候选人档案';
             document.getElementById('header-job-title').innerText = candidate.job || '高阶职位';
             document.getElementById('meta-gender').innerText = meta.gender;
             document.getElementById('meta-education').innerText = meta.edu;
 
-            // 默认脱敏展示敏感数据
-            updateSensitiveDisplay('phone');
-            updateSensitiveDisplay('email');
-            updateSensitiveDisplay('idcard');
+            document.getElementById('meta-phone').innerText = meta.phone || '--';
+            document.getElementById('meta-email').innerText = meta.email || '--';
 
             const currentStage = candidate.stage || '初筛';
             const isTerminal = TERMINAL_STAGES.includes(currentStage);
@@ -2797,14 +2648,14 @@
             }, 150);
         }
 
-        // 加载候选人详情主函数 (0毫秒极速同步渲染 + 后台静默热更新，彻底杜绝网络挂起死锁)
+        // 首次加载等待真实档案；刷新时保留同一候选人的已加载数据。
         async function loadDetail() {
             const urlParams = new URLSearchParams(window.location.search);
             let id = urlParams.get('id') || '1';
 
-            // 1. 第 0 毫秒：根据 URL 候选人 ID 迅速匹配对应的专属保底档案，首屏零延迟准确呈现
-            const initialFallback = getFallbackCandidateById(id);
-            renderCandidateData(currentCandidate || initialFallback);
+            if (currentCandidate && String(currentCandidate.id) === id) {
+                renderCandidateData(currentCandidate);
+            }
 
             let candidateData = null;
 
@@ -2819,7 +2670,8 @@
             // 2. 后台静默并发拉取真实数据库数据
             if (id) {
                 try {
-                    const res = await safeFetch(`/api/candidates/${id}`);
+                    // The test backend still requires this flag for authorized contacts.
+                    const res = await safeFetch(`/api/candidates/${encodeURIComponent(id)}?reveal_sensitive=true`);
                     if (res.ok) {
                         const data = await res.json();
                         if (data && data.name) candidateData = data;
@@ -2830,6 +2682,11 @@
             // 3. 如果后台成功拉取到了真实候选人，平滑热更新页面
             if (candidateData) {
                 renderCandidateData(candidateData);
+            } else {
+                if (!currentCandidate) {
+                    document.getElementById('header-cand-name').innerText = '档案加载失败';
+                }
+                showToast('候选人档案加载失败，请刷新重试', 'error');
             }
 
             if (urlParams.get('active_tab') === '3') {

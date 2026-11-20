@@ -10,7 +10,6 @@ class CandidateBase(BaseModel):
     exp: str
     phone: Optional[str] = None
     email: Optional[str] = None
-    id_card: Optional[str] = None
     skills: Optional[List[str]] = []
     raw_text: Optional[str] = None
     ai_summary: Optional[str] = None

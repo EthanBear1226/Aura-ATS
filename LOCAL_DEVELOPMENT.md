@@ -60,3 +60,16 @@ test server.
 `candidate-resume-check.cjs` uses mocked API responses by default. Its optional
 `AURA_SYNTHETIC_PREVIEW_URL` must point to a separate synthetic-only QA server,
 never the fixed `18000` development entry with existing candidate data.
+
+`candidate-contact-check.cjs` uses synthetic API responses only. It verifies
+direct contact display, missing values, role restrictions, refresh and request
+failure states, and long email wrapping on desktop/mobile. Both browser checks
+use the existing Playwright installation (set `NODE_PATH` to its `node_modules`
+directory when it is not installed at the project root).
+
+The contact UI requests `reveal_sensitive=true` for compatibility with the
+current test backend; that backend still enforces its existing role scope.
+The updated backend defaults to clear contacts for SuperAdmin/Admin/Recruiter
+and removes the separate national-ID model/schema field and auto-migration.
+These Python changes require a later backend deployment. Existing legacy
+database columns and original resume files/text are not deleted or rewritten.

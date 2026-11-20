@@ -21,7 +21,6 @@ def _make_candidate(db_session, **overrides):
         "name": "Boundary Candidate",
         "email": "candidate.secret@test.local",
         "phone": "13800001234",
-        "id_card": "110101199001011234",
         "job": "Backend Engineer",
         "stage": "初筛",
         "exp": "本科",
@@ -35,28 +34,73 @@ def _make_candidate(db_session, **overrides):
     return candidate
 
 
-def test_candidate_detail_masks_sensitive_fields_by_default_and_reveals_for_authorized_roles(
+def test_candidate_detail_shows_contacts_directly_for_authorized_roles(
     client,
     db_session,
     admin_headers,
 ):
     candidate = _make_candidate(db_session)
 
-    masked = client.get(f"/api/candidates/{candidate.id}", headers=admin_headers)
-    assert masked.status_code == 200, masked.text
-    assert masked.json()["phone"] != "13800001234"
-    assert "*" in masked.json()["phone"]
-    assert masked.json()["email"] != "candidate.secret@test.local"
-    assert masked.json()["id_card"] != "110101199001011234"
+    for query in ("", "?reveal_sensitive=true", "?reveal_sensitive=false"):
+        response = client.get(f"/api/candidates/{candidate.id}{query}", headers=admin_headers)
+        assert response.status_code == 200, response.text
+        assert response.json()["phone"] == "13800001234"
+        assert response.json()["email"] == "candidate.secret@test.local"
+        assert "id_card" not in response.json()
 
-    revealed = client.get(
-        f"/api/candidates/{candidate.id}?reveal_sensitive=true",
-        headers=admin_headers,
+
+def test_candidate_detail_shows_contacts_for_recruiters_and_admins(
+    client, db_session, make_auth_headers,
+):
+    candidate = _make_candidate(db_session)
+    for role in ("Admin", "Recruiter"):
+        headers = make_auth_headers(f"{role.lower()}-contacts@test.local", role=role)
+        response = client.get(f"/api/candidates/{candidate.id}", headers=headers)
+        assert response.status_code == 200, response.text
+        assert response.json()["phone"] == candidate.phone
+        assert response.json()["email"] == candidate.email
+
+
+def test_candidate_schemas_and_new_tables_do_not_collect_national_id():
+    import schemas
+
+    data = schemas.CandidateCreate(
+        name="No ID", job="Engineer", stage="初筛", exp="本科",
+        id_card="LEGACY-UNUSED",
     )
-    assert revealed.status_code == 200, revealed.text
-    assert revealed.json()["phone"] == "13800001234"
-    assert revealed.json()["email"] == "candidate.secret@test.local"
-    assert revealed.json()["id_card"] == "110101199001011234"
+    assert "id_card" not in data.model_dump()
+    assert "id_card" not in schemas.Candidate.model_fields
+    assert "id_card" not in schemas.CandidateUpdate.model_fields
+    assert "id_card" not in models.Candidate.__table__.columns
+
+
+def test_legacy_national_id_column_is_ignored_by_candidate_apis(
+    client, db_session, admin_headers,
+):
+    from sqlalchemy import text
+
+    candidate = _make_candidate(db_session)
+    db_session.execute(text("ALTER TABLE candidates ADD COLUMN id_card VARCHAR(50)"))
+    db_session.execute(
+        text("UPDATE candidates SET id_card = :value WHERE id = :id"),
+        {"value": "LEGACY-UNUSED", "id": candidate.id},
+    )
+    db_session.commit()
+    detail = client.get(f"/api/candidates/{candidate.id}", headers=admin_headers)
+    listing = client.get("/api/candidates", headers=admin_headers)
+    assert detail.status_code == 200, detail.text
+    assert listing.status_code == 200, listing.text
+    assert "id_card" not in detail.json()
+    assert all("id_card" not in row for row in listing.json())
+    assert detail.json()["phone"] == candidate.phone
+
+
+def test_missing_candidate_contacts_remain_empty(client, db_session, admin_headers):
+    candidate = _make_candidate(db_session, phone=None, email=None)
+    response = client.get(f"/api/candidates/{candidate.id}", headers=admin_headers)
+    assert response.status_code == 200, response.text
+    assert response.json()["phone"] is None
+    assert response.json()["email"] is None
 
 
 def test_interviewer_can_view_only_assigned_candidate_and_cannot_reveal_sensitive_fields(
@@ -84,13 +128,15 @@ def test_interviewer_can_view_only_assigned_candidate_and_cannot_reveal_sensitiv
         name="Interviewer User",
     )
 
-    assigned_response = client.get(
-        f"/api/candidates/{assigned.id}?reveal_sensitive=true",
-        headers=headers,
-    )
-    assert assigned_response.status_code == 200, assigned_response.text
-    assert assigned_response.json()["phone"] != "13800001234"
-    assert "*" in assigned_response.json()["phone"]
+    for query in ("", "?reveal_sensitive=true"):
+        assigned_response = client.get(
+            f"/api/candidates/{assigned.id}{query}", headers=headers,
+        )
+        assert assigned_response.status_code == 200, assigned_response.text
+        assert assigned_response.json()["phone"] != "13800001234"
+        assert "*" in assigned_response.json()["phone"]
+        assert assigned_response.json()["email"] != "assigned@test.local"
+        assert "id_card" not in assigned_response.json()
 
     other_response = client.get(f"/api/candidates/{other.id}", headers=headers)
     assert other_response.status_code == 403
@@ -517,6 +563,7 @@ def test_internal_resume_upload_can_bind_by_job_id(client, db_session, admin_hea
         "skills": ["Python"],
         "ai_summary": "Qualified",
         "ai_analysis": "Qualified",
+        "id_card": "UNREQUESTED-MODEL-OUTPUT",
     }
 
     class FakeModel:
@@ -542,6 +589,8 @@ def test_internal_resume_upload_can_bind_by_job_id(client, db_session, admin_hea
         )
         assert response.status_code == 200, response.text
         assert response.json()["job"] == job.title
+        assert "id_card" not in response.json()
+        assert not hasattr(db_session.query(models.Candidate).one(), "id_card")
     finally:
         main.api_key = original_api_key
         main.genai.GenerativeModel = original_model

@@ -20,7 +20,6 @@ class Candidate(Base):
     match_score = Column(Integer, nullable=True) # 0-100 系统推荐匹配分
     match_reason = Column(Text, nullable=True) # 匹配维度点评
     pdf_path = Column(String(255))
-    id_card = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 

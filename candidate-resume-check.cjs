@@ -53,7 +53,7 @@ assert.equal(fixture.status, 0, fixture.stderr.toString());
         await page.addScriptTag({ content: `
             let currentCandidate={id:1,name:'Preview',pdf_path:'/uploads/secret.pdf'};
             const authFetch=url=>fetch(url,{headers:{Authorization:'Bearer test'}});
-            function showToast(){} function prepareStructuredFallbackData(){}
+            function showToast(){}
             function showFallbackResumeView(){hideAllResumeViews(); document.getElementById('fallback-resume-card').style.display='block';}
             ${html.slice(start, end)}
             ${html.slice(fullStart, fullEnd)}

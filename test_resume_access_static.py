@@ -32,3 +32,25 @@ def test_candidate_resume_preview_uses_flex_height_and_native_fit_width():
     assert "if (window.lucide) lucide.createIcons();" in html
     for name in ("缩小简历", "放大简历", "适应宽度", "切换全屏", "下载简历文件"):
         assert f'aria-label="{name}"' in html
+
+
+def test_candidate_contacts_are_direct_and_national_id_is_not_collected():
+    html = (ROOT / "candidate-detail.html").read_text(encoding="utf-8")
+    main_py = (ROOT / "main.py").read_text(encoding="utf-8")
+    seeds = (ROOT / "seed_data.py").read_text(encoding="utf-8")
+
+    assert "eye-btn-" not in html
+    assert "toggleSensitiveField" not in html
+    assert "sensitiveVisible" not in html
+    assert "meta-idcard" not in html
+    assert "id_card" not in html
+    assert "身份证" not in html
+    assert "id_card" not in seeds
+    assert "身份证" not in seeds
+    assert "ADD COLUMN id_card" not in main_py
+    assert "不要提取、输出或在摘要、分析中复述身份证号码" in main_py
+    assert "meta.phone || '--'" in html
+    assert "meta.email || '--'" in html
+    assert "?reveal_sensitive=true" in html
+    assert "renderCandidateData(currentCandidate || initialFallback)" not in html
+    assert "prepareStructuredFallbackData(" not in html
