@@ -19,6 +19,7 @@ TEST_MODULES = [
     "test_calendar_api",
     "test_auth_security",
     "test_candidate_lifecycle_api",
+    "test_dev_server",
     "test_offer_approvals_api",
     "test_frontend_practicality_static",
     "test_interview_detail",
@@ -150,6 +151,7 @@ def run():
             try:
                 if module_name not in {
                     "test_frontend_practicality_static",
+                    "test_dev_server",
                     "test_interview_detail_static",
                     "test_resume_access_static",
                 }:

@@ -122,8 +122,8 @@ assert.equal(fixture.status, 0, fixture.stderr.toString());
         console.log('PASS: real two-page PDF; authorized blob fetch; desktop/mobile flex height; toolbar bounds; fit-width; zoom; mode switch; fullscreen; 403/404/invalid PDF; retry; download');
 
         // Optional end-to-end check against the isolated local preview server.
-        if (process.env.AURA_PREVIEW_URL) {
-            const base = process.env.AURA_PREVIEW_URL;
+        if (process.env.AURA_SYNTHETIC_PREVIEW_URL) {
+            const base = process.env.AURA_SYNTHETIC_PREVIEW_URL;
             const actual = await browser.newPage({ viewport: { width: 1280, height: 900 } });
             await actual.goto(`${base}/login.html`);
             await actual.getByRole('button', { name: '登录', exact: true }).click();
