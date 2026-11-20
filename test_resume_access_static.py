@@ -17,3 +17,18 @@ def test_resume_files_are_read_through_authorized_api_only():
     assert 'authFetch(`/api/candidates/${candidate.id}/resume`)' in detail_html
     assert 'fetch(`/api/interviews/${encodeURIComponent(interview.id)}/resume`' in interview_html
     assert "window.open(rawUrl, '_blank')" not in detail_html
+
+
+def test_candidate_resume_preview_uses_flex_height_and_native_fit_width():
+    html = (ROOT / "candidate-detail.html").read_text(encoding="utf-8")
+
+    assert "#tab-pane-0.active {\n            display: flex;" in html
+    assert "height: calc(100% - 40px)" not in html
+    assert "availableHeight - 40" not in html
+    assert "? '#toolbar=0&navpanes=0&view=FitH'" in html
+    assert "setTimeout(() => applyPdfZoom(100)" not in html
+    assert 'title="候选人原始简历"' in html
+    assert 'src="assets/vendor/lucide-0.468.0/lucide.min.js"' in html
+    assert "if (window.lucide) lucide.createIcons();" in html
+    for name in ("缩小简历", "放大简历", "适应宽度", "切换全屏", "下载简历文件"):
+        assert f'aria-label="{name}"' in html

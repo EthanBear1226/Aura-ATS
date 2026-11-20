@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>候选人详情 - Aura ATS</title>
     <link rel="stylesheet" href="assets/css/styles.css?v=42">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="assets/vendor/lucide-0.468.0/lucide.min.js"></script>
     <style>
         body { 
             background: #f5f7fa; 
@@ -181,6 +181,8 @@
         /* 主体三栏黄金平铺 Layout (自适应铺满浏览器视口剩余空间，消除底部大片留白) */
         .detail-body-container {
             display: flex;
+            width: 100%;
+            flex-shrink: 0;
             gap: 16px;
             padding: 14px 24px 16px 24px;
             max-width: 100%;
@@ -196,7 +198,7 @@
             display: flex;
             flex-direction: column;
             min-width: 0;
-            height: calc(100vh - 180px);
+            height: var(--detail-pane-height, calc(100vh - 180px));
             min-height: 640px;
         }
 
@@ -204,22 +206,53 @@
             background: #f7f8fa;
             border: 1px solid #e5e6eb;
             border-radius: 8px 8px 0 0;
-            padding: 10px 18px;
+            padding: 10px 12px;
             display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
             justify-content: space-between;
             align-items: center;
             font-size: 13px;
             color: #1f2329;
             font-weight: 600;
-            height: 40px;
             box-sizing: border-box;
             flex-shrink: 0;
         }
 
+        .pdf-toolbar-title {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            width: 100%;
+            min-width: 0;
+        }
+        .pdf-toolbar-title > span { white-space: nowrap; }
+        #pdf-zoom-badge { font-size: 12px; color: #4e5969; }
+        #btn-toggle-resume-mode {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: auto;
+            border: 1px solid #d9dce0;
+            background: #fff;
+            color: #4e5969;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font: inherit;
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .pdf-toolbar-header svg { width: 16px; height: 16px; flex-shrink: 0; }
+
         .toolbar-action-icons {
             display: flex;
             align-items: center;
-            gap: 16px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            width: 100%;
+            gap: 4px;
             color: #4e5969;
         }
 
@@ -230,6 +263,11 @@
             justify-content: center;
             width: 28px;
             height: 28px;
+            flex-shrink: 0;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
             border-radius: 4px;
             transition: all 0.2s;
         }
@@ -237,16 +275,20 @@
             background: #e5e6eb;
             color: #165dff;
         }
+        .toolbar-icon-btn:focus-visible, #btn-toggle-resume-mode:focus-visible {
+            outline: 2px solid #165dff;
+            outline-offset: 2px;
+        }
+        .toolbar-icon-btn.btn-upload-new { background: #165dff; color: #fff; }
 
         .left-content-card {
             background: #ffffff;
             border: 1px solid #e5e6eb;
             border-top: none;
             border-radius: 0 0 8px 8px;
-            padding: 16px;
+            padding: 8px;
             flex: 1;
-            height: calc(100% - 40px);
-            min-height: 600px;
+            min-height: 0;
             box-sizing: border-box;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
             overflow: hidden;
@@ -260,7 +302,7 @@
             display: flex;
             flex-direction: column;
             min-width: 0;
-            height: calc(100vh - 180px);
+            height: var(--detail-pane-height, calc(100vh - 180px));
             min-height: 640px;
         }
 
@@ -501,6 +543,52 @@
         }
         .tab-pane-content.active {
             display: block;
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+        }
+        #tab-pane-0.active {
+            display: flex;
+            overflow: hidden;
+        }
+        #pdf-viewer-wrapper {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+        }
+        .left-main-pane:fullscreen {
+            width: 100%;
+            height: 100dvh;
+            min-height: 0;
+            background: #fff;
+        }
+        @media (max-width: 1200px) {
+            .detail-body-container {
+                display: grid;
+                grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+            }
+            .detail-body-container .right-control-sidebar {
+                grid-column: 1 / -1;
+                width: auto;
+                min-height: 0;
+            }
+        }
+        @media (max-width: 800px) {
+            .candidate-header-sticky { position: static; padding: 16px 12px 0; flex-shrink: 0; }
+            .header-first-line { align-items: flex-start; gap: 8px; }
+            .header-title-group { flex-wrap: wrap; min-width: 0; gap: 8px; }
+            .header-first-line > :last-child { flex-shrink: 0; }
+            .cand-name-large, .source-capsule-btn { max-width: 100%; overflow-wrap: anywhere; }
+            .header-pills-line { flex-wrap: wrap; }
+            .meta-item { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+            .tabs-header-bar { gap: 20px; overflow-x: auto; flex-shrink: 0; }
+            .tab-nav-item { flex-shrink: 0; white-space: nowrap; }
+            .detail-body-container { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+            .left-main-pane { height: max(640px, 75dvh); }
+            .middle-ai-pane { height: 640px; }
+            .pdf-toolbar-header { padding: 8px; }
+            .preview-fallback-container { padding: 24px 12px; }
+            .preview-fallback-container > div:last-child { flex-wrap: wrap; justify-content: center; }
         }
 
         /* Moka 专属组件与风格规范 */
@@ -997,31 +1085,21 @@
         
         <!-- 左侧 70% 沉浸式展示区 -->
         <div class="left-main-pane">
-            <!-- 上方简历工具栏 (原生矢量超高清 100% 渲染) -->
+            <!-- 简历工具栏 -->
             <div class="pdf-toolbar-header">
-                <div style="display:flex; align-items:center; gap:8px;">
+                <div class="pdf-toolbar-title">
                     <span style="font-weight:600; color:#1f2329;">原始简历预览</span>
-                    <span id="pdf-zoom-badge" style="font-size:11.5px; background:#e8f3ff; color:#165dff; border:1px solid #bedaff; padding:1px 8px; border-radius:10px; font-weight:600;">原生矢量超清 100%</span>
-                    <span id="btn-toggle-resume-mode" onclick="toggleResumeDisplayMode()" style="cursor:pointer; font-size:11.5px; color:#4e5969; background:#fff; border:1px solid #d9dce0; padding:2px 8px; border-radius:4px; font-weight:500; margin-left:4px;" title="在原始文件与结构化解析之间切换">📄 查看结构化</span>
+                    <span id="pdf-zoom-badge" aria-live="polite">适宽</span>
+                    <button type="button" id="btn-toggle-resume-mode" onclick="toggleResumeDisplayMode()" title="切换原始文件与结构化档案"><i data-lucide="file-text" aria-hidden="true"></i><span id="resume-mode-label">结构化档案</span></button>
                 </div>
-                <div class="toolbar-action-icons" style="gap:10px;">
-                    <span class="toolbar-icon-btn" title="缩小视窗" onclick="zoomPdfOut()">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                    </span>
-                    <span class="toolbar-icon-btn" title="放大简历" onclick="zoomPdfIn()">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                    </span>
-                    <span class="toolbar-icon-btn" title="还原100%原生矢量超高清" onclick="fitPdfWidth()" style="background:#e8f3ff; color:#165dff; font-weight:bold; width:auto; padding:0 8px; font-size:12px;">
-                        100%
-                    </span>
-                    <span style="height:14px; width:1px; background:#e5e6eb; margin:0 2px;"></span>
-                    <span class="toolbar-icon-btn" title="全屏沉浸查看" onclick="togglePdfFullScreen()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></span>
-                    <span class="toolbar-icon-btn" title="在新标签页查看原始文件" onclick="viewRawResumeFile()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></span>
-                    <span class="toolbar-icon-btn" title="下载简历文件" onclick="downloadResumePdf()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
-                    <button class="btn-upload-new" onclick="openReuploadModal()" style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px; background:#165dff; color:#fff; border:none; padding:4px 9px; border-radius:4px; cursor:pointer; font-weight:500;" title="上传该候选人的新版本简历附件">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        上传新版本
-                    </button>
+                <div class="toolbar-action-icons" role="group" aria-label="简历工具">
+                    <button type="button" class="toolbar-icon-btn" title="缩小简历" aria-label="缩小简历" onclick="zoomPdfOut()"><i data-lucide="zoom-out" aria-hidden="true"></i></button>
+                    <button type="button" class="toolbar-icon-btn" title="放大简历" aria-label="放大简历" onclick="zoomPdfIn()"><i data-lucide="zoom-in" aria-hidden="true"></i></button>
+                    <button type="button" class="toolbar-icon-btn" title="适应宽度" aria-label="适应宽度" onclick="fitPdfWidth()"><i data-lucide="move-horizontal" aria-hidden="true"></i></button>
+                    <button type="button" class="toolbar-icon-btn" title="切换全屏" aria-label="切换全屏" onclick="togglePdfFullScreen()"><i data-lucide="maximize" aria-hidden="true"></i></button>
+                    <button type="button" class="toolbar-icon-btn" title="在新标签页查看原始文件" aria-label="在新标签页查看原始文件" onclick="viewRawResumeFile()"><i data-lucide="external-link" aria-hidden="true"></i></button>
+                    <button type="button" class="toolbar-icon-btn" title="下载简历文件" aria-label="下载简历文件" onclick="downloadResumePdf()"><i data-lucide="download" aria-hidden="true"></i></button>
+                    <button type="button" class="toolbar-icon-btn btn-upload-new" title="上传新版本简历" aria-label="上传新版本简历" onclick="openReuploadModal()"><i data-lucide="upload" aria-hidden="true"></i></button>
                 </div>
             </div>
 
@@ -1039,7 +1117,7 @@
                         </div>
 
                         <!-- 2. iframe 原始预览 -->
-                        <iframe id="pdf-viewer" style="width:100%; height:100%; border:none; transition:transform 0.2s ease; display:none;"></iframe>
+                        <iframe id="pdf-viewer" title="候选人原始简历" style="width:100%; height:100%; border:none; display:none;"></iframe>
 
                         <!-- 3. 文件不存在 (404 / Missing) 兜底卡片 -->
                         <div id="pdf-missing-fallback" class="preview-fallback-container" style="display:none;">
@@ -1315,36 +1393,14 @@
             // 视口可用高度：视口高度 - 顶部Header底缘 - 底部padding边距(约20px)
             const availableHeight = Math.max(640, viewportHeight - headerBottom - 20);
 
-            const middlePane = document.querySelector('.middle-ai-pane');
-            if (middlePane) {
-                middlePane.style.height = `${availableHeight}px`;
-            }
-
-            const leftMainPane = document.querySelector('.left-main-pane');
-            if (leftMainPane) {
-                leftMainPane.style.height = `${availableHeight}px`;
-            }
-
-            const leftCard = document.querySelector('.left-content-card');
-            if (leftCard) {
-                leftCard.style.height = `${availableHeight - 40}px`; // 减去40px工具栏高度
-            }
-
-            const pdfWrapper = document.getElementById('pdf-viewer-wrapper');
-            if (pdfWrapper) {
-                pdfWrapper.style.height = '100%';
-            }
-
-            const rightSidebar = document.querySelector('.right-control-sidebar');
-            if (rightSidebar) {
-                rightSidebar.style.minHeight = `${availableHeight}px`;
-            }
+            const container = document.querySelector('.detail-body-container');
+            if (container) container.style.setProperty('--detail-pane-height', `${availableHeight}px`);
         }
 
         // ==============================================================================
         //        ▎ 原始简历原生矢量 100% 超高清重绘引擎 (彻底解决位图拉伸模糊发虚问题)
         // ==============================================================================
-        let currentPdfZoom = 100; // 默认 100% 原生矢量超高清渲染
+        let currentPdfZoom = null; // null uses the native PDF renderer's fit-width mode.
         let authorizedResumeUrl = null;
         let resumeRequestVersion = 0;
 
@@ -1369,12 +1425,12 @@
         });
 
         function applyPdfZoom(zoomVal) {
-            currentPdfZoom = Math.min(200, Math.max(80, zoomVal));
+            currentPdfZoom = zoomVal === null ? null : Math.min(200, Math.max(80, zoomVal));
             const iframe = document.getElementById('pdf-viewer');
             const badge = document.getElementById('pdf-zoom-badge');
             
             if (badge) {
-                badge.innerText = currentPdfZoom === 100 ? `原生矢量超清 100%` : `矢量重绘 ${currentPdfZoom}%`;
+                badge.innerText = currentPdfZoom === null ? '适宽' : `${currentPdfZoom}%`;
             }
             
             if (iframe) {
@@ -1386,7 +1442,9 @@
                 // 2. 使用 PDF 原生渲染器矢量重绘 URL Hash，保证笔画边缘绝对锐利
                 if (authorizedResumeUrl) {
                     const baseUrl = authorizedResumeUrl;
-                    const targetHash = `#toolbar=0&navpanes=0&view=FitH,top&zoom=${currentPdfZoom}`;
+                    const targetHash = currentPdfZoom === null
+                        ? '#toolbar=0&navpanes=0&view=FitH'
+                        : `#toolbar=0&navpanes=0&zoom=${currentPdfZoom}`;
                     if (!iframe.src.endsWith(targetHash)) {
                         iframe.src = `${baseUrl}${targetHash}`;
                     }
@@ -1395,16 +1453,15 @@
         }
 
         function zoomPdfIn() {
-            applyPdfZoom(currentPdfZoom + 15);
+            applyPdfZoom((currentPdfZoom ?? 100) + 15);
         }
 
         function zoomPdfOut() {
-            applyPdfZoom(currentPdfZoom - 15);
+            applyPdfZoom((currentPdfZoom ?? 100) - 15);
         }
 
         function fitPdfWidth() {
-            applyPdfZoom(100);
-            showToast('已还原为原生矢量 100% 超高清全宽展示', 'success');
+            applyPdfZoom(null);
         }
 
         // 智能捕获与 404 自愈无缝降级高保真结构化简历视图
@@ -1483,14 +1540,14 @@
 
         // 在原始文件与结构化解析视图之间切换
         function toggleResumeDisplayMode() {
-            const btn = document.getElementById('btn-toggle-resume-mode');
+            const label = document.getElementById('resume-mode-label');
             if (currentResumeMode === 'pdf') {
                 showFallbackResumeView(currentCandidate);
                 currentResumeMode = 'fallback';
-                if (btn) btn.innerText = '📑 查看原件';
+                if (label) label.innerText = '查看原件';
             } else {
                 currentResumeMode = 'pdf';
-                if (btn) btn.innerText = '📄 查看结构化';
+                if (label) label.innerText = '结构化档案';
                 loadPdfOrFallback(currentCandidate);
             }
         }
@@ -1633,13 +1690,8 @@
                             hideAllResumeViews();
                             if (errorFallback) errorFallback.style.display = 'flex';
                         };
-                        let pdfUrl = rawPdfUrl;
-                        if (!pdfUrl.includes('#')) {
-                            pdfUrl += '#toolbar=0&navpanes=0&view=FitH,top&zoom=100';
-                        }
-                        iframe.src = pdfUrl;
+                        applyPdfZoom(null);
                     }
-                    setTimeout(() => applyPdfZoom(100), 100);
                 }
             } catch (err) {
                 if (requestVersion !== resumeRequestVersion) return;
@@ -3418,9 +3470,15 @@
             openRejectModal();
         }
 
-        function togglePdfFullScreen() {
-            const viewer = document.getElementById('pdf-viewer');
-            if (viewer.requestFullscreen) viewer.requestFullscreen();
+        async function togglePdfFullScreen() {
+            const pane = document.querySelector('.left-main-pane');
+            try {
+                if (document.fullscreenElement) await document.exitFullscreen();
+                else if (pane && pane.requestFullscreen) await pane.requestFullscreen();
+                else showToast('当前浏览器不支持全屏，可在新标签页查看原件', 'info');
+            } catch {
+                showToast('未能进入全屏，可在新标签页查看原件', 'info');
+            }
         }
 
         async function openOfferDeptTreeModal() {
@@ -3585,6 +3643,7 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             if (window.renderSidebar) renderSidebar('candidates');
+            if (window.lucide) lucide.createIcons();
             loadDetail().then(() => {
                 const urlTab = new URLSearchParams(window.location.search).get('tab');
                 if (urlTab === 'offer') {
