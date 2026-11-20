@@ -4,7 +4,7 @@ import anyio
 import httpx2
 import pytest
 
-from dev_server import create_app, validate_upstream
+from dev_server import DEFAULT_PORT, DEFAULT_UPSTREAM, create_app, validate_upstream
 
 
 pytestmark = pytest.mark.no_db
@@ -69,7 +69,7 @@ def test_dev_server_forwards_auth_query_pdf_and_write_body_without_retry():
         assert pdf.headers["content-type"] == "application/pdf"
         assert pdf.headers["content-disposition"] == 'inline; filename="resume.pdf"'
         assert len(requests) == 2
-        assert requests[0] == ("PATCH", "http://127.0.0.1:18000/api/candidates/2?source=a%20b", b'{"stage":"test"}')
+        assert requests[0] == ("PATCH", "http://127.0.0.1:18001/api/candidates/2?source=a%20b", b'{"stage":"test"}')
     run_check(check, backend)
 
 
@@ -85,11 +85,12 @@ def test_dev_server_preserves_unauthorized_and_reports_tunnel_failure():
         unavailable = await client.get("/healthz")
         assert unavailable.status_code == 503
         assert "数据未被清空" in unavailable.json()["detail"]
+        assert "18001" in unavailable.json()["detail"]
     run_check(check, backend)
 
 
 def test_dev_server_upstream_cannot_be_remote_or_point_to_itself():
-    for url in ("https://example.com", "http://example.com:80", "http://127.0.0.1:8128",
+    for url in ("https://example.com", "http://example.com:80", "http://127.0.0.1:18000",
                 "http://user:pass@localhost:18000", "http://localhost:18000/api", "http://localhost:18000?x=1"):
         try:
             validate_upstream(url)
@@ -97,7 +98,9 @@ def test_dev_server_upstream_cannot_be_remote_or_point_to_itself():
             pass
         else:
             raise AssertionError(f"Unsafe upstream accepted: {url}")
-    assert validate_upstream("http://127.0.0.1:18000/") == "http://127.0.0.1:18000"
+    assert DEFAULT_PORT == 18000
+    assert DEFAULT_UPSTREAM == "http://127.0.0.1:18001"
+    assert validate_upstream("http://127.0.0.1:18001/") == "http://127.0.0.1:18001"
     assert create_app("http://127.0.0.1:8128", local_port=8129)
 
 
@@ -106,7 +109,7 @@ def test_dev_server_redirects_stay_on_the_local_origin_without_retry():
 
     def backend(request):
         requests.append(request.url)
-        return backend_response(307, headers={"Location": "http://127.0.0.1:18000/api/jobs/"})
+        return backend_response(307, headers={"Location": "http://127.0.0.1:18001/api/jobs/"})
 
     async def check(client):
         response = await client.post("/api/jobs")

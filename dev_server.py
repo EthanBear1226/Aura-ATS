@@ -12,6 +12,8 @@ from starlette.background import BackgroundTask
 
 
 ROOT = Path(__file__).resolve().parent
+DEFAULT_PORT = 18000
+DEFAULT_UPSTREAM = "http://127.0.0.1:18001"
 PAGES = frozenset({
     "index.html", "interviewer-workbench.html", "candidates.html",
     "talent-pool.html", "candidate-detail.html", "interviews.html",
@@ -25,7 +27,7 @@ HOP_HEADERS = frozenset({
 })
 
 
-def validate_upstream(value, local_port=8128):
+def validate_upstream(value, local_port=DEFAULT_PORT):
     parsed = urlsplit(value)
     if (
         parsed.scheme != "http"
@@ -46,7 +48,7 @@ def forwarded_headers(headers, request=False):
     return [(key.lower(), value) for key, value in headers.raw if key.decode().lower() not in blocked]
 
 
-def create_app(upstream="http://127.0.0.1:18000", *, transport=None, local_port=8128):
+def create_app(upstream=DEFAULT_UPSTREAM, *, transport=None, local_port=DEFAULT_PORT):
     upstream = validate_upstream(upstream, local_port=local_port)
 
     @asynccontextmanager
@@ -83,7 +85,7 @@ def create_app(upstream="http://127.0.0.1:18000", *, transport=None, local_port=
         except httpx2.RequestError:
             return JSONResponse(
                 status_code=503,
-                content={"detail": "测试数据服务无法连接。请确认 18000 SSH 隧道仍在运行；数据未被清空。"},
+                content={"detail": f"测试数据服务无法连接。请确认 {urlsplit(upstream).port} SSH 隧道仍在运行；数据未被清空。"},
             )
         result = StreamingResponse(
             response.aiter_raw(), status_code=response.status_code,
@@ -116,8 +118,8 @@ if __name__ == "__main__":
     import uvicorn
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--port", type=int, default=8128)
-    parser.add_argument("--upstream", default="http://127.0.0.1:18000")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--upstream", default=DEFAULT_UPSTREAM)
     args = parser.parse_args()
     target = validate_upstream(args.upstream, local_port=args.port)
     print(f"Local frontend: http://127.0.0.1:{args.port}/candidates.html", flush=True)

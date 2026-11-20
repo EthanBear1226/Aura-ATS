@@ -1,16 +1,31 @@
 # Fixed Local Development Entry
 
-Use `http://127.0.0.1:8128/candidates.html` throughout frontend development.
+Use `http://127.0.0.1:18000/candidates.html` throughout frontend development.
+The existing detail URL `http://127.0.0.1:18000/candidate-detail.html?id=2`
+now shows the local frontend with the same existing candidate data.
 Candidate IDs refer to the same existing test backend, including previously
 uploaded resumes. Do not start the synthetic preview server on this port again.
 
 ## Start
 
-Keep the existing SSH tunnel at `127.0.0.1:18000` running, then run:
+Keep the data-only SSH tunnel at `127.0.0.1:18001` running:
+
+```powershell
+ssh -i "$HOME\.ssh\aura_server" -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -N -L 127.0.0.1:18001:127.0.0.1:8000 admin@182.92.89.154
+```
+
+Enter any SSH key passphrase only in the local terminal, never in chat or Git.
+Keep this terminal open. In a second terminal at the project root, run:
 
 ```powershell
 .\venv\Scripts\python.exe dev_server.py
 ```
+
+Port `18000` belongs to this local frontend, not to an SSH tunnel. Do not
+restart the old SSH command forwarding `18000` directly to the server: it
+would occupy the frontend port and show the old server-side HTML.
+Port `18001` is data-only and is not the browser entry.
+The earlier `8128` entry is no longer the canonical development URL.
 
 `dev_server.py` serves HTML, JavaScript, CSS, and icons directly from this
 checkout with caching disabled. Refresh the same browser tab after editing.
@@ -44,4 +59,4 @@ test server.
 
 `candidate-resume-check.cjs` uses mocked API responses by default. Its optional
 `AURA_SYNTHETIC_PREVIEW_URL` must point to a separate synthetic-only QA server,
-never the fixed `8128` development entry with existing candidate data.
+never the fixed `18000` development entry with existing candidate data.
